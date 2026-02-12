@@ -256,6 +256,61 @@ export const getAnimeTopAiring = (page = 1) =>
     api.get('/anime/hianime/top-airing', { params: { page } })
   );
 
+// ========== ANIME BROWSE: Genre, Type, Season, Advanced Search ==========
+
+// Browse anime by genre (HiAnime primary, AnimeKai fallback)
+export const getAnimeByGenre = (genre, page = 1) =>
+  cachedGet(`anime:genre:${genre}:${page}`, async () => {
+    try {
+      const res = await api.get(`/anime/hianime/genre/${encodeURIComponent(genre)}`, { params: { page } });
+      if (res.data?.results?.length > 0 || res.data?.length > 0) return res;
+    } catch { /* fallback */ }
+    return api.get(`/anime/animekai/genre/${encodeURIComponent(genre)}`, { params: { page } });
+  });
+
+// Browse anime by type (movie, tv, ova, ona, special)
+export const getAnimeByType = (type, page = 1) =>
+  cachedGet(`anime:type:${type}:${page}`, async () => {
+    return api.get(`/anime/hianime/${type}`, { params: { page } });
+  });
+
+// Advanced search with combined filters (HiAnime)
+// params: { type, status, season, genres, startDate, endDate, sort, page }
+export const getAnimeAdvancedSearch = (params = {}) => {
+  const { type, season, genres, year, sort, page = 1 } = params;
+  const queryParams = { page };
+  if (type) queryParams.type = type;
+  if (season) queryParams.season = season;
+  if (genres) queryParams.genres = genres; // comma-separated
+  if (sort) queryParams.sort = sort;
+  if (year) {
+    // Season ranges: Winter=Jan-Mar, Spring=Apr-Jun, Summer=Jul-Sep, Fall=Oct-Dec
+    const seasonStartMonth = { winter: '01', spring: '04', summer: '07', fall: '10' };
+    const seasonEndMonth = { winter: '03', spring: '06', summer: '09', fall: '12' };
+    if (season && seasonStartMonth[season]) {
+      queryParams.startDate = `${year}-${seasonStartMonth[season]}-01`;
+      queryParams.endDate = `${year}-${seasonEndMonth[season]}-28`;
+    } else {
+      queryParams.startDate = `${year}-01-01`;
+      queryParams.endDate = `${year}-12-31`;
+    }
+  }
+  const cacheKey = `anime:advsearch:${JSON.stringify(queryParams)}`;
+  return cachedGet(cacheKey, () =>
+    api.get('/anime/hianime/advanced-search', { params: queryParams })
+  );
+};
+
+// Get anime genre list
+export const getAnimeGenreList = () =>
+  cachedGet('anime:genres', async () => {
+    try {
+      const res = await api.get('/anime/hianime/genres');
+      if (res.data?.length > 0) return res;
+    } catch { /* fallback */ }
+    return api.get('/anime/animekai/genre/list');
+  });
+
 // ========== MOVIES / TV (TMDB) ==========
 export const searchMoviesTMDB = (query, page = 1) =>
   cachedGet(`tmdb:search:${query}:${page}`, async () => {

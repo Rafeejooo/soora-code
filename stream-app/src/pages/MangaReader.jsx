@@ -18,9 +18,12 @@ export default function MangaReader() {
   const [currentPage, setCurrentPage] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [imgErrors, setImgErrors] = useState({});
-  const controlsTimer = useRef(null);
+  const [autoScroll, setAutoScroll] = useState(false);
+  const [scrollSpeed, setScrollSpeed] = useState(0); // 0=off, 1=slow, 2=medium, 3=fast
   const readerRef = useRef(null);
   const pageRefs = useRef([]);
+  const autoScrollRef = useRef(null);
+  const scrollSpeedRef = useRef(0);
 
   // Find current chapter and neighbors
   const chapters = mangaInfo?.chapters || [];
@@ -81,17 +84,10 @@ export default function MangaReader() {
     fetchData();
   }, [chapterId, mangaId, provider]);
 
-  // Auto-hide controls
-  const resetControlsTimer = useCallback(() => {
-    setShowControls(true);
-    clearTimeout(controlsTimer.current);
-    controlsTimer.current = setTimeout(() => setShowControls(false), 3000);
+  // Controls are toggled by click only (no auto-hide timer)
+  const toggleControls = useCallback(() => {
+    setShowControls((v) => !v);
   }, []);
-
-  useEffect(() => {
-    resetControlsTimer();
-    return () => clearTimeout(controlsTimer.current);
-  }, [resetControlsTimer]);
 
   // Track current page in vertical mode
   useEffect(() => {
@@ -111,6 +107,33 @@ export default function MangaReader() {
     pageRefs.current.forEach((el) => el && observer.observe(el));
     return () => observer.disconnect();
   }, [pages, readMode]);
+
+  // Auto-scroll logic
+  const SPEEDS = [0, 0.8, 2, 4.5]; // px per frame: off, slow, medium, fast
+  const SPEED_LABELS = ['Off', 'Lambat', 'Sedang', 'Cepat'];
+
+  useEffect(() => { scrollSpeedRef.current = scrollSpeed; }, [scrollSpeed]);
+
+  useEffect(() => {
+    if (readMode !== 'vertical' || scrollSpeed === 0) {
+      if (autoScrollRef.current) { cancelAnimationFrame(autoScrollRef.current); autoScrollRef.current = null; }
+      setAutoScroll(false);
+      return;
+    }
+    setAutoScroll(true);
+    const step = () => {
+      const spd = scrollSpeedRef.current;
+      if (spd === 0) { autoScrollRef.current = null; return; }
+      window.scrollBy(0, SPEEDS[spd]);
+      autoScrollRef.current = requestAnimationFrame(step);
+    };
+    autoScrollRef.current = requestAnimationFrame(step);
+    return () => { if (autoScrollRef.current) cancelAnimationFrame(autoScrollRef.current); };
+  }, [scrollSpeed, readMode]);
+
+  const cycleAutoScroll = () => {
+    setScrollSpeed((s) => (s + 1) % 4);
+  };
 
   // Page mode keyboard navigation
   useEffect(() => {
@@ -154,17 +177,22 @@ export default function MangaReader() {
   };
 
   // Tap zones for page mode (left = prev, right = next, center = controls)
+  // Click anywhere to toggle header/footer container
   const handleTap = (e) => {
-    if (readMode !== 'page') {
-      resetControlsTimer();
+    // Don't toggle if user clicked a button/link inside bars
+    if (e.target.closest('.mangareader-topbar') || e.target.closest('.mangareader-bottombar')) return;
+    // If in page mode, keep tap zones for navigation
+    if (readMode === 'page') {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const third = rect.width / 3;
+      if (x < third) goPrevPage();
+      else if (x > third * 2) goNextPage();
+      else toggleControls();
       return;
     }
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const third = rect.width / 3;
-    if (x < third) goPrevPage();
-    else if (x > third * 2) goNextPage();
-    else resetControlsTimer();
+    // In vertical mode, toggle controls on any click
+    toggleControls();
   };
 
   if (!chapterId) return <div className="error-msg">No chapter ID provided</div>;
@@ -197,10 +225,25 @@ export default function MangaReader() {
           <span className="mangareader-manga-title">{mangaTitle}</span>
           <span className="mangareader-ch-title">{chapterTitle}</span>
         </div>
+        {/* Auto-scroll button (vertical mode only) */}
+        {readMode === 'vertical' && (
+          <button
+            className={`mangareader-autoscroll-btn ${scrollSpeed > 0 ? 'active' : ''}`}
+            onClick={cycleAutoScroll}
+            title={`Auto Scroll: ${SPEED_LABELS[scrollSpeed]}`}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+              <path d="M12 5v14M5 12l7 7 7-7"/>
+            </svg>
+            {scrollSpeed > 0 && (
+              <span className="mangareader-speed-badge">{scrollSpeed}x</span>
+            )}
+          </button>
+        )}
         <div className="mangareader-mode-toggle">
           <button
             className={readMode === 'vertical' ? 'active' : ''}
-            onClick={() => setReadMode('vertical')}
+            onClick={() => { setReadMode('vertical'); }}
             title="Vertical Scroll"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
@@ -210,7 +253,7 @@ export default function MangaReader() {
           </button>
           <button
             className={readMode === 'page' ? 'active' : ''}
-            onClick={() => setReadMode('page')}
+            onClick={() => { setReadMode('page'); setScrollSpeed(0); }}
             title="Page by Page"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
@@ -319,6 +362,27 @@ export default function MangaReader() {
             value={currentPage}
             onChange={(e) => setCurrentPage(parseInt(e.target.value, 10))}
           />
+        )}
+
+        {/* Auto-scroll speed bar (bottom, vertical mode) */}
+        {readMode === 'vertical' && scrollSpeed > 0 && (
+          <div className="mangareader-autoscroll-bar">
+            <span className="mangareader-as-label">Auto Scroll</span>
+            <div className="mangareader-as-speeds">
+              {[1, 2, 3].map((s) => (
+                <button
+                  key={s}
+                  className={`mangareader-as-speed ${scrollSpeed === s ? 'active' : ''}`}
+                  onClick={() => setScrollSpeed(s)}
+                >
+                  {SPEED_LABELS[s]}
+                </button>
+              ))}
+            </div>
+            <button className="mangareader-as-stop" onClick={() => setScrollSpeed(0)}>
+              <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+            </button>
+          </div>
         )}
       </div>
     </div>

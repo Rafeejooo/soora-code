@@ -2,6 +2,10 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import MiniPlayer from './components/MiniPlayer';
 import { MiniPlayerProvider } from './context/MiniPlayerContext';
+import { AuthProvider } from './context/AuthContext';
+import MarketingLanding from './pages/MarketingLanding';
+import Login from './pages/Login';
+import Register from './pages/Register';
 import Landing from './pages/Landing';
 import Home from './pages/Home';
 import MovieHome from './pages/MovieHome';
@@ -17,7 +21,8 @@ import './App.css';
 
 function AppLayout() {
   const location = useLocation();
-  const isLanding = location.pathname === '/';
+  const isLanding = location.pathname === '/' || location.pathname === '/app';
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
 
   // Detect which "app" we're in based on path
   const isMovieSection = location.pathname.startsWith('/movies') || location.pathname.startsWith('/watch/movie');
@@ -32,9 +37,12 @@ function AppLayout() {
 
   return (
     <MiniPlayerProvider>
-      {!isLanding && !isMangaReader && <Navbar section={section} />}
+      {!isLanding && !isAuthPage && !isMangaReader && <Navbar section={section} />}
       <Routes>
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={<MarketingLanding />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/app" element={<Landing />} />
         {/* sooranime routes */}
         <Route path="/anime" element={<Home />} />
         <Route path="/anime/search" element={<Search searchType="anime" />} />
@@ -59,7 +67,7 @@ function AppLayout() {
         <Route path="/search/:type" element={<Search />} />
         <Route path="/movie/info" element={<MovieInfo />} />
       </Routes>
-      {!isLanding && !isMangaReader && <MiniPlayer />}
+      {!isLanding && !isAuthPage && !isMangaReader && <MiniPlayer />}
     </MiniPlayerProvider>
   );
 }
@@ -67,7 +75,9 @@ function AppLayout() {
 function App() {
   return (
     <BrowserRouter>
-      <AppLayout />
+      <AuthProvider>
+        <AppLayout />
+      </AuthProvider>
     </BrowserRouter>
   );
 }

@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://8rpt371q-3000.asse.devtunnels.ms/:path*"
+    }
+  ]
+}

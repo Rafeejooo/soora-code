@@ -40,7 +40,15 @@ export default function Navbar({ section = 'sooranime' }) {
 
   return (
     <div className={`navbar ${scrolled ? 'navbar-scrolled' : ''} ${isSooraflix ? 'navbar-sooraflix' : ''} ${isSooramics ? 'navbar-sooramics' : ''}`}>
-      <div className="logo-area" onClick={() => navigate('/')}>
+      <div
+        className="logo-area"
+        onClick={() => {
+          if (isSooramics) navigate('/manga');
+          else if (isSooraflix) navigate('/movies');
+          else navigate('/anime');
+        }}
+        style={{ cursor: 'pointer' }}
+      >
         <span className="logo">
           <span className="logo-mark" aria-hidden="true">
             <svg viewBox="0 0 28 28" width="22" height="22" fill="none">
@@ -66,16 +74,19 @@ export default function Navbar({ section = 'sooranime' }) {
           <>
             <a onClick={() => navigate('/manga')} className={isActive('/manga') && !isActive('/manga/search') && !isActive('/manga/info') ? 'active' : ''}>Home</a>
             <a onClick={() => navigate('/manga/search')} className={isActive('/manga/search') ? 'active' : ''}>Browse</a>
+            <a onClick={() => navigate('/')} className="nav-exit">Keluar</a>
           </>
         ) : isSooraflix ? (
           <>
             <a onClick={() => navigate('/movies')} className={isActive('/movies') && !isActive('/movies/search') && !isActive('/movies/info') ? 'active' : ''}>Home</a>
             <a onClick={() => navigate('/movies/search')} className={isActive('/movies/search') ? 'active' : ''}>Browse</a>
+            <a onClick={() => navigate('/')} className="nav-exit">Keluar</a>
           </>
         ) : (
           <>
             <a onClick={() => navigate('/anime')} className={isActive('/anime') && !isActive('/anime/search') && !isActive('/anime/info') ? 'active' : ''}>Home</a>
             <a onClick={() => navigate('/anime/search')} className={isActive('/anime/search') ? 'active' : ''}>Browse</a>
+            <a onClick={() => navigate('/')} className="nav-exit">Keluar</a>
           </>
         )}
         <a onClick={() => navigate(mylistPath)} className={`nav-mylist ${location.pathname.includes('/mylist') ? 'active' : ''}`}>
