@@ -7,6 +7,7 @@ export default function Navbar({ section = 'sooranime' }) {
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [listCount, setListCount] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const isSooraflix = section === 'sooraflix';
   const isSooramics = section === 'sooramics';
@@ -31,6 +32,21 @@ export default function Navbar({ section = 'sooranime' }) {
     return () => window.removeEventListener('mylist-changed', updateCount);
   }, [mylistType]);
 
+  // Close menu on route change
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
+  // Lock body scroll when menu open
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [menuOpen]);
+
   const isActive = (path) => {
     if (path === '/anime' && !isSooraflix && !isSooramics) return location.pathname === '/anime';
     if (path === '/movies' && isSooraflix) return location.pathname === '/movies';
@@ -38,14 +54,19 @@ export default function Navbar({ section = 'sooranime' }) {
     return location.pathname.startsWith(path);
   };
 
+  const handleNav = (path) => {
+    navigate(path);
+    setMenuOpen(false);
+  };
+
   return (
     <div className={`navbar ${scrolled ? 'navbar-scrolled' : ''} ${isSooraflix ? 'navbar-sooraflix' : ''} ${isSooramics ? 'navbar-sooramics' : ''}`}>
       <div
         className="logo-area"
         onClick={() => {
-          if (isSooramics) navigate('/manga');
-          else if (isSooraflix) navigate('/movies');
-          else navigate('/anime');
+          if (isSooramics) handleNav('/manga');
+          else if (isSooraflix) handleNav('/movies');
+          else handleNav('/anime');
         }}
         style={{ cursor: 'pointer' }}
       >
@@ -69,27 +90,42 @@ export default function Navbar({ section = 'sooranime' }) {
           </span>
         </span>
       </div>
-      <nav>
+
+      {/* Hamburger button — mobile only */}
+      <button
+        className={`nav-hamburger ${menuOpen ? 'open' : ''}`}
+        onClick={() => setMenuOpen((v) => !v)}
+        aria-label="Toggle menu"
+      >
+        <span />
+        <span />
+        <span />
+      </button>
+
+      {/* Overlay */}
+      {menuOpen && <div className="nav-overlay" onClick={() => setMenuOpen(false)} />}
+
+      <nav className={menuOpen ? 'nav-open' : ''}>
         {isSooramics ? (
           <>
-            <a onClick={() => navigate('/manga')} className={isActive('/manga') && !isActive('/manga/search') && !isActive('/manga/info') ? 'active' : ''}>Home</a>
-            <a onClick={() => navigate('/manga/search')} className={isActive('/manga/search') ? 'active' : ''}>Browse</a>
-            <a onClick={() => navigate('/')} className="nav-exit">Keluar</a>
+            <a onClick={() => handleNav('/manga')} className={isActive('/manga') && !isActive('/manga/search') && !isActive('/manga/info') ? 'active' : ''}>Home</a>
+            <a onClick={() => handleNav('/manga/search')} className={isActive('/manga/search') ? 'active' : ''}>Browse</a>
+            <a onClick={() => handleNav('/')} className="nav-exit">Keluar</a>
           </>
         ) : isSooraflix ? (
           <>
-            <a onClick={() => navigate('/movies')} className={isActive('/movies') && !isActive('/movies/search') && !isActive('/movies/info') ? 'active' : ''}>Home</a>
-            <a onClick={() => navigate('/movies/search')} className={isActive('/movies/search') ? 'active' : ''}>Browse</a>
-            <a onClick={() => navigate('/')} className="nav-exit">Keluar</a>
+            <a onClick={() => handleNav('/movies')} className={isActive('/movies') && !isActive('/movies/search') && !isActive('/movies/info') ? 'active' : ''}>Home</a>
+            <a onClick={() => handleNav('/movies/search')} className={isActive('/movies/search') ? 'active' : ''}>Browse</a>
+            <a onClick={() => handleNav('/')} className="nav-exit">Keluar</a>
           </>
         ) : (
           <>
-            <a onClick={() => navigate('/anime')} className={isActive('/anime') && !isActive('/anime/search') && !isActive('/anime/info') ? 'active' : ''}>Home</a>
-            <a onClick={() => navigate('/anime/search')} className={isActive('/anime/search') ? 'active' : ''}>Browse</a>
-            <a onClick={() => navigate('/')} className="nav-exit">Keluar</a>
+            <a onClick={() => handleNav('/anime')} className={isActive('/anime') && !isActive('/anime/search') && !isActive('/anime/info') ? 'active' : ''}>Home</a>
+            <a onClick={() => handleNav('/anime/search')} className={isActive('/anime/search') ? 'active' : ''}>Browse</a>
+            <a onClick={() => handleNav('/')} className="nav-exit">Keluar</a>
           </>
         )}
-        <a onClick={() => navigate(mylistPath)} className={`nav-mylist ${location.pathname.includes('/mylist') ? 'active' : ''}`}>
+        <a onClick={() => handleNav(mylistPath)} className={`nav-mylist ${location.pathname.includes('/mylist') ? 'active' : ''}`}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
           My List
           {listCount > 0 && <span className="nav-badge">{listCount}</span>}

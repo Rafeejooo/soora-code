@@ -45,13 +45,8 @@ const SEASON_OPTIONS = [
 ];
 
 const currentYear = new Date().getFullYear();
-const YEAR_OPTIONS = [
-  { value: '', label: 'Semua' },
-  ...Array.from({ length: 30 }, (_, i) => {
-    const y = currentYear - i;
-    return { value: String(y), label: String(y) };
-  }),
-];
+const QUICK_YEARS = Array.from({ length: 8 }, (_, i) => currentYear - i);
+const ALL_YEARS = Array.from({ length: 30 }, (_, i) => currentYear - i);
 
 export default function Home() {
   const [spotlight, setSpotlight] = useState([]);
@@ -64,6 +59,7 @@ export default function Home() {
   const [searchVal, setSearchVal] = useState('');
 
   /* filters */
+  const [filterOpen, setFilterOpen] = useState(false);
   const [filterType, setFilterType] = useState('');
   const [filterSeason, setFilterSeason] = useState('');
   const [filterYear, setFilterYear] = useState('');
@@ -255,88 +251,134 @@ export default function Home() {
       </div>
 
       {/* ── Filter Panel ── */}
-      <div className="anime-filter-panel">
-        {/* Type pills */}
-        <div className="filter-row">
-          <span className="filter-label">Tipe</span>
-          <div className="filter-pills">
-            {TYPE_OPTIONS.map((o) => (
-              <button
-                key={o.value}
-                className={`filter-pill ${filterType === o.value ? 'active' : ''}`}
-                onClick={() => setFilterType(o.value)}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Season pills */}
-        <div className="filter-row">
-          <span className="filter-label">Season</span>
-          <div className="filter-pills">
-            {SEASON_OPTIONS.map((o) => (
-              <button
-                key={o.value}
-                className={`filter-pill ${filterSeason === o.value ? 'active' : ''}`}
-                onClick={() => setFilterSeason(o.value)}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Year select */}
-        <div className="filter-row">
-          <span className="filter-label">Tahun</span>
-          <div className="filter-pills">
-            <select value={filterYear} onChange={(e) => setFilterYear(e.target.value)} className="filter-select-modern">
-              {YEAR_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Active filter chips + reset */}
-        {isFilterActive && (
-          <div className="filter-active-bar">
-            <div className="filter-active-chips">
-              {filterType && (
-                <span className="filter-chip">
-                  {TYPE_OPTIONS.find((o) => o.value === filterType)?.label}
-                  <button onClick={() => setFilterType('')}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="12" height="12"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                  </button>
-                </span>
-              )}
-              {filterSeason && (
-                <span className="filter-chip">
-                  {SEASON_OPTIONS.find((o) => o.value === filterSeason)?.label}
-                  <button onClick={() => setFilterSeason('')}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="12" height="12"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                  </button>
-                </span>
-              )}
-              {filterYear && (
-                <span className="filter-chip">
-                  {filterYear}
-                  <button onClick={() => setFilterYear('')}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="12" height="12"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                  </button>
-                </span>
+      <div className="af-panel">
+        <div className={`af-card ${filterOpen ? 'open' : ''}`}>
+          {/* Toggle header — always visible */}
+          <button className="af-header" onClick={() => setFilterOpen((v) => !v)}>
+            <div className="af-header-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>
+              </svg>
+              <span>Filter</span>
+              {isFilterActive && !filterOpen && (
+                <span className="af-header-count">{[filterType, filterSeason, filterYear].filter(Boolean).length}</span>
               )}
             </div>
-            <button className="filter-reset-btn" onClick={clearFilters}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
-              </svg>
-              Reset Semua
-            </button>
+            <svg className="af-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
+          </button>
+
+          {/* Collapsible body */}
+          <div className="af-body">
+            <div className="af-body-inner">
+              {/* Type + Season side by side */}
+              <div className="af-top">
+                <div className="af-group">
+                  <span className="af-label">Tipe</span>
+                  <div className="af-pills">
+                    {TYPE_OPTIONS.map((o) => (
+                      <button
+                        key={o.value}
+                        className={`af-pill ${filterType === o.value ? 'active' : ''}`}
+                        onClick={() => setFilterType(o.value)}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="af-divider" />
+                <div className="af-group">
+                  <span className="af-label">Season</span>
+                  <div className="af-pills">
+                    {SEASON_OPTIONS.map((o) => (
+                      <button
+                        key={o.value}
+                        className={`af-pill ${filterSeason === o.value ? 'active' : ''}`}
+                        onClick={() => setFilterSeason(o.value)}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Year picker */}
+              <div className="af-year-section">
+                <span className="af-label">Tahun</span>
+                <div className="af-year-track">
+                  <button
+                    className={`af-year-btn ${filterYear === '' ? 'active' : ''}`}
+                    onClick={() => setFilterYear('')}
+                  >
+                    Semua
+                  </button>
+                  {QUICK_YEARS.map((y) => (
+                    <button
+                      key={y}
+                      className={`af-year-btn ${filterYear === String(y) ? 'active' : ''}`}
+                      onClick={() => setFilterYear(String(y))}
+                    >
+                      {y}
+                    </button>
+                  ))}
+                  <div className="af-year-more">
+                    <select
+                      value={!filterYear || QUICK_YEARS.includes(Number(filterYear)) ? '' : filterYear}
+                      onChange={(e) => e.target.value && setFilterYear(e.target.value)}
+                      className="af-year-select"
+                    >
+                      <option value="">Lainnya</option>
+                      {ALL_YEARS.filter((y) => !QUICK_YEARS.includes(y)).map((y) => (
+                        <option key={y} value={String(y)}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Active summary bar */}
+              {isFilterActive && (
+                <div className="af-active-bar">
+                  <div className="af-chips">
+                    {filterType && (
+                      <span className="af-chip">
+                        {TYPE_OPTIONS.find((o) => o.value === filterType)?.label}
+                        <button onClick={() => setFilterType('')} aria-label="Remove">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="11" height="11"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                        </button>
+                      </span>
+                    )}
+                    {filterSeason && (
+                      <span className="af-chip">
+                        {SEASON_OPTIONS.find((o) => o.value === filterSeason)?.label}
+                        <button onClick={() => setFilterSeason('')} aria-label="Remove">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="11" height="11"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                        </button>
+                      </span>
+                    )}
+                    {filterYear && (
+                      <span className="af-chip">
+                        {filterYear}
+                        <button onClick={() => setFilterYear('')} aria-label="Remove">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="11" height="11"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                        </button>
+                      </span>
+                    )}
+                  </div>
+                  <button className="af-reset" onClick={clearFilters}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
+                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+                    </svg>
+                    Reset
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* ── Filter Results ── */}
@@ -363,8 +405,8 @@ export default function Home() {
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M8 11h6" strokeLinecap="round"/>
               </svg>
               <p>Tidak ada anime yang cocok dengan filter ini</p>
-              <button className="filter-reset-btn" onClick={clearFilters}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+              <button className="af-reset" onClick={clearFilters}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
                   <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
                 </svg>
                 Reset Filter

@@ -1,8 +1,34 @@
 {
+  "functions": {
+    "api/proxy.js": { "maxDuration": 30 },
+    "api/manga-img.js": { "maxDuration": 15 }
+  },
   "rewrites": [
+    {
+      "source": "/api/proxy",
+      "destination": "/api/proxy"
+    },
+    {
+      "source": "/manga-img",
+      "destination": "/api/manga-img"
+    },
     {
       "source": "/api/:path*",
       "destination": "https://8rpt371q-3000.asse.devtunnels.ms/:path*"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
+      ]
     }
   ]
 }

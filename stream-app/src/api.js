@@ -445,6 +445,34 @@ export const discoverByGenre = (genreId, page = 1, mediaType = 'movie') =>
     };
   });
 
+/**
+ * Advanced TMDB discover — supports genre, year, sort, and media type filters.
+ * @param {{ mediaType?: 'movie'|'tv', genre?: number, year?: string|number, sort?: string, page?: number }} params
+ */
+export const discoverTMDB = ({ mediaType = 'movie', genre, year, sort = 'popularity.desc', page = 1 } = {}) => {
+  const key = `tmdb:adv:${mediaType}:${genre || ''}:${year || ''}:${sort}:${page}`;
+  return cachedGet(key, async () => {
+    const params = { page, sort_by: sort };
+    if (genre) params.with_genres = genre;
+    if (year) {
+      if (mediaType === 'movie') {
+        params.primary_release_year = year;
+      } else {
+        params.first_air_date_year = year;
+      }
+    }
+    const res = await tmdb.get(`/discover/${mediaType}`, { params });
+    return {
+      data: {
+        results: res.data.results.map((r) =>
+          normalizeTMDB({ ...r, media_type: mediaType })
+        ),
+        totalPages: res.data.total_pages,
+      },
+    };
+  });
+};
+
 // ========== MOVIE / TV STREAMING (Goku — primary, FlixHQ — fallback) ==========
 // Goku returns accessible HLS m3u8 sources with multiple quality levels.
 

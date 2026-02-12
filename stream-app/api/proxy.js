@@ -1,0 +1,108 @@
+/**
+ * Vercel Serverless Function — Stream/Subtitle proxy
+ * Replicates the Vite dev middleware /api/proxy for production.
+ * Proxies HLS m3u8, video segments, subtitle VTT, and encryption keys
+ * with proper Referer/Origin headers.
+ */
+export default async function handler(req, res) {
+  // CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') { res.status(200).end(); return; }
+
+  const { url, referer } = req.query;
+  if (!url) { res.status(400).send('Missing url'); return; }
+
+  try {
+    // Build origin from referer
+    let origin = '';
+    if (referer) {
+      try { origin = new URL(referer).origin; } catch { origin = ''; }
+    }
+
+    let targetHost = '';
+    try { targetHost = new URL(url).hostname; } catch {}
+    let refHost = '';
+    if (origin) try { refHost = new URL(origin).hostname; } catch {}
+
+    // Only send Referer/Origin when target domain relates to embed domain
+    const needsHeaders = referer && (
+      targetHost === refHost ||
+      targetHost.includes('uwucdn') ||
+      targetHost.includes('megacloud') ||
+      targetHost.includes('megafiles') ||
+      targetHost.includes('vizcloud') ||
+      url.includes('.key') ||
+      url.includes('mon.key')
+    );
+
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    };
+    if (needsHeaders) {
+      if (referer) headers['Referer'] = referer;
+      if (origin) headers['Origin'] = origin;
+    }
+
+    let response = await fetch(url, { headers, redirect: 'follow' });
+
+    // If 403 and we didn't send headers, retry WITH headers
+    if (response.status === 403 && !needsHeaders && referer) {
+      if (referer) headers['Referer'] = referer;
+      if (origin) headers['Origin'] = origin;
+      response = await fetch(url, { headers, redirect: 'follow' });
+    }
+
+    if (!response.ok) {
+      res.status(response.status).send(`Upstream error ${response.status}`);
+      return;
+    }
+
+    // Forward content type & caching
+    let ct = response.headers.get('content-type') || 'application/octet-stream';
+    // Force correct MIME for subtitle files
+    if (url.endsWith('.vtt') || url.includes('.vtt?')) ct = 'text/vtt; charset=utf-8';
+    else if (url.endsWith('.srt') || url.includes('.srt?')) ct = 'text/plain; charset=utf-8';
+    res.setHeader('Content-Type', ct);
+    res.setHeader('Cache-Control', 'public, max-age=300');
+
+    // For m3u8 playlists, rewrite internal URLs to also go through proxy
+    if (ct.includes('mpegurl') || ct.includes('m3u8') || url.includes('.m3u8')) {
+      let text = await response.text();
+      const baseUrl = url.substring(0, url.lastIndexOf('/') + 1);
+      const refParam = referer ? `&referer=${encodeURIComponent(referer)}` : '';
+
+      const toAbs = (u) => u.startsWith('http') ? u : baseUrl + u;
+
+      // Rewrite #EXT-X-KEY:URI
+      text = text.replace(/(#EXT-X-KEY:[^\n]*URI=")([^"]+)(")/g, (match, pre, uri, post) => {
+        const absUri = toAbs(uri.trim());
+        return `${pre}/api/proxy?url=${encodeURIComponent(absUri)}${refParam}${post}`;
+      });
+
+      // Rewrite #EXT-X-MAP:URI
+      text = text.replace(/(#EXT-X-MAP:[^\n]*URI=")([^"]+)(")/g, (match, pre, uri, post) => {
+        const absUri = toAbs(uri.trim());
+        return `${pre}/api/proxy?url=${encodeURIComponent(absUri)}${refParam}${post}`;
+      });
+
+      // Rewrite segment/sub-playlist URLs
+      text = text.replace(/^(?!#)(\S+.*)$/gm, (line) => {
+        line = line.trim();
+        if (!line) return line;
+        const absUrl = toAbs(line);
+        return `/api/proxy?url=${encodeURIComponent(absUrl)}${refParam}`;
+      });
+
+      res.send(text);
+    } else {
+      // Binary (video segments, keys, subtitles) — pass through
+      const buffer = Buffer.from(await response.arrayBuffer());
+      res.send(buffer);
+    }
+  } catch (e) {
+    console.error('Stream proxy error:', e.message);
+    res.status(502).send('Stream proxy error');
+  }
+}
