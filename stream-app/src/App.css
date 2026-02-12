@@ -1,0 +1,5221 @@
+/* ===== DESIGN SYSTEM ===== */
+:root {
+  --bg-primary: #06060e;
+  --bg-secondary: rgba(15, 15, 30, 0.8);
+  --bg-card: rgba(20, 20, 45, 0.6);
+  --bg-glass: rgba(255, 255, 255, 0.03);
+  --text-primary: #f0f0f5;
+  --text-secondary: #8888a8;
+  --text-muted: #55556a;
+  --accent: #7c5cfc;
+  --accent-hover: #9b7dff;
+  --accent-glow: rgba(124, 92, 252, 0.25);
+  --gold: #fbbf24;
+  --border: rgba(255, 255, 255, 0.06);
+  --border-hover: rgba(255, 255, 255, 0.12);
+  --radius: 12px;
+  --radius-lg: 16px;
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--accent-hover);
+}
+
+/* ===== NAVBAR ===== */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2.5rem;
+  background: transparent;
+  transition: background var(--transition), backdrop-filter var(--transition);
+}
+.navbar-scrolled {
+  background: rgba(6, 6, 14, 0.85);
+  backdrop-filter: blur(20px) saturate(1.4);
+  border-bottom: 1px solid var(--border);
+}
+.navbar .logo-area {
+  cursor: pointer;
+}
+.navbar .logo {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+.navbar .logo .logo-mark {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+}
+.navbar .logo svg {
+  color: var(--accent);
+}
+.navbar .logo .logo-text {
+  display: flex;
+  align-items: baseline;
+}
+.navbar .logo .logo-name {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-size: 1.35rem;
+}
+.navbar nav {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+.navbar nav a {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.navbar nav a:hover {
+  color: var(--text-primary);
+  background: var(--bg-glass);
+}
+.navbar nav a.active {
+  color: var(--accent);
+  background: var(--accent-glow);
+}
+
+/* Nav mylist link */
+
+/* ===== LOGO ACCENT COLORS ===== */
+.logo-accent-anime {
+  color: var(--accent);
+}
+.logo-accent-flix {
+  color: #ff6b9d;
+}
+.logo-accent-mics {
+  color: #00d4aa;
+}
+
+/* ===== SOORAFLIX NAVBAR THEME ===== */
+.navbar-sooraflix .logo svg {
+  color: #ff6b9d;
+}
+.navbar-sooraflix .logo .logo-mark {
+  border-color: rgba(255, 107, 157, 0.15);
+}
+.navbar-sooraflix nav a.active {
+  color: #ff6b9d;
+  background: rgba(255, 107, 157, 0.15);
+}
+
+/* ===== SOORAFLIX PAGE THEME ===== */
+.sooraflix-page .section-title {
+  background: linear-gradient(90deg, #ff6b9d, #ff9ec4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.sooraflix-badge {
+  background: linear-gradient(135deg, #ff6b9d, #e84393) !important;
+}
+.sooraflix-btn-play {
+  background: linear-gradient(135deg, #ff6b9d, #e84393) !important;
+}
+.sooraflix-btn-play:hover {
+  background: linear-gradient(135deg, #ff85b1, #ff6b9d) !important;
+}
+.sooraflix-hero .hero-dot.active {
+  background: #ff6b9d !important;
+}
+
+/* ===== SOORAMICS NAVBAR THEME ===== */
+.navbar-sooramics .logo svg {
+  color: #00d4aa;
+}
+.navbar-sooramics .logo .logo-mark {
+  border-color: rgba(0, 212, 170, 0.15);
+}
+.navbar-sooramics nav a.active {
+  color: #00d4aa;
+  background: rgba(0, 212, 170, 0.15);
+}
+
+/* ===== SOORAMICS PAGE THEME ===== */
+.sooramics-page .section-title {
+  background: linear-gradient(90deg, #00d4aa, #4dffd4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.sooramics-badge {
+  background: linear-gradient(135deg, #00d4aa, #009e7e) !important;
+}
+.sooramics-btn-play {
+  background: linear-gradient(135deg, #00d4aa, #009e7e) !important;
+}
+.sooramics-btn-play:hover {
+  background: linear-gradient(135deg, #1de8be, #00d4aa) !important;
+  box-shadow: 0 4px 24px rgba(0, 212, 170, 0.25) !important;
+}
+.sooramics-hero .hero-dot.active {
+  background: #00d4aa !important;
+}
+.sooramics-page .home-search-form:focus-within {
+  border-color: #00d4aa;
+  box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.15);
+}
+.sooramics-page .mangainfo-genre {
+  border-color: rgba(0, 212, 170, 0.3);
+  color: #00d4aa;
+}
+.sooramics-page .mangainfo-chapter-item:hover {
+  background: rgba(0, 212, 170, 0.06);
+  border-color: rgba(0, 212, 170, 0.25);
+}
+
+/* ===== MANGA LANGUAGE SELECTOR ===== */
+.manga-lang-section {
+  max-width: 1400px;
+  margin: 0 auto 1.2rem;
+  padding: 0 4%;
+}
+.manga-lang-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.manga-lang-label {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.5);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.manga-lang-current {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(0, 212, 170, 0.1);
+  border: 1px solid rgba(0, 212, 170, 0.3);
+  color: #00d4aa;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.manga-lang-current:hover {
+  background: rgba(0, 212, 170, 0.18);
+}
+.manga-lang-current svg {
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+.manga-lang-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(20, 20, 25, 0.85);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+  animation: fadeSlideDown 0.2s ease;
+}
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.manga-lang-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  color: rgba(255,255,255,0.8);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.manga-lang-item:hover {
+  background: rgba(0, 212, 170, 0.1);
+  border-color: rgba(0, 212, 170, 0.25);
+}
+.manga-lang-item.active {
+  background: rgba(0, 212, 170, 0.15);
+  border-color: #00d4aa;
+  color: #00d4aa;
+  font-weight: 600;
+}
+.manga-lang-flag {
+  font-size: 1.1rem;
+}
+.manga-lang-note {
+  margin-top: 0.6rem;
+  font-size: 0.78rem;
+  color: rgba(0, 212, 170, 0.7);
+  padding: 0.4rem 0;
+}
+
+/* MangaDex language info banner on manga info page */
+.mangainfo-lang-banner {
+  position: relative;
+  z-index: 5;
+  max-width: 1200px;
+  margin: 0 auto 0.5rem;
+  padding: 0.55rem 1.2rem;
+  background: rgba(0, 212, 170, 0.1);
+  border: 1px solid rgba(0, 212, 170, 0.25);
+  border-radius: 10px;
+  color: #00d4aa;
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* ===== MANGA INFO — ERROR PAGE ===== */
+.mangainfo-error-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 1rem;
+  color: rgba(255,255,255,0.3);
+  padding: 2rem;
+}
+.mangainfo-error-text {
+  font-size: 1rem;
+  color: rgba(255,255,255,0.6);
+  text-align: center;
+}
+.mangainfo-error-actions {
+  display: flex;
+  gap: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+/* ===== MANGA INFO PAGE ===== */
+.mangainfo-page {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 5.5rem 2rem 4rem;
+  position: relative;
+}
+
+/* Backdrop banner */
+.mangainfo-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 420px;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.mangainfo-backdrop img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(40px) brightness(0.3) saturate(1.4);
+  transform: scale(1.3);
+}
+.mangainfo-backdrop-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom,
+    rgba(10,10,14,0.2) 0%,
+    rgba(10,10,14,0.6) 40%,
+    #0a0a0e 100%
+  );
+}
+.mangainfo-page > *:not(.mangainfo-backdrop) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Back button */
+.manga-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  color: rgba(255,255,255,0.7);
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 0.45rem 0.9rem;
+  margin-bottom: 1.8rem;
+  transition: all 0.2s;
+}
+.manga-back-btn:hover {
+  color: #00d4aa;
+  border-color: rgba(0,212,170,0.3);
+  background: rgba(0,212,170,0.08);
+}
+
+/* ===== HEADER ===== */
+.mangainfo-header {
+  display: flex;
+  gap: 2.2rem;
+  margin-bottom: 2.5rem;
+  align-items: flex-start;
+}
+
+/* Cover image */
+.mangainfo-cover {
+  flex-shrink: 0;
+  width: 220px;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow:
+    0 12px 40px rgba(0,0,0,0.6),
+    0 0 80px rgba(0,212,170,0.06),
+    inset 0 0 0 1px rgba(255,255,255,0.06);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.mangainfo-cover:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 16px 48px rgba(0,0,0,0.7),
+    0 0 80px rgba(0,212,170,0.1),
+    inset 0 0 0 1px rgba(255,255,255,0.1);
+}
+.mangainfo-cover img {
+  width: 100%;
+  aspect-ratio: 2/3;
+  object-fit: cover;
+  display: block;
+}
+.mangainfo-cover-placeholder {
+  width: 220px;
+  aspect-ratio: 2/3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  background: linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+  color: rgba(255,255,255,0.12);
+  border-radius: 14px;
+  border: 1px dashed rgba(255,255,255,0.08);
+  font-size: 0.75rem;
+}
+
+/* Meta section */
+.mangainfo-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+/* Type/Status badges at top */
+.mangainfo-type-badge {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.mangainfo-badge {
+  padding: 0.3rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(0,212,170,0.15);
+  color: #00d4aa;
+}
+.mangainfo-badge-novel {
+  background: rgba(255,170,50,0.15);
+  color: #ffaa32;
+}
+.mangainfo-badge-status {
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.6);
+}
+
+.mangainfo-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.15;
+  margin-bottom: 0.3rem;
+  letter-spacing: -0.02em;
+}
+.mangainfo-alt {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 0.7rem;
+  font-style: italic;
+}
+
+/* Stats row */
+.mangainfo-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+.mangainfo-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.5);
+}
+.mangainfo-stat svg {
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+/* Genres */
+.mangainfo-genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.9rem;
+}
+.mangainfo-genre {
+  padding: 0.22rem 0.65rem;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 212, 170, 0.2);
+  color: #00d4aa;
+  font-size: 0.72rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.mangainfo-genre:hover {
+  background: rgba(0, 212, 170, 0.08);
+  border-color: rgba(0, 212, 170, 0.4);
+}
+
+/* Description */
+.mangainfo-desc-wrap {
+  margin-bottom: 1rem;
+}
+.mangainfo-desc {
+  font-size: 0.88rem;
+  color: rgba(255,255,255,0.55);
+  line-height: 1.75;
+  margin-bottom: 0;
+}
+.mangainfo-desc-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.mangainfo-desc-toggle {
+  background: transparent;
+  border: none;
+  color: #00d4aa;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.3rem 0;
+  margin-top: 0.3rem;
+  transition: opacity 0.2s;
+}
+.mangainfo-desc-toggle:hover {
+  opacity: 0.8;
+}
+
+/* Action buttons */
+.mangainfo-actions {
+  display: flex;
+  gap: 0.7rem;
+  margin-top: 0.6rem;
+  flex-wrap: wrap;
+}
+.mangainfo-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.6rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, #00d4aa, #009e7e);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(0,212,170,0.3);
+  transition: all 0.25s;
+}
+.mangainfo-btn-primary:hover {
+  background: linear-gradient(135deg, #1de8be, #00d4aa);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 28px rgba(0,212,170,0.4);
+}
+.mangainfo-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.65rem 1.2rem;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.8);
+  backdrop-filter: blur(8px);
+  transition: all 0.25s;
+}
+.mangainfo-btn-secondary:hover {
+  border-color: rgba(0,212,170,0.3);
+  background: rgba(0,212,170,0.08);
+  color: #00d4aa;
+}
+
+/* ===== CHAPTER LIST ===== */
+.mangainfo-chapters {
+  background: rgba(255,255,255,0.02);
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 1.4rem;
+  backdrop-filter: blur(8px);
+}
+.mangainfo-chapters-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+.mangainfo-chapters-head h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.mangainfo-chapters-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: rgba(0,212,170,0.15);
+  color: #00d4aa;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.mangainfo-chapters-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Chapter search */
+.mangainfo-ch-search {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 0.35rem 0.7rem;
+  transition: all 0.2s;
+}
+.mangainfo-ch-search:focus-within {
+  border-color: rgba(0,212,170,0.3);
+  background: rgba(0,212,170,0.04);
+}
+.mangainfo-ch-search svg {
+  color: rgba(255,255,255,0.3);
+  flex-shrink: 0;
+}
+.mangainfo-ch-search input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: rgba(255,255,255,0.8);
+  font-size: 0.78rem;
+  width: 100px;
+}
+.mangainfo-ch-search input::placeholder {
+  color: rgba(255,255,255,0.25);
+}
+
+/* Sort button */
+.manga-sort-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 0.35rem 0.8rem;
+  color: rgba(255,255,255,0.55);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.manga-sort-btn:hover {
+  border-color: rgba(0, 212, 170, 0.3);
+  color: #00d4aa;
+  background: rgba(0, 212, 170, 0.04);
+}
+
+/* Chapter list container */
+.mangainfo-chapter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 520px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 212, 170, 0.2) transparent;
+  padding-right: 4px;
+}
+.mangainfo-chapter-list::-webkit-scrollbar {
+  width: 5px;
+}
+.mangainfo-chapter-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.mangainfo-chapter-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 170, 0.2);
+  border-radius: 10px;
+}
+.mangainfo-chapter-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 170, 0.35);
+}
+
+/* Chapter item */
+.mangainfo-chapter-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.8rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.mangainfo-chapter-item:hover {
+  background: rgba(0, 212, 170, 0.06);
+  border-color: rgba(0, 212, 170, 0.15);
+}
+.mangainfo-chapter-item:hover .mangainfo-ch-arrow {
+  opacity: 1;
+  transform: translateX(3px);
+  color: #00d4aa;
+}
+
+.mangainfo-ch-left {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0;
+  flex: 1;
+}
+.mangainfo-ch-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.5);
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  letter-spacing: -0.02em;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+.mangainfo-chapter-item:hover .mangainfo-ch-number {
+  background: rgba(0, 212, 170, 0.1);
+  border-color: rgba(0, 212, 170, 0.2);
+  color: #00d4aa;
+}
+.mangainfo-ch-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.mangainfo-chapter-name {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.85);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mangainfo-chapter-date {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.3);
+}
+.mangainfo-ch-arrow {
+  opacity: 0;
+  color: rgba(255,255,255,0.3);
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.mangainfo-ch-empty {
+  text-align: center;
+  padding: 2rem;
+  color: rgba(255,255,255,0.3);
+  font-size: 0.85rem;
+}
+
+/* Load more button */
+.manga-load-more {
+  display: block;
+  width: 100%;
+  margin-top: 0.8rem;
+  padding: 0.7rem;
+  border: 1px dashed rgba(255,255,255,0.1);
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(255,255,255,0.5);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.manga-load-more:hover {
+  border-color: rgba(0,212,170,0.3);
+  color: #00d4aa;
+  background: rgba(0,212,170,0.04);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 700px) {
+  .mangainfo-page {
+    padding: 4.5rem 1rem 2rem;
+  }
+  .mangainfo-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.5rem;
+  }
+  .mangainfo-cover {
+    width: 180px;
+  }
+  .mangainfo-cover-placeholder {
+    width: 180px;
+  }
+  .mangainfo-title {
+    font-size: 1.5rem;
+  }
+  .mangainfo-stats {
+    justify-content: center;
+  }
+  .mangainfo-genres {
+    justify-content: center;
+  }
+  .mangainfo-type-badge {
+    justify-content: center;
+  }
+  .mangainfo-actions {
+    justify-content: center;
+  }
+  .mangainfo-chapters-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .mangainfo-chapters-controls {
+    width: 100%;
+  }
+  .mangainfo-ch-search {
+    flex: 1;
+  }
+  .mangainfo-ch-search input {
+    width: 100%;
+  }
+}
+
+/* ===== MANGA READER ===== */
+.mangareader-page {
+  position: relative;
+  min-height: 100vh;
+  background: #000;
+  padding-top: 56px;
+  padding-bottom: 60px;
+}
+
+/* Top bar */
+.mangareader-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.6rem 1rem;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  transform: translateY(-100%);
+  transition: transform 0.3s;
+}
+.mangareader-topbar.visible {
+  transform: translateY(0);
+}
+.mangareader-back {
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.7);
+  cursor: pointer;
+  padding: 0.3rem;
+  display: flex;
+}
+.mangareader-back:hover {
+  color: #00d4aa;
+}
+.mangareader-title-area {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.mangareader-manga-title {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mangareader-ch-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Mode toggle */
+.mangareader-mode-toggle {
+  display: flex;
+  gap: 2px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 2px;
+}
+.mangareader-mode-toggle button {
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.4);
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s;
+}
+.mangareader-mode-toggle button.active {
+  background: rgba(0, 212, 170, 0.2);
+  color: #00d4aa;
+}
+.mangareader-mode-toggle button:hover:not(.active) {
+  color: rgba(255,255,255,0.7);
+}
+
+/* Reader content */
+.mangareader-content {
+  max-width: 800px;
+  margin: 0 auto;
+  min-height: calc(100vh - 116px);
+}
+
+/* Vertical scroll mode */
+.mangareader-vertical {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.mangareader-img-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+.mangareader-img-wrap img {
+  width: 100%;
+  max-width: 800px;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Single page mode */
+.mangareader-single {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 116px);
+}
+.mangareader-single img {
+  max-width: 100%;
+  max-height: calc(100vh - 120px);
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Tap zones (visual hint) */
+.mangareader-tap-zones {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  pointer-events: none;
+}
+.tap-zone {
+  flex: 1;
+}
+
+/* Image error */
+.mangareader-img-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 3rem;
+  color: rgba(255,255,255,0.25);
+  font-size: 0.8rem;
+}
+
+/* Bottom bar */
+.mangareader-bottombar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 0.5rem 1rem;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  transform: translateY(100%);
+  transition: transform 0.3s;
+}
+.mangareader-bottombar.visible {
+  transform: translateY(0);
+}
+.mangareader-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mangareader-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+  color: rgba(255,255,255,0.7);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.mangareader-nav-btn:hover:not(:disabled) {
+  border-color: rgba(0, 212, 170, 0.4);
+  color: #00d4aa;
+}
+.mangareader-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.mangareader-page-indicator {
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.5);
+  font-weight: 500;
+}
+
+/* Page slider */
+.mangareader-slider {
+  width: 100%;
+  margin-top: 0.5rem;
+  accent-color: #00d4aa;
+  height: 4px;
+}
+
+/* Manga error / retry */
+.manga-error {
+  text-align: center;
+  padding: 3rem 2rem;
+}
+.manga-retry-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 1.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 212, 170, 0.3);
+  background: rgba(0, 212, 170, 0.1);
+  color: #00d4aa;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+/* ===== MANGA PAGES RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .mangainfo-page {
+    padding: 5rem 1.2rem 2rem;
+  }
+  .mangainfo-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.2rem;
+  }
+  .mangainfo-cover {
+    width: 160px;
+  }
+  .mangainfo-title {
+    font-size: 1.4rem;
+  }
+  .mangainfo-genres {
+    justify-content: center;
+  }
+  .mangainfo-tags {
+    justify-content: center;
+  }
+  .mangainfo-chapter-list {
+    max-height: 400px;
+  }
+  .mangareader-content {
+    max-width: 100%;
+  }
+  .mangareader-img-wrap img {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .mangainfo-cover {
+    width: 140px;
+  }
+  .mangainfo-title {
+    font-size: 1.2rem;
+  }
+  .mangainfo-chapters {
+    padding: 0.8rem;
+  }
+  .mangainfo-chapter-item {
+    padding: 0.6rem 0.5rem;
+  }
+}
+
+/* ===== BUTTONS ===== */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.5rem;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  letter-spacing: -0.01em;
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 4px 20px var(--accent-glow);
+  transform: translateY(-1px);
+}
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-hover);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-glow);
+}
+
+/* ===== HERO BANNER ===== */
+.hero-banner {
+  position: relative;
+  height: 70vh;
+  min-height: 480px;
+  max-height: 700px;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute;
+  inset: 0;
+}
+.hero-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.35);
+}
+
+/* Enhance low-res hero images with blur for sooraflix & sooramics */
+.sooraflix-hero .hero-bg img {
+  filter: brightness(0.35) blur(2px);
+  transform: scale(1.05);
+}
+.sooramics-hero .hero-bg img {
+  filter: brightness(0.3) blur(6px);
+  transform: scale(1.1);
+}
+.hero-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(6, 6, 14, 0.3) 0%,
+    rgba(6, 6, 14, 0.5) 50%,
+    var(--bg-primary) 100%
+  );
+}
+.hero-content {
+  position: absolute;
+  bottom: 3rem;
+  left: 0;
+  right: 0;
+  padding: 0 3rem;
+  max-width: 700px;
+  animation: fadeUp 0.6s ease-out;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.hero-badge {
+  display: inline-block;
+  padding: 0.3rem 0.8rem;
+  background: var(--accent);
+  color: white;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.8rem;
+}
+.hero-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.6rem;
+}
+.hero-desc {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 0.8rem;
+  max-width: 500px;
+}
+.hero-meta {
+  display: flex;
+  gap: 0.8rem;
+  margin-bottom: 1.2rem;
+}
+.hero-meta span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+.hero-actions {
+  margin-bottom: 1.2rem;
+}
+.hero-dots {
+  display: flex;
+  gap: 6px;
+}
+.hero-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+  padding: 0;
+}
+.hero-dot.active {
+  background: var(--accent);
+  width: 24px;
+  border-radius: 4px;
+}
+
+/* ===== HOME SEARCH ===== */
+.home-search {
+  max-width: 600px;
+  margin: -1.5rem auto 2rem;
+  padding: 0 2rem;
+  position: relative;
+  z-index: 10;
+}
+.home-search-form {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--bg-secondary);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 1rem;
+  transition: border-color var(--transition);
+}
+.home-search-form:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.home-search-form .search-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.home-search-form input {
+  flex: 1;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  outline: none;
+  padding: 0.5rem 0;
+}
+.home-search-form input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ===== SECTIONS ===== */
+.home-section {
+  margin-bottom: 2rem;
+  position: relative;
+}
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4%;
+  margin-bottom: 0.9rem;
+}
+.section-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #fff 60%, var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.section-nav {
+  display: flex;
+  gap: 0.45rem;
+}
+.scroll-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  backdrop-filter: blur(8px);
+}
+.scroll-btn svg {
+  width: 15px;
+  height: 15px;
+}
+.scroll-btn:hover:not(.disabled) {
+  border-color: var(--accent);
+  color: white;
+  background: var(--accent);
+  box-shadow: 0 0 20px var(--accent-glow);
+  transform: scale(1.1);
+}
+.scroll-btn:active:not(.disabled) {
+  transform: scale(0.95);
+}
+.scroll-btn.disabled {
+  opacity: 0.2;
+  cursor: default;
+}
+
+/* Row wrapper with edge fades */
+.card-row-wrapper {
+  position: relative;
+  overflow: visible;
+}
+.row-fade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 60px;
+  z-index: 5;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.row-fade-left {
+  left: 0;
+  background: linear-gradient(to right, var(--bg-primary) 30%, transparent);
+}
+.row-fade-right {
+  right: 0;
+  background: linear-gradient(to left, var(--bg-primary) 30%, transparent);
+}
+
+/* Horizontal scroll row */
+.card-row {
+  display: flex;
+  gap: 0.85rem;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 0.5rem 4% 1.5rem;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.card-row::-webkit-scrollbar {
+  display: none;
+}
+.card-row .card {
+  flex: 0 0 170px;
+  scroll-snap-align: start;
+}
+
+/* ===== CARD ===== */
+.card {
+  background: var(--bg-card);
+  border-radius: 14px;
+  overflow: visible;
+  cursor: pointer;
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 1px solid rgba(255,255,255,0.06);
+  position: relative;
+}
+.card:hover,
+.card.card-hovered {
+  transform: translateY(-10px) scale(1.04);
+  border-color: rgba(124, 92, 252, 0.3);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(124, 92, 252, 0.12);
+  z-index: 20;
+}
+.card-img-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px 14px 0 0;
+}
+.card-img-wrapper img {
+  width: 100%;
+  aspect-ratio: 3/4;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.card:hover .card-img-wrapper img,
+.card.card-hovered .card-img-wrapper img {
+  transform: scale(1.08);
+}
+
+/* Shine effect */
+.card-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.06) 45%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.06) 55%,
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  z-index: 2;
+}
+.card:hover .card-shine,
+.card.card-hovered .card-shine {
+  opacity: 1;
+  animation: cardShine 0.8s ease forwards;
+}
+@keyframes cardShine {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+
+/* Overlay with play circle */
+.card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.7) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.card:hover .card-overlay,
+.card.card-hovered .card-overlay {
+  opacity: 1;
+}
+.card-play-circle {
+  width: 42px;
+  height: 42px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 4px 20px rgba(124, 92, 252, 0.5);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform: scale(0.8);
+  opacity: 0;
+}
+.card:hover .card-play-circle,
+.card.card-hovered .card-play-circle {
+  transform: scale(1);
+  opacity: 1;
+}
+.card-play-circle:hover {
+  transform: scale(1.15) !important;
+}
+.card-play-circle svg {
+  margin-left: 2px;
+}
+
+.card-rating {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  color: var(--gold);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  z-index: 3;
+}
+.card-body {
+  padding: 0.65rem 0.75rem 0.7rem;
+}
+.card-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+.card-meta {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  margin-top: 0.35rem;
+  flex-wrap: wrap;
+}
+.card-meta span {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+.card-meta-eps {
+  font-size: 0.62rem !important;
+  color: rgba(255,255,255,0.45) !important;
+}
+.card-type-badge {
+  font-size: 0.58rem !important;
+  color: rgba(255,255,255,0.5) !important;
+  background: rgba(255,255,255,0.06);
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.card-type-badge.manga-type {
+  color: #00d4aa !important;
+  background: rgba(0, 212, 170, 0.12);
+}
+.card-type-badge.novel-type {
+  color: #ffaa32 !important;
+  background: rgba(255, 170, 50, 0.12);
+}
+.card-badge-sub {
+  font-size: 0.6rem !important;
+  color: var(--accent) !important;
+  text-transform: uppercase;
+  font-weight: 700;
+  background: rgba(124, 92, 252, 0.12);
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+}
+.card-badge-dub {
+  font-size: 0.6rem !important;
+  color: #34d399 !important;
+  text-transform: uppercase;
+  font-weight: 700;
+  background: rgba(52, 211, 153, 0.12);
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+}
+
+/* ===== CARD HOVER POPUP ===== */
+.card-popup {
+  position: fixed;
+  z-index: 9999;
+  border-radius: 14px;
+  overflow: visible;
+  background: #151525;
+  border: 1px solid rgba(124, 92, 252, 0.2);
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.65),
+    0 0 30px rgba(124, 92, 252, 0.1);
+  pointer-events: auto;
+}
+
+/* Below card (default) */
+.card-popup.popup-below {
+  animation: popupDropBelow 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes popupDropBelow {
+  from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Above card */
+.card-popup.popup-above {
+  animation: popupDropAbove 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes popupDropAbove {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Pointer arrow — below mode (arrow on top) */
+.popup-below .cpop-pointer {
+  position: absolute;
+  top: -6px;
+  bottom: auto;
+  transform: translateX(-50%) rotate(45deg);
+  width: 12px;
+  height: 12px;
+  background: #151525;
+  border-left: 1px solid rgba(124, 92, 252, 0.2);
+  border-top: 1px solid rgba(124, 92, 252, 0.2);
+}
+
+/* Pointer arrow — above mode (arrow on bottom) */
+.popup-above .cpop-pointer {
+  position: absolute;
+  bottom: -6px;
+  top: auto;
+  transform: translateX(-50%) rotate(225deg);
+  width: 12px;
+  height: 12px;
+  background: #151525;
+  border-left: 1px solid rgba(124, 92, 252, 0.2);
+  border-top: 1px solid rgba(124, 92, 252, 0.2);
+}
+
+/* Popup body */
+.cpop-body {
+  padding: 12px 14px 14px;
+}
+.cpop-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.cpop-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+.cpop-rating {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--gold);
+  white-space: nowrap;
+  flex-shrink: 0;
+  background: rgba(255, 193, 7, 0.1);
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+/* Meta tags */
+.cpop-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.cpop-tag {
+  font-size: 0.6rem;
+  color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.06);
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+.cpop-tag-accent {
+  color: var(--accent) !important;
+  background: rgba(124, 92, 252, 0.12) !important;
+}
+.cpop-tag-green {
+  color: #34d399 !important;
+  background: rgba(52, 211, 153, 0.12) !important;
+}
+
+/* Genres */
+.cpop-genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.cpop-genre {
+  font-size: 0.58rem;
+  color: rgba(255,255,255,0.4);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+/* Description */
+.cpop-desc {
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.5;
+  margin: 0 0 10px;
+}
+
+/* Skeleton loading */
+.cpop-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.cpop-skeleton {
+  height: 10px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px;
+  animation: shimmer 1.5s infinite;
+}
+.cpop-skeleton.short {
+  width: 60%;
+}
+@keyframes shimmer {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.8; }
+}
+
+/* Bottom actions */
+.cpop-actions {
+  display: flex;
+  gap: 6px;
+}
+.cpop-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 11px;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.cpop-btn-primary {
+  background: var(--accent);
+  color: white;
+}
+.cpop-btn-primary:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 4px 16px var(--accent-glow);
+  transform: scale(1.05);
+}
+.cpop-btn-ghost {
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.7);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.cpop-btn-ghost:hover {
+  background: rgba(255,255,255,0.1);
+  color: white;
+  transform: scale(1.05);
+}
+
+/* ===== GRID (for search results) ===== */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 1.2rem;
+  padding: 0 4% 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ===== SEARCH PAGE ===== */
+.search-page {
+  padding-top: 5rem;
+}
+.search-page-header {
+  text-align: center;
+  padding: 2rem 2rem 0;
+}
+.search-page-header h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.search-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-top: 0.3rem;
+}
+.search-container {
+  max-width: 650px;
+  margin: 1.5rem auto 2rem;
+  padding: 0 2rem;
+}
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--bg-secondary);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.5rem 0.4rem 1rem;
+  transition: border-color var(--transition);
+}
+.search-bar:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.search-bar .search-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.search-bar input {
+  flex: 1;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  outline: none;
+  padding: 0.5rem 0;
+}
+.search-bar input::placeholder {
+  color: var(--text-muted);
+}
+.search-bar .btn-primary {
+  padding: 0.55rem 1.2rem;
+  font-size: 0.85rem;
+}
+.search-results-section {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.search-results-section .section-title {
+  padding: 0 3rem 1rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+}
+.result-count {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* ===== GENRE CHIPS ===== */
+.genre-filter-section {
+  max-width: 650px;
+  margin: 0 auto 1.5rem;
+  padding: 0 2rem;
+}
+.genre-filter-section h3 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.6rem;
+}
+.genre-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+}
+.genre-chip {
+  padding: 0.38rem 0.9rem;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.genre-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+.genre-chip.active {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 12px rgba(124, 92, 252, 0.2);
+}
+
+/* ===== MY LIST PAGE (ml-*) ===== */
+.ml-page {
+  padding-top: 5rem;
+  min-height: 100vh;
+  --ml-accent: #7c5cfc;
+}
+
+/* Header */
+.ml-header {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem 2rem 0;
+}
+.ml-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.ml-section-badge {
+  display: inline-block;
+  padding: 0.2rem 0.7rem;
+  border-radius: 6px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+.ml-title {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.ml-count {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-top: 0.3rem;
+}
+
+/* Controls bar */
+.ml-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  flex-wrap: wrap;
+}
+.ml-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+  max-width: 400px;
+}
+.ml-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.ml-search {
+  width: 100%;
+  padding: 0.55rem 2.2rem 0.55rem 2.4rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+.ml-search:focus {
+  border-color: var(--ml-accent);
+  background: rgba(255,255,255,0.06);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ml-accent) 15%, transparent);
+}
+.ml-search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.1);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ml-search-clear:hover {
+  background: rgba(255,255,255,0.2);
+  color: var(--text-primary);
+}
+.ml-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+.ml-sort {
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  outline: none;
+  cursor: pointer;
+  appearance: auto;
+}
+.ml-sort:focus {
+  border-color: var(--ml-accent);
+}
+.ml-view-toggle {
+  display: flex;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.ml-view-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ml-view-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.06);
+}
+.ml-view-btn.active {
+  color: var(--ml-accent);
+  background: rgba(255,255,255,0.08);
+}
+
+/* ===== GRID VIEW ===== */
+.ml-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+  gap: 1.2rem;
+  padding: 1.5rem 2rem 3rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.ml-card {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+.ml-card:hover {
+  transform: translateY(-6px);
+}
+.ml-card-removing {
+  opacity: 0;
+  transform: scale(0.85) translateY(10px);
+  pointer-events: none;
+}
+.ml-card-poster {
+  position: relative;
+  aspect-ratio: 2/3;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.03);
+}
+.ml-card-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+.ml-card:hover .ml-card-poster img {
+  transform: scale(1.05);
+}
+.ml-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ml-card:hover .ml-card-overlay {
+  opacity: 1;
+}
+.ml-card-play {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.9);
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(8px);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  transform: scale(0.8);
+  opacity: 0;
+}
+.ml-card:hover .ml-card-play {
+  transform: scale(1);
+  opacity: 1;
+}
+.ml-card-play:hover {
+  background: var(--ml-accent);
+  border-color: var(--ml-accent);
+  transform: scale(1.1) !important;
+}
+.ml-card-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 5;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(8px);
+  color: rgba(255,255,255,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0;
+}
+.ml-card:hover .ml-card-remove {
+  opacity: 1;
+}
+.ml-card-remove:hover {
+  background: rgba(220, 38, 38, 0.9);
+  color: white;
+  transform: scale(1.15);
+}
+.ml-card-rating {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  color: #fbbf24;
+  font-size: 0.72rem;
+  font-weight: 700;
+  z-index: 3;
+}
+.ml-card-info {
+  padding: 0.65rem 0.2rem 0.2rem;
+}
+.ml-card-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.ml-card-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+
+/* ===== LIST VIEW ===== */
+.ml-list {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1rem 2rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.ml-list-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.ml-list-item:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.08);
+  transform: translateX(4px);
+}
+.ml-list-item.ml-card-removing {
+  opacity: 0;
+  transform: translateX(-20px);
+  max-height: 0;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+}
+.ml-list-poster {
+  width: 52px;
+  height: 72px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.03);
+}
+.ml-list-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ml-list-info {
+  flex: 1;
+  min-width: 0;
+}
+.ml-list-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ml-list-meta {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+.ml-list-date {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+.ml-list-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+.ml-list-play,
+.ml-list-remove {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: transparent;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ml-list-play:hover {
+  background: var(--ml-accent);
+  border-color: var(--ml-accent);
+  color: white;
+}
+.ml-list-remove:hover {
+  background: rgba(220, 38, 38, 0.2);
+  border-color: rgba(220, 38, 38, 0.4);
+  color: #ef4444;
+}
+
+/* ===== EMPTY STATE ===== */
+.ml-empty {
+  text-align: center;
+  padding: 6rem 2rem 4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.ml-empty-icon {
+  color: var(--ml-accent);
+  margin-bottom: 1.5rem;
+  opacity: 0.6;
+}
+.ml-empty-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+.ml-empty-desc {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  max-width: 320px;
+  margin-bottom: 1.5rem;
+}
+.ml-empty-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.ml-empty-btn {
+  padding: 0.6rem 1.3rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+}
+.ml-empty-btn:hover {
+  background: rgba(255,255,255,0.1);
+  transform: translateY(-2px);
+}
+.ml-empty-btn-primary {
+  border: none;
+  color: white;
+}
+.ml-empty-btn-primary:hover {
+  filter: brightness(1.15);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .ml-header {
+    padding: 1.5rem 1rem 0;
+  }
+  .ml-title {
+    font-size: 1.5rem;
+  }
+  .ml-controls {
+    gap: 0.5rem;
+  }
+  .ml-search-wrap {
+    min-width: 0;
+    flex-basis: 100%;
+    max-width: none;
+  }
+  .ml-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.8rem;
+    padding: 1rem 1rem 2rem;
+  }
+  .ml-list {
+    padding: 0.75rem 1rem 2rem;
+  }
+  .ml-list-poster {
+    width: 44px;
+    height: 60px;
+  }
+}
+@media (max-width: 480px) {
+  .ml-grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 0.6rem;
+  }
+  .ml-card-title {
+    font-size: 0.78rem;
+  }
+}
+
+/* ===== CARD BOOKMARK ===== */
+.card-bookmark {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 5;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  opacity: 0;
+  padding: 0;
+}
+.card:hover .card-bookmark,
+.card.card-hovered .card-bookmark {
+  opacity: 1;
+}
+.card-bookmark:hover {
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  transform: scale(1.15);
+}
+.card-bookmark.active {
+  opacity: 1;
+  color: var(--accent);
+  background: rgba(124, 92, 252, 0.25);
+}
+.card-bookmark svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ===== NAVBAR MY LIST BADGE ===== */
+.nav-mylist {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.nav-mylist svg {
+  width: 16px;
+  height: 16px;
+}
+.nav-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  font-size: 0.6rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  line-height: 1;
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* ===== INFO PAGE ===== */
+.info-page {
+  position: relative;
+  padding-top: 4rem;
+  min-height: 100vh;
+}
+.info-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50vh;
+  overflow: hidden;
+  z-index: 0;
+}
+.info-backdrop img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.2) blur(4px);
+}
+.info-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(6,6,14,0.4), var(--bg-primary));
+}
+.info-page .back-btn {
+  position: relative;
+  z-index: 10;
+}
+.info-content {
+  position: relative;
+  z-index: 10;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 2rem 3rem;
+}
+.info-header {
+  display: flex;
+  gap: 2.5rem;
+  margin-bottom: 2rem;
+}
+.info-poster {
+  flex-shrink: 0;
+}
+.info-poster img {
+  width: 220px;
+  border-radius: var(--radius-lg);
+  object-fit: cover;
+  box-shadow: var(--shadow);
+  aspect-ratio: 3/4;
+}
+.info-details h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.3rem;
+}
+.info-alt-title {
+  color: var(--text-secondary);
+  font-style: italic;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+.info-meta {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 0.8rem 0;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+  padding: 0.3rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.badge-accent {
+  background: var(--accent-glow);
+  border-color: rgba(124, 92, 252, 0.3);
+  color: var(--accent-hover);
+}
+.badge-gold {
+  color: var(--gold);
+  border-color: rgba(251, 191, 36, 0.2);
+  background: rgba(251, 191, 36, 0.08);
+}
+.info-genres {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0;
+}
+.genre-tag {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  transition: all var(--transition);
+}
+.genre-tag:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.description {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.7;
+  max-height: 160px;
+  overflow-y: auto;
+  margin-top: 0.5rem;
+}
+.description::-webkit-scrollbar {
+  width: 4px;
+}
+.description::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+/* ===== EPISODE LIST ===== */
+.episode-section {
+  margin-top: 2rem;
+}
+.episode-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.episode-section h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Episode range tabs */
+.ep-range-tabs {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding: 0.3rem;
+  background: rgba(255,255,255,0.03);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.ep-range-tab {
+  padding: 0.35rem 0.85rem;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.ep-range-tab:hover {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.06);
+}
+.ep-range-tab.active {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+/* Episode search */
+.ep-search-wrap {
+  position: relative;
+  min-width: 140px;
+  max-width: 200px;
+}
+.ep-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.ep-search-input {
+  width: 100%;
+  padding: 0.4rem 1.8rem 0.4rem 2rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+.ep-search-input::placeholder {
+  color: var(--text-muted);
+}
+.ep-search-input:focus {
+  border-color: var(--accent);
+  background: rgba(255,255,255,0.06);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+.ep-search-clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.1);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+.ep-search-clear:hover {
+  background: rgba(255,255,255,0.2);
+  color: var(--text-primary);
+}
+
+/* Watch page episode header row */
+.ep-section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.episodes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.6rem;
+}
+.ep-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.7rem 0.5rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-align: center;
+  transition: all var(--transition);
+}
+.ep-btn:hover {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: white;
+  transform: translateY(-2px);
+}
+.ep-num {
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+.ep-title {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+.ep-btn:hover .ep-title {
+  color: rgba(255,255,255,0.7);
+}
+
+/* ===== WATCH PAGE ===== */
+.watch-page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  padding-top: 64px; /* offset for fixed navbar */
+}
+
+/* Player wrapper (16:9 aspect) */
+.watch-player-wrap {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  background: #000;
+}
+.vidking-player-container {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%;
+  background: #000;
+}
+.vidking-player-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ===== ANIME EMBED PLAYER (fallback) ===== */
+.anime-embed-container {
+  position: relative;
+  width: 100%;
+  background: #000;
+}
+.embed-server-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(124, 92, 252, 0.08);
+  border-bottom: 1px solid rgba(124, 92, 252, 0.15);
+}
+.embed-server-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.5);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.embed-server-label svg {
+  opacity: 0.6;
+}
+.embed-srv-btn {
+  padding: 5px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.6);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+.embed-srv-btn:hover {
+  background: rgba(124, 92, 252, 0.15);
+  border-color: rgba(124, 92, 252, 0.3);
+  color: #fff;
+}
+.embed-srv-btn.active {
+  background: var(--accent, #7c5cfc);
+  border-color: var(--accent, #7c5cfc);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(124, 92, 252, 0.3);
+}
+.embed-player-wrap {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%;
+  background: #000;
+}
+.embed-player-wrap iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+.embed-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.3);
+  background: rgba(0,0,0,0.3);
+}
+.embed-hint svg {
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+.player-wrapper {
+  position: relative;
+  padding-top: 56.25%;
+  background: #000;
+  overflow: hidden;
+}
+.player-wrapper iframe,
+.player-wrapper video,
+.player-wrapper > div {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.player-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  color: rgba(255,255,255,0.3);
+}
+.player-empty p { font-size: 0.9rem; }
+
+/* Player inline error state */
+.player-error-state {
+  gap: 0.6rem !important;
+}
+.player-error-state svg {
+  color: rgba(251, 191, 36, 0.6);
+}
+.player-error-title {
+  font-size: 1.1rem !important;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+.player-error-desc {
+  font-size: 0.82rem !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+  max-width: 360px;
+  text-align: center;
+  line-height: 1.4;
+}
+.player-error-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.3rem;
+}
+.btn-sm {
+  padding: 0.45rem 1rem !important;
+  font-size: 0.82rem !important;
+  gap: 0.4rem;
+}
+
+/* ===== NETFLIX-STYLE VIDEO PLAYER ===== */
+.nf-player {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  overflow: hidden;
+  cursor: none;
+  user-select: none;
+}
+.nf-player.show-controls {
+  cursor: default;
+}
+.nf-player.nf-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+.nf-video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+.nf-video-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.nf-video::cue {
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 1.1em;
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.4;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+/* Center play button */
+.nf-center-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.85);
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  z-index: 5;
+  opacity: 0;
+  pointer-events: none;
+}
+.nf-player.show-controls .nf-center-play {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+.nf-center-play:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translate(-50%, -50%) scale(1.08);
+}
+.nf-center-play svg {
+  width: 32px;
+  height: 32px;
+  fill: white;
+}
+
+/* Controls overlay */
+.nf-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.85));
+  padding: 3rem 1rem 0.75rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 10;
+}
+.nf-player.show-controls .nf-controls {
+  opacity: 1;
+}
+
+/* Progress bar */
+.nf-progress-wrap {
+  width: 100%;
+  height: 5px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+  margin-bottom: 0.5rem;
+  transition: height 0.15s ease;
+}
+.nf-progress-wrap:hover {
+  height: 8px;
+}
+.nf-progress-bar {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.nf-progress-buffered {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: rgba(255,255,255,0.2);
+  border-radius: 3px;
+  pointer-events: none;
+}
+.nf-progress-filled {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  pointer-events: none;
+}
+.nf-progress-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(124,92,252,0.5);
+  transition: transform 0.15s ease;
+  pointer-events: none;
+}
+.nf-progress-wrap:hover .nf-progress-thumb {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Controls row */
+.nf-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.nf-controls-left,
+.nf-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Control buttons */
+.nf-btn {
+  background: none;
+  border: none;
+  color: white;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+.nf-btn:hover {
+  background: rgba(255,255,255,0.12);
+}
+.nf-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Volume group */
+.nf-volume-group {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.nf-volume-slider {
+  width: 0;
+  opacity: 0;
+  transition: width 0.25s ease, opacity 0.25s ease;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.2);
+  outline: none;
+  margin-left: 0;
+  cursor: pointer;
+}
+.nf-volume-group:hover .nf-volume-slider {
+  width: 80px;
+  opacity: 1;
+  margin-left: 4px;
+}
+.nf-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(0,0,0,0.3);
+}
+.nf-volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: white;
+  border: none;
+  cursor: pointer;
+}
+
+/* Time display */
+.nf-time {
+  color: rgba(255,255,255,0.7);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  margin-left: 0.5rem;
+  white-space: nowrap;
+}
+
+/* Settings panel */
+.nf-settings {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  min-width: 220px;
+  background: rgba(15, 15, 30, 0.95);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.5rem;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.7);
+  animation: nfMenuIn 0.2s ease-out;
+  z-index: 20;
+}
+@keyframes nfMenuIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.nf-settings-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.nf-settings-back {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+.nf-settings-back:hover {
+  color: white;
+  background: rgba(255,255,255,0.08);
+}
+.nf-settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.55rem 0.6rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+.nf-settings-item:hover {
+  background: rgba(255,255,255,0.06);
+  color: white;
+}
+.nf-settings-item.active {
+  color: var(--accent);
+  background: var(--accent-glow);
+}
+.nf-settings-value {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.nf-settings-item.active .nf-settings-value {
+  color: var(--accent);
+}
+.nf-checkmark {
+  color: var(--accent);
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* Brightness control */
+.nf-brightness-control {
+  padding: 0.5rem;
+}
+.nf-brightness-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.15);
+  outline: none;
+  cursor: pointer;
+}
+.nf-brightness-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+.nf-brightness-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  cursor: pointer;
+}
+.nf-brightness-val {
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: white;
+  margin-top: 0.4rem;
+}
+.nf-brightness-presets {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+.nf-brightness-preset {
+  flex: 1;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+.nf-brightness-preset:hover {
+  background: rgba(255,255,255,0.06);
+  color: white;
+  border-color: var(--border-hover);
+}
+.nf-brightness-preset.active {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ===== OLD RES BADGE (kept for quality pills) ===== */
+.res-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-glow);
+  padding: 0.15rem 0.35rem;
+  border-radius: 3px;
+  letter-spacing: 0.03em;
+}
+
+/* ===== WATCH CONTENT (below player) ===== */
+.watch-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem 4rem;
+}
+
+/* Quality selector section (below anime player) */
+.watch-quality-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.watch-quality-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.watch-quality-pills {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.watch-quality-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: rgba(255,255,255,0.04);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.watch-quality-pill:hover {
+  background: rgba(255,255,255,0.08);
+  color: white;
+  border-color: rgba(255,255,255,0.15);
+}
+.watch-quality-pill.active {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.quality-auto-hint {
+  font-size: 0.65rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 0.15rem;
+}
+
+/* Title section */
+.watch-player-mode {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.watch-player-mode-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.watch-player-mode-pills {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.watch-title-section {
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.watch-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.watch-back-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--transition);
+  margin-top: 2px;
+}
+.watch-back-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: white;
+}
+.watch-title-info {
+  flex: 1;
+  min-width: 0;
+}
+.watch-title-info h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+.watch-ep-label {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-top: 0.25rem;
+}
+.watch-tagline {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: 0.25rem;
+}
+.watch-description {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 0.75rem;
+}
+.watch-meta-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.watch-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.6rem;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+.watch-badge-gold {
+  color: #fbbf24;
+  border-color: rgba(251,191,36,0.2);
+  background: rgba(251,191,36,0.08);
+}
+
+/* Episode navigation */
+.watch-ep-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+.watch-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.watch-nav-btn:hover {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.watch-nav-next {
+  margin-left: auto;
+}
+
+/* ===== WATCH EPISODES SECTION ===== */
+.watch-episodes-section {
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.watch-section-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 1rem;
+  letter-spacing: -0.01em;
+}
+
+/* Season tabs */
+.season-tabs {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.season-tab {
+  padding: 0.4rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.03);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.season-tab:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.season-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+  box-shadow: 0 2px 12px var(--accent-glow);
+}
+
+/* Episode grid (TV with thumbnails) */
+.watch-ep-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.6rem;
+}
+.watch-ep-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: rgba(255,255,255,0.03);
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: left;
+}
+.watch-ep-item:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: var(--border);
+}
+.watch-ep-item.active {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+}
+.watch-ep-thumb {
+  width: 100px;
+  height: 56px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.05);
+}
+.watch-ep-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1;
+}
+.watch-ep-num {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.watch-ep-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.watch-ep-overview {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Anime compact episode grid */
+.anime-ep-grid {
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+}
+.watch-ep-item.compact {
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0.6rem 0.8rem;
+}
+.watch-ep-item.compact .watch-ep-name {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* ===== RECOMMENDATIONS / SIMILAR ===== */
+.watch-rec-section {
+  padding: 1.5rem 0;
+}
+.watch-card-scroll {
+  display: flex;
+  gap: 0.8rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.watch-card-scroll::-webkit-scrollbar { height: 4px; }
+.watch-card-scroll::-webkit-scrollbar-track { background: transparent; }
+.watch-card-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+.watch-card-scroll .card {
+  flex: 0 0 160px;
+  scroll-snap-align: start;
+}
+
+/* Watch error page */
+.watch-error-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  padding: 4rem 2rem;
+  color: rgba(255,255,255,0.5);
+}
+.watch-error-page h3 {
+  font-size: 1.2rem;
+  color: white;
+  margin: 1rem 0 0.5rem;
+}
+.watch-error-page p {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  max-width: 400px;
+  margin-bottom: 0.5rem;
+}
+.watch-error-page .btn-play {
+  margin-top: 1rem;
+}
+
+/* ===== CAST SECTION (MovieInfo) ===== */
+.info-cast-section {
+  padding: 1.5rem 0;
+}
+.info-cast-section h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 1rem;
+}
+.cast-row {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  -webkit-overflow-scrolling: touch;
+}
+.cast-row::-webkit-scrollbar { height: 4px; }
+.cast-row::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.cast-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 90px;
+  text-align: center;
+}
+.cast-item img {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border);
+}
+.cast-name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90px;
+}
+.cast-char {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90px;
+}
+
+/* Info tagline */
+.info-tagline {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-bottom: 0.5rem;
+}
+
+/* Info page recommendation sections */
+.info-rec-section {
+  padding: 0;
+  margin-top: 1.5rem;
+}
+.info-rec-section .section-title {
+  padding: 0;
+}
+.card-grid.compact {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  padding: 0;
+  gap: 0.8rem;
+  margin-top: 0.75rem;
+}
+
+/* ===== HERO ENHANCED ===== */
+.hero-top-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+  flex-wrap: wrap;
+}
+.hero-quality {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  background: rgba(124, 92, 252, 0.2);
+  border: 1px solid rgba(124, 92, 252, 0.35);
+  color: var(--accent-hover);
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  background: rgba(255,255,255,0.06);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 500;
+}
+.btn-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.8rem;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  letter-spacing: -0.01em;
+}
+.btn-play:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 4px 24px var(--accent-glow);
+  transform: translateY(-2px);
+}
+.btn-glass {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(8px);
+  color: white;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-glass:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.25);
+  transform: translateY(-1px);
+}
+
+/* ===== LOADING ===== */
+.loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 2rem 1rem;
+  gap: 1.5rem;
+}
+.loading-screen p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+.loading-pulse {
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+.pulse-ring {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  animation: pulseRing 1.5s ease-out infinite;
+}
+.pulse-ring:nth-child(2) {
+  animation-delay: 0.4s;
+}
+.pulse-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+@keyframes pulseRing {
+  0% { transform: scale(0.5); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+/* Loading theme variants */
+.loading-sooramics .pulse-ring {
+  border-color: #00d4aa;
+}
+.loading-sooramics .pulse-dot {
+  background: #00d4aa;
+}
+.loading-sooramics p {
+  color: #00d4aa;
+}
+.loading-sooraflix .pulse-ring {
+  border-color: #ff6b9d;
+}
+.loading-sooraflix .pulse-dot {
+  background: #ff6b9d;
+}
+.loading-sooraflix p {
+  color: #ff6b9d;
+}
+
+/* ===== MISC ===== */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin: 0 2rem 1rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: all var(--transition);
+}
+.back-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+  background: rgba(255, 255, 255, 0.06);
+}
+.error-msg {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #ef4444;
+  font-size: 0.95rem;
+}
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+.home-page {
+  padding-top: 0; /* hero goes under navbar */
+}
+
+/* ===== MINI PLAYER (YouTube-style) ===== */
+.mini-player {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 360px;
+  z-index: 9000;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  animation: miniSlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: box-shadow 0.2s ease;
+}
+.mini-player:hover {
+  box-shadow: 0 16px 56px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+.mini-player.dragging {
+  cursor: grabbing;
+  opacity: 0.92;
+}
+@keyframes miniSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.mini-video-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  cursor: grab;
+  overflow: hidden;
+}
+.mini-player.dragging .mini-video-wrap {
+  cursor: grabbing;
+}
+.mini-video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+/* Mini overlay */
+.mini-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.6) 0%,
+    transparent 35%,
+    transparent 65%,
+    rgba(0, 0, 0, 0.6) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  padding: 0.5rem;
+}
+.mini-player:hover .mini-overlay {
+  opacity: 1;
+}
+
+.mini-overlay-top {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.mini-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+.mini-ep {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.mini-overlay-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mini-overlay-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+}
+
+/* Mini buttons */
+.mini-btn {
+  background: none;
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+.mini-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+.mini-btn-play {
+  width: 42px;
+  height: 42px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+}
+.mini-btn-play:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.08);
+}
+
+/* Mini progress */
+.mini-progress {
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: height 0.15s ease;
+}
+.mini-progress:hover {
+  height: 5px;
+}
+.mini-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 0 1px 1px 0;
+  transition: width 0.1s linear;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0.75rem 1.2rem;
+  }
+  .hero-banner {
+    height: 55vh;
+    min-height: 380px;
+  }
+  .hero-content {
+    padding: 0 1.5rem;
+    bottom: 2rem;
+  }
+  .hero-title {
+    font-size: 1.6rem;
+  }
+  .hero-top-row {
+    gap: 0.4rem;
+  }
+  .section-header {
+    padding: 0 1.5rem;
+  }
+  .card-row {
+    padding: 0.5rem 1.5rem 1rem;
+    gap: 0.7rem;
+  }
+  .card-row .card {
+    flex: 0 0 140px;
+  }
+  .row-fade {
+    width: 32px;
+  }
+  .card-popup {
+    display: none !important;
+  }
+  .card-play-circle {
+    width: 34px;
+    height: 34px;
+  }
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    padding: 0 1.5rem 2rem;
+    gap: 0.8rem;
+  }
+  .info-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.5rem;
+  }
+  .info-poster img {
+    width: 170px;
+  }
+  .info-details h1 {
+    font-size: 1.5rem;
+  }
+  .info-meta, .info-genres {
+    justify-content: center;
+  }
+  .info-content {
+    padding: 0 1.5rem 2rem;
+  }
+  .watch-content {
+    padding: 0 1rem 2rem;
+  }
+  .watch-title-info h1 {
+    font-size: 1.1rem;
+  }
+  .watch-ep-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  .anime-ep-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+  .watch-card-scroll .card {
+    flex: 0 0 130px;
+  }
+  .watch-nav-btn {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.75rem;
+  }
+  .search-page-header h1 {
+    font-size: 1.5rem;
+  }
+  .home-search {
+    margin: -1rem auto 1.5rem;
+    padding: 0 1.5rem;
+  }
+  .episodes-grid {
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  }
+
+  /* Genre chips responsive */
+  .genre-filter-section {
+    padding: 0 1.2rem;
+  }
+  .genre-chip {
+    padding: 0.3rem 0.7rem;
+    font-size: 0.72rem;
+  }
+
+  /* My List responsive */
+  .mylist-header h1 {
+    font-size: 1.5rem;
+  }
+  .mylist-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    padding: 1.5rem 1.5rem 3rem;
+    gap: 0.8rem;
+  }
+  .mylist-tabs {
+    flex-wrap: wrap;
+  }
+
+  /* Netflix player responsive */
+  .nf-controls {
+    padding: 2rem 0.6rem 0.5rem;
+  }
+  .nf-btn {
+    width: 34px;
+    height: 34px;
+  }
+  .nf-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+  .nf-center-play {
+    width: 56px;
+    height: 56px;
+  }
+  .nf-center-play svg {
+    width: 26px;
+    height: 26px;
+  }
+  .nf-time {
+    font-size: 0.7rem;
+  }
+  .nf-settings {
+    min-width: 190px;
+    right: -4px;
+  }
+  .nf-volume-group:hover .nf-volume-slider {
+    width: 60px;
+  }
+
+  /* Mini player responsive */
+  .mini-player {
+    width: 280px;
+    bottom: 12px;
+    right: 12px;
+  }
+  .mini-btn-play {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* --- Watch page mobile fixes --- */
+  .watch-page {
+    padding-top: 52px;
+  }
+  .watch-quality-section {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.6rem 0;
+  }
+  .watch-player-mode {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.6rem 0;
+  }
+  .watch-title-section {
+    padding: 1rem 0;
+  }
+  .watch-description {
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+  .player-error-actions {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .player-error-desc {
+    max-width: 280px;
+  }
+  .watch-ep-nav {
+    gap: 0.5rem;
+  }
+
+  /* --- Embed player mobile --- */
+  .embed-server-bar {
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    gap: 6px;
+  }
+  .embed-srv-btn {
+    padding: 5px 10px;
+    font-size: 0.72rem;
+  }
+  .embed-hint {
+    font-size: 0.68rem;
+    padding: 6px 12px;
+  }
+
+  /* --- Info page mobile --- */
+  .info-page {
+    padding-top: 3rem;
+  }
+  .info-page .back-btn {
+    margin: 0 1rem 0.75rem;
+  }
+  .description {
+    max-height: none;
+    overflow-y: visible;
+    -webkit-line-clamp: 5;
+  }
+  .episode-section-header {
+    gap: 0.5rem;
+  }
+  .episode-section h2 {
+    font-size: 1.05rem;
+  }
+  .ep-search-wrap {
+    min-width: 0;
+    max-width: 100%;
+    flex: 1;
+  }
+  .ep-range-tabs {
+    gap: 0.2rem;
+    padding: 0.2rem;
+  }
+  .ep-range-tab {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.7rem;
+  }
+
+  /* --- Manga reader mobile --- */
+  .mangareader-page {
+    padding-top: 48px;
+    padding-bottom: 52px;
+  }
+  .mangareader-topbar {
+    gap: 0.5rem;
+    padding: 0.45rem 0.6rem;
+  }
+  .mangareader-ch-title {
+    font-size: 0.78rem;
+  }
+  .mangareader-manga-title {
+    font-size: 0.68rem;
+  }
+  .mangareader-slider {
+    height: 20px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+  }
+  .mangareader-slider::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.15);
+  }
+  .mangareader-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #00d4aa;
+    margin-top: -7px;
+    box-shadow: 0 0 6px rgba(0,212,170,0.4);
+  }
+  .mangareader-bottombar {
+    padding: 0.4rem 0.6rem;
+  }
+  .mangareader-nav-btn {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.72rem;
+  }
+
+  /* --- Cast section mobile --- */
+  .cast-item {
+    flex: 0 0 80px;
+  }
+  .cast-item img {
+    width: 60px;
+    height: 60px;
+  }
+  .cast-name, .cast-char {
+    max-width: 80px;
+  }
+}
+
+/* ===== SMALL PHONE (≤480px) ===== */
+@media (max-width: 480px) {
+  /* Navbar */
+  .navbar {
+    padding: 0.6rem 0.8rem;
+  }
+  .navbar .logo .logo-name {
+    font-size: 1.1rem;
+  }
+  .navbar .logo .logo-mark {
+    width: 28px;
+    height: 28px;
+  }
+  .navbar .logo .logo-mark svg {
+    width: 14px;
+    height: 14px;
+  }
+  .navbar .logo {
+    gap: 0.4rem;
+  }
+  .navbar nav a {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.55rem;
+  }
+  .navbar nav {
+    gap: 0.15rem;
+  }
+  .nav-mylist svg {
+    width: 14px;
+    height: 14px;
+  }
+  .nav-badge {
+    font-size: 0.55rem;
+    min-width: 14px;
+    height: 14px;
+  }
+
+  /* Hero */
+  .hero-banner {
+    height: 45vh;
+    min-height: 300px;
+  }
+  .hero-title {
+    font-size: 1.2rem;
+  }
+  .hero-content {
+    padding: 0 1rem;
+    bottom: 1.5rem;
+  }
+  .hero-desc {
+    display: none;
+  }
+  .btn-play, .btn-glass {
+    padding: 0.5rem 0.9rem;
+    font-size: 0.78rem;
+    gap: 0.3rem;
+  }
+  .btn-play svg, .btn-glass svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Cards */
+  .section-header {
+    padding: 0 1rem;
+  }
+  .card-row {
+    padding: 0.5rem 1rem 1rem;
+    gap: 0.5rem;
+  }
+  .card-row .card {
+    flex: 0 0 115px;
+  }
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+    padding: 0 1rem 2rem;
+    gap: 0.6rem;
+  }
+  .card-grid.compact {
+    grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+    gap: 0.6rem;
+  }
+
+  /* Watch page */
+  .watch-page {
+    padding-top: 44px;
+  }
+  .watch-content {
+    padding: 0 0.7rem 2rem;
+  }
+  .watch-title-row {
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .watch-back-btn {
+    width: 30px;
+    height: 30px;
+  }
+  .watch-back-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+  .watch-title-info h1 {
+    font-size: 0.95rem;
+  }
+  .watch-ep-label {
+    font-size: 0.7rem;
+  }
+  .watch-description {
+    font-size: 0.78rem;
+  }
+  .watch-meta-badges {
+    gap: 0.3rem;
+  }
+  .watch-badge {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.45rem;
+  }
+  .watch-quality-section,
+  .watch-player-mode {
+    gap: 0.4rem;
+    padding: 0.5rem 0;
+  }
+  .watch-quality-label,
+  .watch-player-mode-label {
+    font-size: 0.7rem;
+  }
+  .watch-quality-pill {
+    padding: 0.3rem 0.65rem;
+    font-size: 0.7rem;
+    gap: 0.2rem;
+  }
+  .watch-quality-pill svg {
+    width: 12px;
+    height: 12px;
+  }
+  .quality-auto-hint {
+    font-size: 0.58rem;
+  }
+  .watch-nav-btn {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.7rem;
+    gap: 0.25rem;
+  }
+  .watch-nav-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+  .watch-section-title {
+    font-size: 1rem;
+  }
+  .watch-ep-grid {
+    grid-template-columns: 1fr;
+  }
+  .watch-ep-item {
+    padding: 0.4rem;
+    gap: 0.5rem;
+  }
+  .watch-ep-thumb {
+    width: 80px;
+    height: 45px;
+  }
+  .watch-ep-name {
+    font-size: 0.75rem;
+  }
+  .watch-ep-num {
+    font-size: 0.65rem;
+  }
+  .watch-ep-overview {
+    font-size: 0.65rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .anime-ep-grid {
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 0.4rem;
+  }
+  .watch-ep-item.compact {
+    padding: 0.45rem 0.55rem;
+  }
+  .watch-ep-item.compact .watch-ep-num {
+    font-size: 0.72rem;
+  }
+  .watch-ep-item.compact .watch-ep-name {
+    font-size: 0.62rem;
+  }
+  .season-tabs {
+    gap: 0.25rem;
+  }
+  .season-tab {
+    padding: 0.3rem 0.65rem;
+    font-size: 0.7rem;
+  }
+  .watch-card-scroll .card {
+    flex: 0 0 110px;
+  }
+  .watch-rec-section {
+    padding: 1rem 0;
+  }
+
+  /* Player error */
+  .player-error-title {
+    font-size: 0.9rem !important;
+  }
+  .player-error-desc {
+    font-size: 0.72rem !important;
+    max-width: 260px;
+  }
+  .player-error-actions {
+    gap: 0.4rem;
+  }
+  .btn-sm {
+    padding: 0.35rem 0.7rem !important;
+    font-size: 0.72rem !important;
+  }
+
+  /* Embed player mobile */
+  .embed-server-bar {
+    padding: 6px 8px;
+    gap: 4px;
+  }
+  .embed-server-label {
+    font-size: 0.7rem;
+  }
+  .embed-srv-btn {
+    padding: 4px 8px;
+    font-size: 0.68rem;
+  }
+  .embed-hint {
+    font-size: 0.62rem;
+  }
+
+  /* Info page */
+  .info-page {
+    padding-top: 2.5rem;
+  }
+  .info-content {
+    padding: 0 1rem 2rem;
+  }
+  .info-header {
+    gap: 1rem;
+  }
+  .info-poster img {
+    width: 140px;
+  }
+  .info-details h1 {
+    font-size: 1.2rem;
+  }
+  .info-alt-title {
+    font-size: 0.78rem;
+  }
+  .info-meta {
+    gap: 0.35rem;
+  }
+  .badge {
+    font-size: 0.68rem;
+    padding: 0.2rem 0.5rem;
+  }
+  .genre-tag {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.5rem;
+  }
+  .description {
+    font-size: 0.82rem;
+    line-height: 1.6;
+  }
+  .btn-primary {
+    padding: 0.55rem 1.1rem;
+    font-size: 0.82rem;
+  }
+  .episode-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+  .episode-section h2 {
+    font-size: 0.95rem;
+  }
+  .ep-search-wrap {
+    width: 100%;
+    max-width: 100%;
+  }
+  .episodes-grid {
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 0.4rem;
+  }
+  .ep-btn {
+    padding: 0.5rem 0.3rem;
+    font-size: 0.78rem;
+    border-radius: 8px;
+  }
+  .ep-num {
+    font-size: 0.75rem;
+  }
+  .ep-title {
+    font-size: 0.6rem;
+  }
+  .ep-range-tab {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.65rem;
+  }
+  .ep-section-header-row {
+    gap: 0.4rem;
+  }
+
+  /* Manga info */
+  .mangainfo-page {
+    padding: 3.5rem 0.8rem 2rem;
+  }
+  .mangainfo-cover {
+    width: 120px;
+  }
+  .mangainfo-title {
+    font-size: 1.1rem;
+  }
+  .mangainfo-meta {
+    font-size: 0.72rem;
+  }
+
+  /* Manga reader */
+  .mangareader-page {
+    padding-top: 42px;
+    padding-bottom: 48px;
+  }
+  .mangareader-topbar {
+    padding: 0.35rem 0.5rem;
+    gap: 0.3rem;
+  }
+  .mangareader-ch-title {
+    font-size: 0.72rem;
+  }
+  .mangareader-manga-title {
+    font-size: 0.62rem;
+  }
+  .mangareader-mode-toggle button {
+    padding: 0.25rem 0.4rem;
+  }
+  .mangareader-mode-toggle button svg {
+    width: 14px;
+    height: 14px;
+  }
+  .mangareader-bottombar {
+    padding: 0.3rem 0.5rem;
+  }
+  .mangareader-nav-btn {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.68rem;
+    gap: 0.2rem;
+  }
+  .mangareader-page-indicator {
+    font-size: 0.7rem;
+  }
+
+  /* Netflix player controls on small screens */
+  .nf-controls {
+    padding: 1.5rem 0.4rem 0.35rem;
+  }
+  .nf-controls-row {
+    gap: 0.1rem;
+  }
+  .nf-btn {
+    width: 28px;
+    height: 28px;
+  }
+  .nf-btn svg {
+    width: 15px;
+    height: 15px;
+  }
+  .nf-center-play {
+    width: 44px;
+    height: 44px;
+  }
+  .nf-center-play svg {
+    width: 20px;
+    height: 20px;
+  }
+  .nf-time {
+    font-size: 0.62rem;
+    margin-left: 0.3rem;
+  }
+  .nf-settings {
+    min-width: 170px;
+    right: -2px;
+    font-size: 0.78rem;
+  }
+  .nf-settings-item {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  /* Cast */
+  .cast-item {
+    flex: 0 0 70px;
+  }
+  .cast-item img {
+    width: 52px;
+    height: 52px;
+  }
+  .cast-name {
+    font-size: 0.62rem;
+    max-width: 70px;
+  }
+  .cast-char {
+    font-size: 0.58rem;
+    max-width: 70px;
+  }
+
+  /* Mini player mobile */
+  .mini-player {
+    width: 240px;
+    bottom: 8px;
+    right: 8px;
+  }
+  .mini-info-col h4 {
+    font-size: 0.68rem;
+  }
+  .mini-info-col span {
+    font-size: 0.58rem;
+  }
+  .mini-btn-play {
+    width: 30px;
+    height: 30px;
+  }
+
+  /* My List */
+  .mylist-grid {
+    grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+    padding: 1rem 1rem 3rem;
+    gap: 0.6rem;
+  }
+  .mylist-header h1 {
+    font-size: 1.2rem;
+  }
+  .mylist-tabs {
+    gap: 0.3rem;
+  }
+  .mylist-tab {
+    font-size: 0.72rem;
+    padding: 0.35rem 0.7rem;
+  }
+
+  /* Search page */
+  .search-page-header h1 {
+    font-size: 1.2rem;
+  }
+  .home-search {
+    margin: -0.5rem auto 1rem;
+    padding: 0 1rem;
+  }
+
+  /* Manga language selector */
+  .manga-lang-section {
+    padding: 0 0.8rem;
+  }
+  .manga-lang-bar {
+    gap: 0.4rem;
+  }
+  .manga-lang-label {
+    font-size: 0.72rem;
+  }
+  .manga-lang-current {
+    padding: 0.3rem 0.65rem;
+    font-size: 0.75rem;
+  }
+  .manga-lang-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.35rem;
+    padding: 0.5rem;
+  }
+  .manga-lang-item {
+    padding: 0.4rem 0.55rem;
+    font-size: 0.72rem;
+    gap: 0.35rem;
+  }
+  .manga-lang-note {
+    font-size: 0.7rem;
+  }
+
+  /* Genre filter chips */
+  .genre-filter-section {
+    padding: 0 0.8rem;
+  }
+  .genre-chip {
+    padding: 0.25rem 0.55rem;
+    font-size: 0.65rem;
+  }
+}
+
+/* ===== LANDING PAGE ===== */
+.landing-page {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #030308;
+}
+
+.landing-particles {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Gradient orbs */
+.landing-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  animation: orbFloat 12s ease-in-out infinite;
+}
+.landing-orb-1 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(124, 92, 252, 0.15), transparent 70%);
+  top: -10%;
+  left: -5%;
+  animation-delay: 0s;
+}
+.landing-orb-2 {
+  width: 450px;
+  height: 450px;
+  background: radial-gradient(circle, rgba(255, 107, 157, 0.12), transparent 70%);
+  top: 30%;
+  right: -8%;
+  animation-delay: -4s;
+}
+.landing-orb-3 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(0, 212, 170, 0.1), transparent 70%);
+  bottom: -10%;
+  left: 20%;
+  animation-delay: -8s;
+}
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -20px) scale(1.05); }
+  50% { transform: translate(-20px, 30px) scale(0.95); }
+  75% { transform: translate(20px, 20px) scale(1.02); }
+}
+
+.landing-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 3rem 2rem;
+  max-width: 1100px;
+  width: 100%;
+}
+
+/* Logo */
+.landing-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  margin-bottom: 1.2rem;
+  animation: landingFadeUp 0.8s ease-out;
+}
+.landing-logo-mark {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+}
+.landing-logo-text {
+  font-size: 2.8rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, #f0f0f5 0%, #8888a8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.landing-tagline {
+  font-size: 1.15rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 0.3rem;
+  letter-spacing: -0.01em;
+  animation: landingFadeUp 0.8s ease-out 0.1s both;
+}
+.landing-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 3rem;
+  animation: landingFadeUp 0.8s ease-out 0.2s both;
+}
+
+@keyframes landingFadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Brand cards grid */
+.landing-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.landing-card {
+  position: relative;
+  padding: 2rem 1.5rem 1.8rem;
+  border-radius: 20px;
+  background: rgba(12, 12, 24, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: landingCardIn 0.6s ease-out both;
+  text-align: center;
+}
+.landing-card:nth-child(1) { animation-delay: 0.3s; }
+.landing-card:nth-child(2) { animation-delay: 0.45s; }
+.landing-card:nth-child(3) { animation-delay: 0.6s; }
+
+@keyframes landingCardIn {
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.landing-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: var(--card-color);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    0 0 40px var(--card-glow);
+}
+
+.landing-card-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, var(--card-glow), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+.landing-card:hover .landing-card-glow {
+  opacity: 0.4;
+}
+
+.landing-card-icon {
+  color: var(--card-color);
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.landing-card:hover .landing-card-icon {
+  transform: scale(1.15) translateY(-4px);
+}
+
+.landing-card-name {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #f0f0f5;
+  margin-bottom: 0.25rem;
+}
+
+.landing-card-tagline {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--card-color);
+  opacity: 0.8;
+  display: block;
+  margin-bottom: 0.8rem;
+}
+
+.landing-card-desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.landing-card-features {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.2rem;
+}
+.landing-card-feature {
+  font-size: 0.7rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.landing-card-cta {
+  position: relative;
+  z-index: 2;
+}
+.landing-card-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.4rem;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: var(--card-color);
+  color: #fff;
+  transition: all 0.3s ease;
+  letter-spacing: -0.01em;
+}
+.landing-card:hover .landing-card-btn {
+  box-shadow: 0 4px 20px var(--card-glow);
+  transform: translateY(-1px);
+}
+.landing-card-btn svg {
+  transition: transform 0.3s ease;
+}
+.landing-card:hover .landing-card-btn svg {
+  transform: translateX(3px);
+}
+.landing-card-btn-soon {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
+.landing-card:hover .landing-card-btn-soon {
+  box-shadow: none;
+}
+
+/* Coming soon overlay */
+.landing-card-soon {
+  cursor: default;
+}
+.landing-card-overlay-soon {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 3, 8, 0.3);
+  border-radius: 20px;
+  pointer-events: none;
+  z-index: 1;
+}
+.landing-card-soon:hover {
+  transform: translateY(-2px) scale(1.005);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Footer */
+.landing-footer {
+  animation: landingFadeUp 0.8s ease-out 0.8s both;
+}
+.landing-footer p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+/* === Landing page responsive === */
+@media (max-width: 768px) {
+  .landing-cards {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .landing-logo-text {
+    font-size: 2rem;
+  }
+  .landing-logo-mark {
+    width: 42px;
+    height: 42px;
+  }
+  .landing-logo-mark svg {
+    width: 28px;
+    height: 28px;
+  }
+  .landing-content {
+    padding: 2rem 1rem;
+  }
+  .landing-tagline {
+    font-size: 1rem;
+  }
+  .landing-card {
+    padding: 1.5rem 1.2rem;
+  }
+  .landing-orb {
+    display: none;
+  }
+}
+@media (max-width: 480px) {
+  .landing-logo-text {
+    font-size: 1.7rem;
+  }
+  .landing-card-name {
+    font-size: 1.3rem;
+  }
+}
