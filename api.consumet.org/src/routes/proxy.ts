@@ -1,8 +1,52 @@
 import { FastifyInstance, FastifyRequest, FastifyReply, RegisterOptions } from 'fastify';
+import axios from 'axios';
+import { SocksProxyAgent } from 'socks-proxy-agent';
+
+// WARP SOCKS5 proxy running on localhost:40000 (Cloudflare WARP in proxy mode)
+const WARP_AGENT = new SocksProxyAgent('socks5h://127.0.0.1:40000');
+
+// Domains known to block datacenter IPs — always route through WARP
+const WARP_DOMAINS = [
+  'silvercloud', 'owocdn', 'uwucdn', 'megacloud', 'megafiles',
+  'vizcloud', 'rapid-cloud', 'rabbitstream', 'streameeeeee',
+  'raffaellocdn', 'vidcloud', 'dokicloud',
+];
+
+const shouldUseWarp = (url: string): boolean => {
+  try {
+    const host = new URL(url).hostname;
+    return WARP_DOMAINS.some((d) => host.includes(d));
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Fetch via axios — uses WARP SOCKS5 proxy for blocked CDN domains,
+ * direct connection for everything else.
+ */
+const proxyFetch = async (url: string, headers: Record<string, string>) => {
+  const useWarp = shouldUseWarp(url);
+  const config: any = {
+    url,
+    method: 'GET',
+    headers,
+    maxRedirects: 5,
+    responseType: 'arraybuffer' as const,
+    timeout: 30000,
+    validateStatus: () => true, // don't throw on non-2xx
+  };
+  if (useWarp) {
+    config.httpAgent = WARP_AGENT;
+    config.httpsAgent = WARP_AGENT;
+  }
+  return axios(config);
+};
 
 /**
  * Stream proxy route — proxies HLS m3u8, video segments, subtitle VTT, and encryption keys
  * with proper Referer/Origin headers to bypass CDN restrictions.
+ * Uses Cloudflare WARP (SOCKS5) for CDN domains that block datacenter IPs.
  */
 const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
   fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -16,14 +60,6 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         try { origin = new URL(referer).origin; } catch { origin = ''; }
       }
 
-      let targetHost = '';
-      try { targetHost = new URL(url).hostname; } catch {}
-      let refHost = '';
-      if (origin) try { refHost = new URL(origin).hostname; } catch {}
-
-      // On a private VPS we always forward Referer/Origin when provided.
-      // Video CDNs (owocdn, megacloud, etc.) require these headers and VPS IPs
-      // are not blocked like cloud-provider IPs.
       const headers: Record<string, string> = {
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
@@ -31,24 +67,37 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
       if (referer) headers['Referer'] = referer;
       if (origin) headers['Origin'] = origin;
 
-      let response = await fetch(url, { headers, redirect: 'follow' });
+      let response = await proxyFetch(url, headers);
 
-      // If 403 without Referer, retry with a generic Referer based on target URL
-      if (response.status === 403 && !referer) {
-        try {
-          const targetOrigin = new URL(url).origin;
-          headers['Referer'] = targetOrigin + '/';
-          headers['Origin'] = targetOrigin;
-        } catch {}
-        response = await fetch(url, { headers, redirect: 'follow' });
+      // If 403, retry with WARP if we didn't use it, or with generic Referer
+      if (response.status === 403) {
+        if (!referer) {
+          try {
+            const targetOrigin = new URL(url).origin;
+            headers['Referer'] = targetOrigin + '/';
+            headers['Origin'] = targetOrigin;
+          } catch {}
+        }
+        // Force WARP for the retry
+        response = await axios({
+          url,
+          method: 'GET',
+          headers,
+          maxRedirects: 5,
+          responseType: 'arraybuffer',
+          timeout: 30000,
+          validateStatus: () => true,
+          httpAgent: WARP_AGENT,
+          httpsAgent: WARP_AGENT,
+        });
       }
 
-      if (!response.ok) {
+      if (response.status >= 400) {
         return reply.status(response.status).send(`Upstream error ${response.status}`);
       }
 
       // Forward content type & caching
-      let ct = response.headers.get('content-type') || 'application/octet-stream';
+      let ct = response.headers['content-type'] || 'application/octet-stream';
       if (url.endsWith('.vtt') || url.includes('.vtt?')) ct = 'text/vtt; charset=utf-8';
       else if (url.endsWith('.srt') || url.includes('.srt?')) ct = 'text/plain; charset=utf-8';
 
@@ -59,7 +108,7 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
 
       // For m3u8 playlists, rewrite internal URLs to also go through proxy
       if (ct.includes('mpegurl') || ct.includes('m3u8') || url.includes('.m3u8')) {
-        let text = await response.text();
+        let text = Buffer.from(response.data).toString('utf-8');
         const baseUrl = url.substring(0, url.lastIndexOf('/') + 1);
         const refParam = referer ? `&referer=${encodeURIComponent(referer)}` : '';
 
@@ -94,8 +143,7 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         return reply.send(text);
       } else {
         // Binary (video segments, keys, subtitles) — pass through
-        const buffer = Buffer.from(await response.arrayBuffer());
-        return reply.send(buffer);
+        return reply.send(Buffer.from(response.data));
       }
     } catch (e: any) {
       fastify.log.error('Stream proxy error:', e.message);
