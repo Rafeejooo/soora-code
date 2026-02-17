@@ -21,35 +21,25 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
       let refHost = '';
       if (origin) try { refHost = new URL(origin).hostname; } catch {}
 
-      // Determine if we should send Referer/Origin headers
-      const needsHeaders = referer && (
-        targetHost === refHost ||
-        targetHost.includes('uwucdn') ||
-        targetHost.includes('owocdn') ||
-        targetHost.includes('megacloud') ||
-        targetHost.includes('megafiles') ||
-        targetHost.includes('vizcloud') ||
-        targetHost.includes('rapid-cloud') ||
-        targetHost.includes('rabbitstream') ||
-        url.includes('.key') ||
-        url.includes('mon.key')
-      );
-
+      // On a private VPS we always forward Referer/Origin when provided.
+      // Video CDNs (owocdn, megacloud, etc.) require these headers and VPS IPs
+      // are not blocked like cloud-provider IPs.
       const headers: Record<string, string> = {
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
       };
-      if (needsHeaders) {
-        if (referer) headers['Referer'] = referer;
-        if (origin) headers['Origin'] = origin;
-      }
+      if (referer) headers['Referer'] = referer;
+      if (origin) headers['Origin'] = origin;
 
       let response = await fetch(url, { headers, redirect: 'follow' });
 
-      // If 403 and we didn't send headers, retry WITH headers
-      if (response.status === 403 && !needsHeaders && referer) {
-        if (referer) headers['Referer'] = referer;
-        if (origin) headers['Origin'] = origin;
+      // If 403 without Referer, retry with a generic Referer based on target URL
+      if (response.status === 403 && !referer) {
+        try {
+          const targetOrigin = new URL(url).origin;
+          headers['Referer'] = targetOrigin + '/';
+          headers['Origin'] = targetOrigin;
+        } catch {}
         response = await fetch(url, { headers, redirect: 'follow' });
       }
 
