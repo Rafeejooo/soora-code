@@ -1,7 +1,9 @@
 {
   "functions": {
     "api/proxy.js": { "maxDuration": 30 },
-    "api/manga-img.js": { "maxDuration": 15 }
+    "api/manga-img.js": { "maxDuration": 15 },
+    "api/komikplus.js": { "maxDuration": 15 },
+    "api/komikplus-img.js": { "maxDuration": 15 }
   },
   "rewrites": [
     {
@@ -11,6 +13,14 @@
     {
       "source": "/manga-img",
       "destination": "/api/manga-img"
+    },
+    {
+      "source": "/api/komikplus-img",
+      "destination": "/api/komikplus-img"
+    },
+    {
+      "source": "/api/komikplus",
+      "destination": "/api/komikplus"
     },
     {
       "source": "/api/:path*",

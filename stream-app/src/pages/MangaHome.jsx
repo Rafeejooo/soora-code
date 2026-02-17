@@ -6,20 +6,46 @@ import {
   normalizeMangaTitle,
   mangaImgProxy,
   isMangaNovel,
+  isManhwa,
   getMangaContentType,
-  searchMangaDex,
   searchKomiku,
-  getKomikuTrending,
-  MANGA_LANGUAGES,
 } from '../api';
 import Card from '../components/Card';
 import Loading from '../components/Loading';
 
+/* ── Section configs per language ── */
 const POPULAR_QUERIES = [
   { label: 'Trending', queries: ['solo leveling', 'one piece', 'jujutsu kaisen'] },
   { label: 'Action', queries: ['demon slayer', 'attack on titan', 'chainsaw man'] },
   { label: 'Romance', queries: ['horimiya', 'kaguya sama', 'my dress up darling'] },
   { label: 'Fantasy', queries: ['mushoku tensei', 'shield hero', 'overlord'] },
+];
+
+const KOMIKU_QUERIES = [
+  { label: 'Trending', queries: ['solo leveling', 'one piece', 'jujutsu kaisen'] },
+  { label: 'Action', queries: ['demon slayer', 'naruto', 'chainsaw man'] },
+  { label: 'Romance', queries: ['horimiya', 'kaguya sama', 'spy x family'] },
+  { label: 'Fantasy', queries: ['mushoku tensei', 'overlord', 'shield hero'] },
+];
+
+/* ── Filter options ── */
+const TYPE_OPTIONS = [
+  { value: '', label: 'Semua' },
+  { value: 'manga', label: 'Manga' },
+  { value: 'manhwa', label: 'Manhwa / Manhua' },
+  { value: 'novel', label: 'Light Novel' },
+];
+
+const GENRE_OPTIONS = [
+  { value: '', label: 'Semua' },
+  { value: 'action', label: 'Action', queries: ['demon slayer', 'attack on titan', 'chainsaw man', 'black clover', 'one punch man'] },
+  { value: 'romance', label: 'Romance', queries: ['horimiya', 'kaguya sama', 'my dress up darling', 'fruits basket', 'your lie in april'] },
+  { value: 'fantasy', label: 'Fantasy', queries: ['mushoku tensei', 'shield hero', 'overlord', 'sword art online', 're zero'] },
+  { value: 'comedy', label: 'Comedy', queries: ['grand blue', 'spy x family', 'gintama', 'mob psycho'] },
+  { value: 'horror', label: 'Horror', queries: ['junji ito', 'berserk', 'tokyo ghoul', 'parasyte'] },
+  { value: 'sports', label: 'Sports', queries: ['haikyuu', 'slam dunk', 'blue lock', 'kuroko basketball'] },
+  { value: 'sci-fi', label: 'Sci-Fi', queries: ['dr stone', 'steins gate', 'psycho pass', 'ghost in the shell'] },
+  { value: 'slice-of-life', label: 'Slice of Life', queries: ['march comes in like a lion', 'barakamon', 'yotsuba', 'a silent voice'] },
 ];
 
 export default function MangaHome() {
@@ -31,14 +57,76 @@ export default function MangaHome() {
   const [selectedLang, setSelectedLang] = useState(() => {
     return localStorage.getItem('soora_manga_lang') || 'en';
   });
-  const [showLangPicker, setShowLangPicker] = useState(false);
+
+  /* ── Filters ── */
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterType, setFilterType] = useState('');
+  const [filterGenre, setFilterGenre] = useState('');
+  const [filteredResults, setFilteredResults] = useState(null);
+  const [filterLoading, setFilterLoading] = useState(false);
+
   const heroInterval = useRef(null);
   const navigate = useNavigate();
+
+  const isFilterActive = filterType || filterGenre;
 
   // Persist language choice
   useEffect(() => {
     localStorage.setItem('soora_manga_lang', selectedLang);
   }, [selectedLang]);
+
+  // ── Apply filters (genre = server search, type = client filter) ──
+  useEffect(() => {
+    if (!isFilterActive) {
+      setFilteredResults(null);
+      return;
+    }
+
+    const fetchFiltered = async () => {
+      setFilterLoading(true);
+      const useKomiku = selectedLang === 'id';
+      const searchFn = useKomiku ? searchKomiku : searchManga;
+      const providerTag = useKomiku ? 'komiku' : null;
+
+      try {
+        let items = [];
+        const seen = new Set();
+
+        // If genre selected, use genre-specific queries; otherwise use broad popular
+        const genreConfig = GENRE_OPTIONS.find((g) => g.value === filterGenre);
+        const queries = genreConfig?.queries || ['one piece', 'naruto', 'solo leveling', 'demon slayer', 'jujutsu kaisen'];
+
+        const results = await Promise.allSettled(queries.map((q) => searchFn(q)));
+        results.forEach((r) => {
+          if (r.status === 'fulfilled') {
+            (r.value.data?.results || []).forEach((item) => {
+              if (!seen.has(item.id)) {
+                seen.add(item.id);
+                items.push(providerTag ? { ...item, provider: providerTag } : item);
+              }
+            });
+          }
+        });
+
+        // Client-side type filter
+        if (filterType === 'manga') {
+          items = items.filter((i) => !isMangaNovel(i) && !isManhwa(i));
+        } else if (filterType === 'manhwa') {
+          items = items.filter((i) => isManhwa(i));
+        } else if (filterType === 'novel') {
+          items = items.filter((i) => isMangaNovel(i));
+        }
+
+        setFilteredResults(items);
+      } catch {
+        setFilteredResults([]);
+      }
+      setFilterLoading(false);
+    };
+
+    const debounce = setTimeout(fetchFiltered, 300);
+    return () => clearTimeout(debounce);
+  }, [filterType, filterGenre, selectedLang, isFilterActive]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,24 +135,14 @@ export default function MangaHome() {
       const heroList = [];
       const seen = new Set();
       const useKomiku = selectedLang === 'id';
-      const useMangaDex = !useKomiku && selectedLang !== 'en';
+      const queries = useKomiku ? KOMIKU_QUERIES : POPULAR_QUERIES;
 
-      const fetchSection = async (label, queries) => {
-        let searchFn;
-        let providerTag;
-        if (useKomiku) {
-          searchFn = searchKomiku;
-          providerTag = 'komiku';
-        } else if (useMangaDex) {
-          searchFn = searchMangaDex;
-          providerTag = 'mangadex';
-        } else {
-          searchFn = searchManga;
-          providerTag = null;
-        }
+      const fetchSection = async (label, sectionQueries) => {
+        const searchFn = useKomiku ? searchKomiku : searchManga;
+        const providerTag = useKomiku ? 'komiku' : null;
 
         const results = await Promise.allSettled(
-          queries.map((q) => searchFn(q))
+          sectionQueries.map((q) => searchFn(q))
         );
         const items = [];
         results.forEach((r) => {
@@ -72,7 +150,6 @@ export default function MangaHome() {
             (r.value.data?.results || []).forEach((item) => {
               if (!seen.has(item.id)) {
                 seen.add(item.id);
-                // Inject provider so Card navigates correctly
                 items.push(providerTag ? { ...item, provider: providerTag } : item);
               }
             });
@@ -81,11 +158,10 @@ export default function MangaHome() {
         return items;
       };
 
-      for (const sec of POPULAR_QUERIES) {
+      for (const sec of queries) {
         const items = await fetchSection(sec.label, sec.queries);
         allResults[sec.label] = items;
         if (sec.label === 'Trending' && items.length > 0) {
-          // Only show actual manga/manhwa in hero, not novels
           heroList.push(...items.filter((i) => !isMangaNovel(i)).slice(0, 6));
         }
       }
@@ -111,6 +187,11 @@ export default function MangaHome() {
     if (searchVal.trim()) {
       navigate(`/manga/search?q=${encodeURIComponent(searchVal.trim())}`);
     }
+  };
+
+  const clearFilters = () => {
+    setFilterType('');
+    setFilterGenre('');
   };
 
   if (loading) return <Loading text="Loading manga..." theme="sooramics" />;
@@ -187,50 +268,164 @@ export default function MangaHome() {
         </form>
       </div>
 
-      {/* Language Selector */}
-      <div className="manga-lang-section">
-        <div className="manga-lang-bar">
-          <span className="manga-lang-label">Language</span>
-          <button
-            className="manga-lang-current"
-            onClick={() => setShowLangPicker(!showLangPicker)}
-          >
-            {MANGA_LANGUAGES.find((l) => l.code === selectedLang)?.flag || '🌐'}{' '}
-            {MANGA_LANGUAGES.find((l) => l.code === selectedLang)?.label || selectedLang}
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-              <path d={showLangPicker ? 'm18 15-6-6-6 6' : 'm6 9 6 6 6-6'} />
+      {/* ── Filter Panel ── */}
+      <div className="af-panel">
+        <div className={`af-card ${filterOpen ? 'open' : ''}`}>
+          <button className="af-header" onClick={() => setFilterOpen((v) => !v)}>
+            <div className="af-header-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>
+              </svg>
+              <span>Filter</span>
+              {isFilterActive && !filterOpen && (
+                <span className="af-header-count">{[filterType, filterGenre].filter(Boolean).length}</span>
+              )}
+            </div>
+            <svg className="af-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+              <path d="m6 9 6 6 6-6"/>
             </svg>
           </button>
-        </div>
-        {showLangPicker && (
-          <div className="manga-lang-grid">
-            {MANGA_LANGUAGES.map((lang) => (
-              <button
-                key={lang.code}
-                className={`manga-lang-item ${selectedLang === lang.code ? 'active' : ''}`}
-                onClick={() => { setSelectedLang(lang.code); setShowLangPicker(false); }}
-              >
-                <span className="manga-lang-flag">{lang.flag}</span>
-                <span>{lang.label}</span>
-              </button>
-            ))}
+
+          <div className="af-body">
+            <div className="af-body-inner">
+              {/* Language + Type side by side */}
+              <div className="af-top">
+                <div className="af-group">
+                  <span className="af-label">Bahasa</span>
+                  <div className="af-pills">
+                    <button
+                      className={`af-pill ${selectedLang === 'en' ? 'active' : ''}`}
+                      onClick={() => setSelectedLang('en')}
+                    >
+                      🌐 English
+                    </button>
+                    <button
+                      className={`af-pill ${selectedLang === 'id' ? 'active' : ''}`}
+                      onClick={() => setSelectedLang('id')}
+                    >
+                      🇮🇩 Indonesia
+                    </button>
+                  </div>
+                </div>
+                <div className="af-divider" />
+                <div className="af-group">
+                  <span className="af-label">Tipe</span>
+                  <div className="af-pills">
+                    {TYPE_OPTIONS.map((o) => (
+                      <button
+                        key={o.value}
+                        className={`af-pill ${filterType === o.value ? 'active' : ''}`}
+                        onClick={() => setFilterType(o.value)}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Genre pills */}
+              <div className="af-genre-section">
+                <span className="af-label">Genre</span>
+                <div className="af-pills">
+                  {GENRE_OPTIONS.map((o) => (
+                    <button
+                      key={o.value}
+                      className={`af-pill ${filterGenre === o.value ? 'active' : ''}`}
+                      onClick={() => setFilterGenre(o.value)}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Active summary bar */}
+              {isFilterActive && (
+                <div className="af-active-bar">
+                  <div className="af-chips">
+                    {filterType && (
+                      <span className="af-chip">
+                        {TYPE_OPTIONS.find((o) => o.value === filterType)?.label}
+                        <button onClick={() => setFilterType('')} aria-label="Remove">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="11" height="11"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                        </button>
+                      </span>
+                    )}
+                    {filterGenre && (
+                      <span className="af-chip">
+                        {GENRE_OPTIONS.find((o) => o.value === filterGenre)?.label}
+                        <button onClick={() => setFilterGenre('')} aria-label="Remove">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="11" height="11"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                        </button>
+                      </span>
+                    )}
+                  </div>
+                  <button className="af-reset" onClick={clearFilters}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
+                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+                    </svg>
+                    Reset
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-        {selectedLang !== 'en' && (
-          <p className="manga-lang-note">
-            📖 Manga info pages will show chapters in {MANGA_LANGUAGES.find((l) => l.code === selectedLang)?.label || selectedLang} using {selectedLang === 'id' ? 'Komiku' : 'MangaDex'}
-          </p>
-        )}
+        </div>
       </div>
 
-      {/* Sections */}
-      {POPULAR_QUERIES.map((sec) => (
-        sections[sec.label]?.length > 0 && (
-          <Section key={sec.label} title={sec.label} items={sections[sec.label]} type="manga" />
-        )
-      ))}
+      {/* ── Filter Results ── */}
+      {isFilterActive && (
+        <div className="filter-results-area">
+          <div className="filter-results-header">
+            <h2>Hasil Pencarian</h2>
+            <span className="filter-summary-tag">
+              {[
+                filterType && TYPE_OPTIONS.find((o) => o.value === filterType)?.label,
+                filterGenre && GENRE_OPTIONS.find((o) => o.value === filterGenre)?.label,
+              ].filter(Boolean).join(' · ')}
+            </span>
+          </div>
+          {filterLoading ? (
+            <div className="filter-loading">
+              <div className="filter-spinner" />
+              <span>Mencari manga...</span>
+            </div>
+          ) : filteredResults && filteredResults.length > 0 ? (
+            <div className="filter-results-grid">
+              {filteredResults.slice(0, 30).map((item) => (
+                <Card key={item.id} item={item} type="manga" />
+              ))}
+            </div>
+          ) : filteredResults !== null ? (
+            <div className="filter-empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="48" height="48">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M8 11h6" strokeLinecap="round"/>
+              </svg>
+              <p>Tidak ada manga yang cocok dengan filter ini</p>
+              <button className="af-reset" onClick={clearFilters}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+                </svg>
+                Reset Filter
+              </button>
+            </div>
+          ) : null}
+        </div>
+      )}
 
-      {Object.values(sections).every((s) => !s?.length) && (
+      {/* ── Default Sections (when no filter active) ── */}
+      {!isFilterActive && (
+        <>
+          {(selectedLang === 'id' ? KOMIKU_QUERIES : POPULAR_QUERIES).map((sec) => (
+            sections[sec.label]?.length > 0 && (
+              <Section key={sec.label} title={sec.label} items={sections[sec.label]} type="manga" />
+            )
+          ))}
+        </>
+      )}
+
+      {!isFilterActive && Object.values(sections).every((s) => !s?.length) && (
         <div className="empty-state">
           <p>No manga available. Make sure the Consumet API is running on <code>localhost:3000</code></p>
         </div>
@@ -238,6 +433,8 @@ export default function MangaHome() {
     </div>
   );
 }
+
+/* isManhwa is now imported from ../api */
 
 function Section({ title, items, type }) {
   const scrollRef = useRef(null);

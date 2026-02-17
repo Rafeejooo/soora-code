@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   getMangaInfo, normalizeMangaTitle, mangaImgProxy, isMangaNovel, getMangaContentType,
-  getMangaDexInfo, searchMangaDex, MANGA_LANGUAGES,
   getKomikuInfo, searchKomiku,
 } from '../api';
 import Loading from '../components/Loading';
@@ -29,12 +28,10 @@ export default function MangaInfo() {
   const [descExpanded, setDescExpanded] = useState(false);
   const [chapterSearch, setChapterSearch] = useState('');
   const [coverError, setCoverError] = useState(false);
-  const [usedProvider, setUsedProvider] = useState(provider); // tracks actual provider used (may be 'mangadex')
-  const [mangaDexId, setMangaDexId] = useState(null); // MangaDex manga UUID when using translated language
+  const [usedProvider, setUsedProvider] = useState(provider); // tracks actual provider used
 
   // Read persisted language
   const selectedLang = localStorage.getItem('soora_manga_lang') || 'en';
-  const langLabel = MANGA_LANGUAGES.find((l) => l.code === selectedLang)?.label || selectedLang;
 
   useEffect(() => {
     if (!id) return;
@@ -42,7 +39,6 @@ export default function MangaInfo() {
       setLoading(true);
       setError(null);
       setCoverError(false);
-      setMangaDexId(null);
 
       // ── Direct Komiku path: provider is 'komiku' ──
       if (provider === 'komiku') {
@@ -57,26 +53,6 @@ export default function MangaInfo() {
         } catch (e) {
           console.warn('Komiku direct fetch failed:', e.message);
           setError('Failed to load manga from Komiku');
-          setLoading(false);
-          return;
-        }
-      }
-
-      // ── Direct MangaDex path: provider is already mangadex ──
-      if (provider === 'mangadex') {
-        try {
-          const lang = selectedLang !== 'en' ? selectedLang : 'en';
-          const res = await getMangaDexInfo(id, lang);
-          if (res.data) {
-            setInfo(res.data);
-            setUsedProvider('mangadex');
-            setMangaDexId(id);
-            setLoading(false);
-            return;
-          }
-        } catch (e) {
-          console.warn('MangaDex direct fetch failed:', e.message);
-          setError('Failed to load manga from MangaDex');
           setLoading(false);
           return;
         }
@@ -116,41 +92,7 @@ export default function MangaInfo() {
         }
       }
 
-      // ── Non-English (non-Indonesian): search MangaDex by title ──
-      if (selectedLang !== 'en' && selectedLang !== 'id' && provider !== 'mangadex') {
-        try {
-          const defaultRes = await getMangaInfo(id, provider);
-          const title = defaultRes.data?.title;
-          if (title) {
-            const searchRes = await searchMangaDex(normalizeMangaTitle(title));
-            const results = searchRes.data?.results || [];
-            if (results.length > 0) {
-              const mdxId = results[0].id;
-              const mdxInfo = await getMangaDexInfo(mdxId, selectedLang);
-              if (mdxInfo.data && mdxInfo.data.chapters && mdxInfo.data.chapters.length > 0) {
-                if (!mdxInfo.data.image && defaultRes.data?.image) {
-                  mdxInfo.data.image = defaultRes.data.image;
-                }
-                setInfo(mdxInfo.data);
-                setUsedProvider('mangadex');
-                setMangaDexId(mdxId);
-                setLoading(false);
-                return;
-              }
-            }
-          }
-          if (defaultRes.data) {
-            setInfo(defaultRes.data);
-            setUsedProvider(provider);
-            setLoading(false);
-            return;
-          }
-        } catch (e) {
-          console.warn('MangaDex search failed, falling back:', e.message);
-        }
-      }
-
-      // ── Default provider fetch (English or fallback) ──
+      // ── Default provider fetch (English / fallback) ──
       try {
         const res = await getMangaInfo(id, provider);
         if (!res.data || (!res.data.title && !res.data.description)) {
@@ -188,7 +130,7 @@ export default function MangaInfo() {
   const contentType = getMangaContentType({ id, title: info.title });
   const chapters = info.chapters || [];
 
-  // MangaDex chapters have 'chapter' field with number; MangaPill uses id pattern
+  // Sort chapters by number
   const getChNum = (ch) => {
     if (ch.chapter != null && ch.chapter !== '') return parseFloat(ch.chapter) || 0;
     return parseFloat(ch.id?.match(/chapter[_-]?([\d.]+)/)?.[1] || '0');
@@ -213,15 +155,15 @@ export default function MangaInfo() {
   const description = info.description || '';
 
   // Use API image, fallback to CDN constructed URL
-  // MangaDex/Komiku images don't need the manga proxy
+  // Komiku images don't need the manga proxy
   const rawImage = info.image || buildCoverUrl(id);
   const coverSrc = rawImage
-    ? ((rawImage.includes('mangadex.org') || rawImage.includes('komiku.org')) ? rawImage : mangaImgProxy(rawImage))
+    ? (rawImage.includes('komiku.org') ? rawImage : mangaImgProxy(rawImage))
     : null;
   const isLongDesc = description.length > 300;
 
   // Determine which manga ID to pass for reader navigation
-  const readerMangaId = usedProvider === 'mangadex' && mangaDexId ? mangaDexId : id;
+  const readerMangaId = id;
   const readerProvider = usedProvider;
 
   const firstChapter = sortedChapters[sortedChapters.length - 1] || sortedChapters[0];
@@ -245,12 +187,7 @@ export default function MangaInfo() {
         Back
       </button>
 
-      {/* Language banner when using MangaDex */}
-      {usedProvider === 'mangadex' && selectedLang !== 'en' && (
-        <div className="mangainfo-lang-banner">
-          {MANGA_LANGUAGES.find((l) => l.code === selectedLang)?.flag} Showing chapters in {langLabel} via MangaDex
-        </div>
-      )}
+
 
       {/* ===== HERO HEADER ===== */}
       <div className="mangainfo-header">

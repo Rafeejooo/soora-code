@@ -3,7 +3,6 @@ import Navbar from './components/Navbar';
 import MiniPlayer from './components/MiniPlayer';
 import { MiniPlayerProvider } from './context/MiniPlayerContext';
 import { AuthProvider } from './context/AuthContext';
-import MarketingLanding from './pages/MarketingLanding';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Landing from './pages/Landing';
@@ -17,12 +16,14 @@ import AnimeInfo from './pages/AnimeInfo';
 import MovieInfo from './pages/MovieInfo';
 import Watch from './pages/Watch';
 import MyList from './pages/MyList';
+import SooramicsPlus from './pages/SooramicsPlus';
 import './App.css';
 
 function AppLayout() {
   const location = useLocation();
-  const isLanding = location.pathname === '/' || location.pathname === '/app';
+  const isLanding = location.pathname === '/';
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isSooramicsPlus = location.pathname.startsWith('/2');
 
   // Detect which "app" we're in based on path
   const isMovieSection = location.pathname.startsWith('/movies') || location.pathname.startsWith('/watch/movie');
@@ -37,12 +38,13 @@ function AppLayout() {
 
   return (
     <MiniPlayerProvider>
-      {!isLanding && !isAuthPage && !isMangaReader && <Navbar section={section} />}
+      {!isLanding && !isAuthPage && !isMangaReader && !isSooramicsPlus && <Navbar section={section} />}
       <Routes>
-        <Route path="/" element={<MarketingLanding />} />
+        <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/app" element={<Landing />} />
+        {/* sooramics+ hidden route */}
+        <Route path="/33" element={<SooramicsPlus />} />
         {/* sooranime routes */}
         <Route path="/anime" element={<Home />} />
         <Route path="/anime/search" element={<Search searchType="anime" />} />
@@ -67,7 +69,7 @@ function AppLayout() {
         <Route path="/search/:type" element={<Search />} />
         <Route path="/movie/info" element={<MovieInfo />} />
       </Routes>
-      {!isLanding && !isAuthPage && !isMangaReader && <MiniPlayer />}
+      {!isLanding && !isAuthPage && !isMangaReader && !isSooramicsPlus && <MiniPlayer />}
     </MiniPlayerProvider>
   );
 }

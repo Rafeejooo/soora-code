@@ -1,66 +1,61 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 
 /**
- * AnimeEmbedPlayer — iframe-based fallback player for anime
- * Used when consumet HLS extractors fail (500 errors).
- * Accepts MAL ID and AniList ID to build embed URLs.
- *
- * Features:
- *  - 6 embed servers for maximum anime coverage
- *  - Auto-rotation: if a server doesn't load within LOAD_TIMEOUT, tries the next
- *  - Manual server switching always available
+ * MovieEmbedPlayer — iframe-based embed player for movies/TV with multi-server support.
+ * Uses TMDB IDs.
  */
 
 const EMBED_SERVERS = [
   // ✅ Tested & confirmed working (Feb 2026)
   {
     name: 'VidSrc.icu',
-    buildUrl: (malId, ep) =>
-      `https://vidsrc.icu/embed/anime/mal/${malId}/${ep}`,
+    buildUrl: (tmdbId, type, season, ep) =>
+      type === 'tv'
+        ? `https://vidsrc.icu/embed/tv/${tmdbId}/${season}/${ep}`
+        : `https://vidsrc.icu/embed/movie/${tmdbId}`,
   },
   {
     name: 'AutoEmbed',
-    buildUrl: (malId, ep) =>
-      `https://player.autoembed.cc/embed/anime/mal/${malId}/${ep}`,
+    buildUrl: (tmdbId, type, season, ep) =>
+      type === 'tv'
+        ? `https://player.autoembed.cc/embed/tv/${tmdbId}/${season}/${ep}`
+        : `https://player.autoembed.cc/embed/movie/${tmdbId}`,
   },
   {
     name: 'VidLink',
-    buildUrl: (malId, ep) =>
-      `https://vidlink.pro/anime/mal/${malId}/${ep}?primaryColor=7c5cfc&secondaryColor=7c5cfc&autoplay=true&iconColor=7c5cfc`,
+    buildUrl: (tmdbId, type, season, ep) =>
+      type === 'tv'
+        ? `https://vidlink.pro/tv/${tmdbId}/${season}/${ep}?primaryColor=7c5cfc&secondaryColor=7c5cfc&autoplay=true&iconColor=7c5cfc`
+        : `https://vidlink.pro/movie/${tmdbId}?primaryColor=7c5cfc&secondaryColor=7c5cfc&autoplay=true&iconColor=7c5cfc`,
   },
   {
     name: 'VidSrc.su',
-    buildUrl: (malId, ep) =>
-      `https://vidsrc.su/embed/anime/mal/${malId}/${ep}`,
+    buildUrl: (tmdbId, type, season, ep) =>
+      type === 'tv'
+        ? `https://vidsrc.su/embed/tv/${tmdbId}/${season}/${ep}`
+        : `https://vidsrc.su/embed/movie/${tmdbId}`,
   },
 ];
 
-// Seconds to wait before showing "try next server" prompt
 const LOAD_TIMEOUT = 12;
 
-export default function AnimeEmbedPlayer({ malId, episode = 1 }) {
+export default function MovieEmbedPlayer({ tmdbId, mediaType = 'movie', season = 1, episode = 1 }) {
   const availableServers = EMBED_SERVERS;
 
   const [activeServer, setActiveServer] = useState(0);
   const [iframeKey, setIframeKey] = useState(0);
   const [showNextHint, setShowNextHint] = useState(false);
-  const [autoTried, setAutoTried] = useState(new Set());
   const timerRef = useRef(null);
-  const iframeRef = useRef(null);
 
   const server = availableServers[activeServer] || availableServers[0];
-  const url = server?.buildUrl(malId, episode);
+  const url = server?.buildUrl(tmdbId, mediaType, season, episode);
 
-  // Start a countdown — if it fires, show "try next" hint
   const startTimer = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     setShowNextHint(false);
-    timerRef.current = setTimeout(() => {
-      setShowNextHint(true);
-    }, LOAD_TIMEOUT * 1000);
+    timerRef.current = setTimeout(() => setShowNextHint(true), LOAD_TIMEOUT * 1000);
   }, []);
 
-  // When server changes, force iframe reload + restart timer
   useEffect(() => {
     setIframeKey((k) => k + 1);
     setShowNextHint(false);
@@ -68,22 +63,10 @@ export default function AnimeEmbedPlayer({ malId, episode = 1 }) {
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [activeServer, startTimer]);
 
-  // Auto-try next server when hint appears (up to one auto-rotation per server)
   const tryNextServer = useCallback(() => {
-    setAutoTried((prev) => new Set(prev).add(activeServer));
     const next = (activeServer + 1) % availableServers.length;
     setActiveServer(next);
   }, [activeServer, availableServers.length]);
-
-  if (!url) {
-    return (
-      <div className="anime-embed-container">
-        <div className="embed-player-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <p style={{ color: 'var(--text-muted)' }}>No embed server available — missing MAL ID</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="anime-embed-container">
@@ -110,18 +93,16 @@ export default function AnimeEmbedPlayer({ malId, episode = 1 }) {
       <div className="embed-player-wrap">
         <iframe
           key={iframeKey}
-          ref={iframeRef}
           src={url}
           frameBorder="0"
           allowFullScreen
           allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
           style={{ width: '100%', height: '100%', border: 'none' }}
-          title="Anime Player"
+          title="Movie Player"
           sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
         />
       </div>
 
-      {/* Prompt to try another server if current one seems stuck */}
       {showNextHint && availableServers.length > 1 && (
         <div className="embed-hint embed-hint-action">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

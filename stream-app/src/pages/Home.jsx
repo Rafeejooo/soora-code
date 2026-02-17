@@ -204,13 +204,7 @@ export default function Home() {
                 __html: (typeof hero.description === 'string' ? hero.description : '').slice(0, 180) + '...'
               }} />
             )}
-            <div className="hero-meta">
-              {hero.type && <span className="hero-tag">{hero.type}</span>}
-              {hero.releaseDate && <span className="hero-tag">{hero.releaseDate}</span>}
-              {hero.sub && <span className="hero-tag">SUB: {hero.sub}</span>}
-              {hero.dub > 0 && <span className="hero-tag">DUB: {hero.dub}</span>}
-              {hero.genres && hero.genres.slice(0, 3).map(g => <span className="hero-tag" key={g}>{g}</span>)}
-            </div>
+            <HeroMeta hero={hero} />
             <div className="hero-actions">
               <button className="btn-play" onClick={() => navigate(`/anime/info?id=${encodeURIComponent(hero.id)}`)}>
                 <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -516,5 +510,35 @@ function Section({ title, items, type, accentColor }) {
         </div>
       </div>
     </section>
+  );
+}
+
+/* ── HeroMeta: limits tags on mobile with +N overflow ── */
+function HeroMeta({ hero }) {
+  const tags = [];
+  if (hero.type) tags.push(hero.type);
+  if (hero.releaseDate) tags.push(hero.releaseDate);
+  if (hero.sub) tags.push(`SUB: ${hero.sub}`);
+  if (hero.dub > 0) tags.push(`DUB: ${hero.dub}`);
+  if (hero.genres) hero.genres.slice(0, 3).forEach(g => tags.push(g));
+
+  // On mobile show max 4, on desktop show all
+  const MAX_MOBILE = 4;
+  const overflow = tags.length - MAX_MOBILE;
+
+  return (
+    <div className="hero-meta">
+      {tags.map((t, i) => (
+        <span
+          key={i}
+          className={`hero-tag${i >= MAX_MOBILE ? ' hero-tag-overflow' : ''}`}
+        >
+          {t}
+        </span>
+      ))}
+      {overflow > 0 && (
+        <span className="hero-tag hero-tag-more">+{overflow}</span>
+      )}
+    </div>
   );
 }

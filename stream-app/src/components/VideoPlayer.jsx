@@ -81,6 +81,25 @@ const VideoPlayer = forwardRef(function VideoPlayer(
 
     const isDirectVideo = /\.(mp4|webm|ogg|avi|mkv)(\?|$)/i.test(src);
 
+    // Helper: fall back to native <video> when HLS.js fails (codec issues etc.)
+    const tryNativePlayback = () => {
+      console.info('[VideoPlayer] HLS.js failed — trying native <video> playback');
+      video.src = streamUrl;
+      // Wait briefly for the browser to probe the source
+      const onCanPlay = () => {
+        video.removeEventListener('error', onNativeError);
+        if (initialTime > 0) video.currentTime = initialTime;
+        video.play().catch(() => {});
+      };
+      const onNativeError = () => {
+        video.removeEventListener('canplay', onCanPlay);
+        console.error('[VideoPlayer] Native playback also failed');
+        onError?.('Stream codec error — try embed player');
+      };
+      video.addEventListener('canplay', onCanPlay, { once: true });
+      video.addEventListener('error', onNativeError, { once: true });
+    };
+
     if (!isDirectVideo && Hls.isSupported()) {
       const hls = new Hls({
         maxBufferLength: 30,
@@ -126,7 +145,7 @@ const VideoPlayer = forwardRef(function VideoPlayer(
               console.error('HLS network error: giving up after 3 retries');
               hls.destroy();
               hlsRef.current = null;
-              onError?.('Network error — stream unavailable');
+              tryNativePlayback();
             }
           } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
             mediaErrorRecoveries.current += 1;
@@ -140,16 +159,16 @@ const VideoPlayer = forwardRef(function VideoPlayer(
               hls.swapAudioCodec();
               hls.recoverMediaError();
             } else {
-              // Give up — codec incompatible or stream corrupted
+              // Give up on HLS.js — try native <video> as last resort
               console.error('HLS media error: giving up after', mediaErrorRecoveries.current, 'attempts');
               hls.destroy();
               hlsRef.current = null;
-              onError?.('Stream codec error — try embed player');
+              tryNativePlayback();
             }
           } else {
             hls.destroy();
             hlsRef.current = null;
-            onError?.('Stream failed to load');
+            tryNativePlayback();
           }
         }
       });

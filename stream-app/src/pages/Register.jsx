@@ -78,7 +78,7 @@ export default function Register() {
     await new Promise((r) => setTimeout(r, 1000));
     const result = register(formData.name, formData.email, formData.password);
     setLoading(false);
-    if (result.success) { navigate('/app'); } else { setError(result.error); triggerShake(); }
+    if (result.success) { navigate('/'); } else { setError(result.error); triggerShake(); }
   };
 
   const getPasswordStrength = (pw) => {

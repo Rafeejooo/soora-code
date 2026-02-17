@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
 
-export default function Landing() {
+export default function Landing({ showSooramicsPlus = false, onSooramicsPlusClick = null }) {
   const navigate = useNavigate();
   const canvasRef = useRef(null);
 
@@ -78,7 +78,7 @@ export default function Landing() {
     };
   }, []);
 
-  const brands = [
+  const baseBrands = [
     {
       name: 'sooranime',
       accent: 'anime',
@@ -139,6 +139,29 @@ export default function Landing() {
     },
   ];
 
+  const sooramicsPlusBrand = {
+    name: 'sooramics+',
+    accent: 'amics+',
+    color: '#f43f5e',
+    glow: 'rgba(244, 63, 94, 0.3)',
+    icon: (
+      <svg viewBox="0 0 64 64" fill="none" width="48" height="48">
+        <rect x="8" y="6" width="22" height="30" rx="3" stroke="currentColor" strokeWidth="2" opacity="0.3" transform="rotate(-8 19 21)"/>
+        <rect x="34" y="6" width="22" height="30" rx="3" stroke="currentColor" strokeWidth="2" opacity="0.3" transform="rotate(8 45 21)"/>
+        <rect x="20" y="10" width="24" height="32" rx="3" fill="currentColor" opacity="0.15"/>
+        <path d="M28 20h8M28 25h6M28 30h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.5"/>
+        <circle cx="44" cy="48" r="10" stroke="currentColor" strokeWidth="2" opacity="0.4"/>
+        <path d="M44 43v10M39 48h10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" opacity="0.8"/>
+      </svg>
+    ),
+    tagline: 'Extended Library',
+    desc: 'Koleksi tambahan dari sumber lain. Lebih banyak konten, lebih banyak pilihan.',
+    path: '/2',
+    features: ['Extra Source', 'Tag Search', 'Hidden Gem'],
+  };
+
+  const brands = showSooramicsPlus ? [...baseBrands, sooramicsPlusBrand] : baseBrands;
+
   return (
     <div className="landing-page">
       <canvas ref={canvasRef} className="landing-particles" />
@@ -177,7 +200,13 @@ export default function Landing() {
               key={brand.name}
               className={`landing-card ${!brand.path ? 'landing-card-soon' : ''}`}
               style={{ '--card-color': brand.color, '--card-glow': brand.glow }}
-              onClick={() => brand.path && navigate(brand.path)}
+              onClick={() => {
+                if (brand.name === 'sooramics+' && onSooramicsPlusClick) {
+                  onSooramicsPlusClick();
+                } else if (brand.path) {
+                  navigate(brand.path);
+                }
+              }}
             >
               <div className="landing-card-glow" />
               <div className="landing-card-icon">{brand.icon}</div>

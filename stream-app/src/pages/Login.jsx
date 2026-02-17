@@ -67,7 +67,7 @@ export default function Login() {
     const result = login(formData.email, formData.password);
     setLoading(false);
     if (result.success) {
-      navigate('/app');
+      navigate('/');
     } else {
       setError(result.error);
       triggerShake();

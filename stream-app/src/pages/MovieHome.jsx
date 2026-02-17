@@ -225,6 +225,7 @@ export default function MovieHome() {
             <div className="hero-meta">
               {hero.type && <span className="hero-tag">{hero.type}</span>}
               {hero.releaseDate && <span className="hero-tag">{hero.releaseDate}</span>}
+              {hero.duration && <span className="hero-tag">{hero.duration}</span>}
             </div>
             <div className="hero-actions">
               <button className="btn-play sooraflix-btn-play" onClick={() => navigate(`/movies/info?id=${encodeURIComponent(hero.id)}&type=${hero.mediaType || 'movie'}`)}>

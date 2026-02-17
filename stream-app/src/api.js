@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // ========== CONFIG ==========
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TMDB_KEY = import.meta.env.VITE_TMDB_API_KEY || '';
 const TMDB_IMG = 'https://image.tmdb.org/t/p';
@@ -79,6 +79,24 @@ const normalizeTMDB = (item) => ({
 // ========== ANIME (AnimeKai — primary, HiAnime — fallback, AnimePahe — tertiary) ==========
 
 // Multi-provider search: tries AnimeKai first, enriches with HiAnime & AnimePahe results
+// Aggressive dedup to avoid showing the same anime 2-3 times
+const _normalizeForDedup = (title) => {
+  if (!title) return '';
+  return title
+    .toLowerCase()
+    .trim()
+    // Remove common suffixes that cause duplicates
+    .replace(/\s*\((?:dub|sub|dubbed|subbed|tv|ova|ona|special|movie|hd|uncensored|censored|bd)\)/gi, '')
+    .replace(/\s*-\s*(dub|sub|dubbed|subbed)$/i, '')
+    // Remove season / part indicators for matching
+    .replace(/\s*(?:season|part|cour)\s*\d+/gi, '')
+    .replace(/\s*\d+(?:st|nd|rd|th)\s+season/gi, '')
+    // Normalize punctuation & whitespace
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 export const searchAnime = (query, page = 1) =>
   cachedGet(`search:anime:${query}:${page}`, async () => {
     const results = await Promise.allSettled([
@@ -92,15 +110,20 @@ export const searchAnime = (query, page = 1) =>
     const paheRes = results[2].status === 'fulfilled' ? results[2].value : null;
 
     // Merge: start with AnimeKai, then add unique titles from HiAnime & AnimePahe
+    // Use aggressive normalization to catch "Naruto" vs "Naruto (Dub)" vs "NARUTO" etc.
     const ankaiItems = ankaiRes?.data?.results || [];
     const merged = [...ankaiItems];
+    const seenNorm = new Set(ankaiItems.map(i => _normalizeForDedup(i.title)));
+    // Also track original titles for display
     const seenTitles = new Set(ankaiItems.map(i => (i.title || '').toLowerCase().trim()));
 
     const addUnique = (items, provider) => {
       for (const item of items) {
-        const t = (item.title || '').toLowerCase().trim();
-        if (t && !seenTitles.has(t)) {
-          seenTitles.add(t);
+        const norm = _normalizeForDedup(item.title);
+        const exact = (item.title || '').toLowerCase().trim();
+        if (norm && !seenNorm.has(norm) && !seenTitles.has(exact)) {
+          seenNorm.add(norm);
+          seenTitles.add(exact);
           merged.push({ ...item, _provider: provider });
         }
       }
@@ -129,6 +152,56 @@ export const getHiAnimeInfo = (id) =>
     api.get('/anime/hianime/info', { params: { id } })
   );
 
+/**
+ * Fetch MAL ID and AniList ID for an anime by trying multiple sources.
+ * 1) HiAnime info (by slug)
+ * 2) HiAnime search-by-title → info
+ * 3) Jikan v4 API (MAL, free, no key)
+ * Returns { malId, alId } — either or both may be null.
+ */
+export const fetchAnimeIds = async (animeId, animeTitle) =>
+  cachedGet(`anime:ids:${animeId}`, async () => {
+    let malId = null;
+    let alId = null;
+
+    // 1) Direct HiAnime info using same slug
+    try {
+      const res = await api.get('/anime/hianime/info', { params: { id: animeId } });
+      if (res.data?.malID) malId = res.data.malID;
+      if (res.data?.alID) alId = res.data.alID;
+      if (malId || alId) return { malId, alId };
+    } catch { /* continue */ }
+
+    // 2) Search HiAnime by title, then fetch info of best match
+    if (animeTitle) {
+      try {
+        const searchRes = await api.get(`/anime/hianime/${encodeURIComponent(animeTitle)}`);
+        const hit = searchRes.data?.results?.[0];
+        if (hit?.id) {
+          const infoRes = await api.get('/anime/hianime/info', { params: { id: hit.id } });
+          if (infoRes.data?.malID) malId = infoRes.data.malID;
+          if (infoRes.data?.alID) alId = infoRes.data.alID;
+          if (malId || alId) return { malId, alId };
+        }
+      } catch { /* continue */ }
+    }
+
+    // 3) Jikan v4 API (MAL free API) — last resort
+    if (animeTitle) {
+      try {
+        const jikanRes = await axios.get('https://api.jikan.moe/v4/anime', {
+          params: { q: animeTitle, limit: 1, sfw: true },
+          timeout: 8000,
+        });
+        const jikanHit = jikanRes.data?.data?.[0];
+        if (jikanHit?.mal_id) malId = jikanHit.mal_id;
+        if (malId) return { malId, alId: null };
+      } catch { /* give up */ }
+    }
+
+    return { malId, alId };
+  });
+
 // AnimePahe info
 export const getAnimePaheInfo = (id) =>
   cachedGet(`animepahe:info:${id}`, () =>
@@ -155,7 +228,16 @@ export const watchAnimeEpisode = async (episodeId, server, category, epNumber) =
   const epMatch = episodeId.match(/\$ep=(\d+)/);
   const epNum = epNumber ? parseInt(epNumber) : (epMatch ? parseInt(epMatch[1]) : 1);
   const slug = slugMatch ? slugMatch[1] : '';
-  const searchQuery = slug.replace(/-\w{2,5}$/, '').replace(/-/g, ' ');
+  // Better normalization: strip trailing provider suffix (e.g. "-dub", "-sub", locale codes)
+  // and convert hyphens to spaces for search
+  const searchQuery = slug
+    .replace(/-(dub|sub|raw|eng|jpn)$/i, '')
+    .replace(/-\d+$/, '') // trailing numeric ID from some providers
+    .replace(/-\w{2,5}$/, '')
+    .replace(/-/g, ' ')
+    .trim();
+
+  console.info('[watchAnimeEpisode] Fallback search query:', searchQuery, '| ep:', epNum);
 
   // 2) Try HiAnime
   try {
@@ -702,9 +784,22 @@ export const isMangaNovel = (item) => {
 // Get content type label for a manga item
 export const getMangaContentType = (item) => {
   if (isMangaNovel(item)) return 'Novel';
+  // Check Komiku's type field first (returns 'Manhwa', 'Manga', 'Manhua' directly)
+  const komikuType = (item?.type || '').toLowerCase();
+  if (komikuType === 'manhwa' || komikuType === 'manhua') return 'Manhwa';
   const title = (typeof item.title === 'string' ? item.title : '').toLowerCase();
   if (title.includes('manhwa') || title.includes('manhua')) return 'Manhwa';
   return 'Manga';
+};
+
+// Detect manhwa/manhua (works with Komiku type field + title/id heuristic)
+export const isManhwa = (item) => {
+  const komikuType = (item?.type || '').toLowerCase();
+  if (komikuType === 'manhwa' || komikuType === 'manhua') return true;
+  const id = (item?.id || '').toLowerCase();
+  const title = (typeof item?.title === 'string' ? item.title : '').toLowerCase();
+  return id.includes('manhwa') || id.includes('manhua') ||
+    /\b(manhwa|manhua)\b/.test(title);
 };
 
 export const searchManga = (query, page = 1) =>
@@ -820,6 +915,76 @@ export const getKomikuTrending = () =>
   cachedGet(`komiku:trending`, async () => {
     return api.get(`/manga/komiku/trending`);
   }, MANGA_CACHE_TTL);
+
+// ========== SAMEHADAKU / Sub Indo (via Sankavollerei API) ==========
+const SAMEHADAKU_BASE = 'https://www.sankavollerei.com/anime/samehadaku';
+
+const samehadaku = axios.create({ baseURL: SAMEHADAKU_BASE, timeout: 15000 });
+
+/**
+ * Search Samehadaku for Sub Indo anime by title.
+ * Returns { animeList: [{ animeId, title, poster, type, score, ... }] }
+ */
+export const searchSamehadaku = (query) =>
+  cachedGet(`samehadaku:search:${query}`, async () => {
+    const res = await samehadaku.get('/search', { params: { q: query } });
+    return res.data?.data || { animeList: [] };
+  });
+
+/**
+ * Get anime detail from Samehadaku (episode list, synopsis, etc.)
+ * @param {string} animeId - e.g. "naruto-kecil"
+ */
+export const getSamehadakuAnimeInfo = (animeId) =>
+  cachedGet(`samehadaku:info:${animeId}`, async () => {
+    const res = await samehadaku.get(`/anime/${animeId}`);
+    return res.data?.data || null;
+  });
+
+/**
+ * Get episode streaming data (default stream URL + server list by quality).
+ * @param {string} episodeId - e.g. "naruto-kecil-episode-1"
+ * Returns { title, defaultStreamingUrl, server: { qualities: [...] }, ... }
+ */
+export const getSamehadakuEpisode = (episodeId) =>
+  cachedGet(`samehadaku:ep:${episodeId}`, async () => {
+    const res = await samehadaku.get(`/episode/${episodeId}`);
+    return res.data?.data || null;
+  });
+
+/**
+ * Resolve a server ID to an actual embed/streaming URL.
+ * @param {string} serverId - e.g. "9CB7E-7-xhmyrq"
+ * Returns { url: "https://..." }
+ */
+export const getSamehadakuServerUrl = (serverId) =>
+  cachedGet(`samehadaku:server:${serverId}`, async () => {
+    const res = await samehadaku.get(`/server/${serverId}`);
+    return res.data?.data || null;
+  });
+
+/**
+ * Find a Samehadaku anime matching the given title (fuzzy match).
+ * Tries the title directly, then the Japanese title, then a normalized version.
+ * Returns { animeId, episodeList } or null.
+ */
+export const findSamehadakuAnime = async (title, japaneseTitle) =>
+  cachedGet(`samehadaku:find:${title}`, async () => {
+    const queries = [title];
+    if (japaneseTitle && japaneseTitle !== title) queries.push(japaneseTitle);
+
+    for (const q of queries) {
+      try {
+        const result = await searchSamehadaku(q);
+        const list = result.animeList || [];
+        if (list.length > 0) {
+          // Return best match (first result)
+          return list[0];
+        }
+      } catch { /* try next query */ }
+    }
+    return null;
+  });
 
 export { normalizeMangaTitle };
 

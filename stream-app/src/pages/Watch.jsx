@@ -2,11 +2,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import VideoPlayer from '../components/VideoPlayer';
 import AnimeEmbedPlayer from '../components/AnimeEmbedPlayer';
+import MovieEmbedPlayer from '../components/MovieEmbedPlayer';
+import SubIndoPlayer from '../components/SubIndoPlayer';
 import { useMiniPlayer } from '../context/MiniPlayerContext';
 import {
   watchAnimeEpisode,
   getAnimeInfo,
   getHiAnimeInfo,
+  fetchAnimeIds,
   getAnimeSpotlight,
   getMovieDetailsTMDB,
   getTVDetailsTMDB,
@@ -89,9 +92,13 @@ export default function Watch() {
   const [malId, setMalId] = useState(null);
   const [alId, setAlId] = useState(null);
   const [useEmbedPlayer, setUseEmbedPlayer] = useState(false);
+  const [useSubIndo, setUseSubIndo] = useState(false);
+  const [subLang, setSubLang] = useState(null); // null = direct, 'id' | 'en' | 'multi'
   const [retryKey, setRetryKey] = useState(0); // bump to re-trigger data fetch
 
   const playerRef = useRef(null);
+  const lastWorkingSource = useRef(null); // track last source that played successfully
+  const userForcedDirect = useRef(false); // true when user explicitly clicks Direct pill
 
   // Normalize TMDB results for <Card>
   const normRec = (r) => ({
@@ -296,11 +303,13 @@ export default function Watch() {
       setLoading(true);
       setError(null);
       setUseEmbedPlayer(false);
+      userForcedDirect.current = false; // reset on episode change
       setAnimeHlsLevels([]);
       setAnimeSelectedLevel(-1);
       setAnimeCurrentLevel(-1);
       // Clear previous stream to avoid stale buffer / codec errors on source switch
       setCurrentSource(null);
+      lastWorkingSource.current = null;
       setSources([]);
       setSubtitles([]);
       setReferer('');
@@ -324,8 +333,22 @@ export default function Watch() {
             if (hiInfo.alID) { setAlId(hiInfo.alID); gotAlId = hiInfo.alID; }
           }
 
-          // Use AnimeKai info if valid, otherwise HiAnime
+          // If HiAnime didn't give us IDs, try AnimeKai info fields
           const ankaiInfo = ankaiResult.status === 'fulfilled' ? ankaiResult.value.data : null;
+          if (!gotMalId && ankaiInfo?.malID) { setMalId(ankaiInfo.malID); gotMalId = ankaiInfo.malID; }
+          if (!gotAlId && ankaiInfo?.alID) { setAlId(ankaiInfo.alID); gotAlId = ankaiInfo.alID; }
+
+          // Still no IDs? Try fetchAnimeIds (HiAnime search + Jikan fallback)
+          if (!gotMalId && !gotAlId) {
+            const animeTitle = ankaiInfo?.title || title;
+            try {
+              const ids = await fetchAnimeIds(animeId, animeTitle);
+              if (ids.malId) { setMalId(ids.malId); gotMalId = ids.malId; }
+              if (ids.alId) { setAlId(ids.alId); gotAlId = ids.alId; }
+            } catch { /* continue without IDs */ }
+          }
+
+          // Use AnimeKai info if valid, otherwise HiAnime
           const hiInfo = hianimeResult.status === 'fulfilled' ? hianimeResult.value.data : null;
           const hasValidAnkai = ankaiInfo?.title && (ankaiInfo.episodes?.length > 0 || ankaiInfo.totalEpisodes > 0);
 
@@ -349,7 +372,10 @@ export default function Watch() {
         }
 
         // Now try to load the stream (with auto-fallback AnimeKai → HiAnime)
+        console.info('[Watch] Loading stream for:', episodeId, '| ep:', epNum, '| animeId:', animeId);
         const data = (await watchAnimeEpisode(episodeId, undefined, undefined, epNum)).data;
+        const fallbackProvider = data._fallback || 'animekai';
+        console.info('[Watch] Stream loaded via:', fallbackProvider, '| sources:', data.sources?.length);
         const srcs = data.sources || [];
         setSources(srcs);
         setSubtitles(data.subtitles || []);
@@ -357,16 +383,23 @@ export default function Watch() {
         const auto = srcs.find((s) => s.quality === 'auto' || s.quality === 'default');
         const hd = srcs.find((s) => ['1080p', '1080'].includes(s.quality));
         const med = srcs.find((s) => ['720p', '720'].includes(s.quality));
-        setCurrentSource(auto || hd || med || srcs[0] || null);
+        const picked = auto || hd || med || srcs[0] || null;
+        setCurrentSource(picked);
+        lastWorkingSource.current = null; // reset — will be set once playback starts
         if (srcs.length === 0) {
           setError('No playable streams found.');
           // Auto-switch to embed only when we have ZERO sources (fetch completely failed)
           if (gotMalId || gotAlId) setUseEmbedPlayer(true);
         }
       } catch (err) {
+        console.error('[Watch] All anime stream providers failed:', err.message);
         setError(err.message || 'Stream unavailable');
         // Auto-switch to embed only when fetch completely fails
-        if (gotMalId || gotAlId) setUseEmbedPlayer(true);
+        if (gotMalId || gotAlId) {
+          console.info('[Watch] Auto-switching to embed player (malId:', gotMalId, 'alId:', gotAlId, ')');
+          setUseEmbedPlayer(true);
+          if (!subLang) setSubLang('multi');
+        }
       } finally {
         setLoading(false);
       }
@@ -376,10 +409,32 @@ export default function Watch() {
 
   const handlePlayerError = useCallback((msg) => {
     console.warn('Player error:', msg);
+
+    const fallback = lastWorkingSource.current;
+    lastWorkingSource.current = null; // always clear to prevent revert loops
+
+    // Quality switch failed — revert to the DIFFERENT previous working source
+    if (fallback && fallback.url !== currentSource?.url) {
+      console.info('[Watch] Source failed, reverting to last working source');
+      setCurrentSource(fallback);
+      return;
+    }
+
+    // Current source itself can't play (codec error, network etc.).
+    // Auto-switch to embed if available — UNLESS user explicitly clicked Direct.
+    if (malId && !userForcedDirect.current) {
+      console.info('[Watch] Stream unplayable, auto-switching to embed (malId:', malId, ')');
+      setCurrentSource(null);
+      setError(null);
+      setUseEmbedPlayer(true);
+      if (!subLang) setSubLang('multi');
+      return;
+    }
+
+    // User forced Direct or no embed available — show error UI
     setError(msg);
-    // Clear currentSource so the render falls to the error state with retry/embed options
     setCurrentSource(null);
-  }, []);
+  }, [currentSource, malId, subLang]);
 
   // ===== MINIMIZE HANDLER (YouTube-style) =====
   const handleMinimize = useCallback(() => {
@@ -479,6 +534,8 @@ export default function Watch() {
     setSubtitles([]);
     setReferer('');
     setUseEmbedPlayer(false);
+    setUseSubIndo(false);
+    setSubLang(null);
     setAnimeHlsLevels([]);
     // Bump retryKey to re-trigger the fetch useEffect
     setRetryKey((k) => k + 1);
@@ -488,28 +545,24 @@ export default function Watch() {
     <div className="watch-page">
       {/* ===== PLAYER ===== */}
       <div className="watch-player-wrap">
-        {isAnime && useEmbedPlayer && (malId || alId) ? (
+        {isAnime && useSubIndo ? (
+          <SubIndoPlayer
+            animeTitle={animeInfo?.title || title}
+            japaneseTitle={animeInfo?.japaneseTitle || animeInfo?.otherName || ''}
+            episode={parseInt(epNum) || 1}
+          />
+        ) : isAnime && useEmbedPlayer && malId ? (
           <AnimeEmbedPlayer
             malId={malId}
-            alId={alId}
             episode={parseInt(epNum) || 1}
           />
         ) : isMovie && useEmbedPlayer && tmdbId ? (
-          <div className="anime-embed-container">
-            <div className="embed-player-wrap">
-              <iframe
-                src={mediaType === 'tv'
-                  ? `https://vidsrc.cc/v2/embed/tv/${tmdbId}/${season}/${episode}`
-                  : `https://vidsrc.cc/v2/embed/movie/${tmdbId}`}
-                frameBorder="0"
-                allowFullScreen
-                allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-                style={{ width: '100%', height: '100%', border: 'none' }}
-                title="Movie Player"
-                sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-              />
-            </div>
-          </div>
+          <MovieEmbedPlayer
+            tmdbId={tmdbId}
+            mediaType={mediaType}
+            season={season}
+            episode={episode}
+          />
         ) : currentSource ? (
           <div className="player-wrapper">
             <VideoPlayer
@@ -523,6 +576,8 @@ export default function Watch() {
               onLevelsLoaded={(levels) => {
                 setAnimeHlsLevels(levels);
                 setAnimeSelectedLevel(-1);
+                // Manifest parsed successfully — this source works
+                lastWorkingSource.current = currentSource;
               }}
               onLevelSwitched={(level) => setAnimeCurrentLevel(level)}
             />
@@ -535,20 +590,23 @@ export default function Watch() {
                 <path d="M12 8v4M12 16h.01"/>
               </svg>
               <p className="player-error-title">Stream Unavailable</p>
-              <p className="player-error-desc">{error}</p>
+              <p className="player-error-desc">
+                {error}
+                {isAnime && ' All providers failed — try embedded player.'}
+              </p>
               <div className="player-error-actions">
                 <button className="btn-play btn-sm" onClick={handleRetry}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
                   Retry
                 </button>
-                {isAnime && (malId || alId) && (
-                  <button className="btn-play btn-sm" onClick={() => { setError(null); setUseEmbedPlayer(true); }}>
+                {isAnime && malId && (
+                  <button className="btn-play btn-sm" onClick={() => { setError(null); setSubLang('multi'); setUseEmbedPlayer(true); }}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
                     Embedded Player
                   </button>
                 )}
                 {isMovie && tmdbId && (
-                  <button className="btn-play btn-sm" onClick={() => { setError(null); setUseEmbedPlayer(true); }}>
+                  <button className="btn-play btn-sm" onClick={() => { setError(null); setSubLang('multi'); setUseEmbedPlayer(true); }}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
                     Embedded Player
                   </button>
@@ -568,8 +626,8 @@ export default function Watch() {
                 <button className="btn-play btn-sm" onClick={handleRetry}>
                   Retry
                 </button>
-                {((isAnime && (malId || alId)) || (isMovie && tmdbId)) && (
-                  <button className="btn-play btn-sm" onClick={() => setUseEmbedPlayer(true)}>
+                {((isAnime && malId) || (isMovie && tmdbId)) && (
+                  <button className="btn-play btn-sm" onClick={() => { setSubLang('multi'); setUseEmbedPlayer(true); }}>
                     Embedded Player
                   </button>
                 )}
@@ -582,39 +640,75 @@ export default function Watch() {
       {/* ===== CONTENT BELOW PLAYER ===== */}
       <div className="watch-content">
 
-        {/* Player mode toggle — switch between Direct (HLS) and Embed (iframe with subs) */}
-        {((isAnime && (malId || alId)) || (isMovie && tmdbId)) && (
+        {/* Player mode selector — Direct HLS or Embed fallback */}
+        {(isAnime && malId) || (isMovie && tmdbId) ? (
           <div className="watch-player-mode">
             <span className="watch-player-mode-label">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="2" y="3" width="20" height="14" rx="2"/>
-                <path d="M8 21h8M12 17v4"/>
+                <polygon points="10 8 16 11 10 14 10 8" fill="currentColor"/>
               </svg>
               Player
             </span>
             <div className="watch-player-mode-pills">
               <button
-                className={`watch-quality-pill ${!useEmbedPlayer ? 'active' : ''}`}
-                onClick={() => setUseEmbedPlayer(false)}
-                title="Direct HLS stream — better quality"
+                className={`watch-quality-pill ${!useEmbedPlayer && !useSubIndo ? 'active' : ''}`}
+                onClick={() => { userForcedDirect.current = true; setSubLang(null); setUseEmbedPlayer(false); setUseSubIndo(false); }}
+                title="Direct HLS stream — best quality"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                 Direct
               </button>
               <button
-                className={`watch-quality-pill ${useEmbedPlayer ? 'active' : ''}`}
-                onClick={() => setUseEmbedPlayer(true)}
-                title="Embed player — has built-in subtitles"
+                className={`watch-quality-pill ${useEmbedPlayer && !useSubIndo ? 'active' : ''}`}
+                onClick={() => { setSubLang('multi'); setUseEmbedPlayer(true); setUseSubIndo(false); }}
+                title="Embedded player — try this if Direct doesn't work"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                With Subs
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                Embed
+              </button>
+              {isAnime && (
+                <button
+                  className={`watch-quality-pill watch-quality-pill-indo ${useSubIndo ? 'active' : ''}`}
+                  onClick={() => { setSubLang('id'); setUseEmbedPlayer(false); setUseSubIndo(true); }}
+                  title="Sub Indonesia — dari Samehadaku"
+                >
+                  🇮🇩 Sub Indo
+                </button>
+              )}
+            </div>
+          </div>
+        ) : isAnime ? (
+          <div className="watch-player-mode">
+            <span className="watch-player-mode-label">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                <polygon points="10 8 16 11 10 14 10 8" fill="currentColor"/>
+              </svg>
+              Player
+            </span>
+            <div className="watch-player-mode-pills">
+              <button
+                className={`watch-quality-pill ${!useSubIndo ? 'active' : ''}`}
+                onClick={() => { userForcedDirect.current = true; setSubLang(null); setUseEmbedPlayer(false); setUseSubIndo(false); }}
+                title="Direct HLS stream — best quality"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Direct
+              </button>
+              <button
+                className={`watch-quality-pill watch-quality-pill-indo ${useSubIndo ? 'active' : ''}`}
+                onClick={() => { setSubLang('id'); setUseEmbedPlayer(false); setUseSubIndo(true); }}
+                title="Sub Indonesia — dari Samehadaku"
+              >
+                🇮🇩 Sub Indo
               </button>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {/* Quality selector (HLS levels discovered by player) */}
-        {animeHlsLevels.length > 1 && (
+        {/* Quality selector (HLS levels discovered by player) — hide when embed player active */}
+        {animeHlsLevels.length > 1 && !useEmbedPlayer && !useSubIndo && (
           <div className="watch-quality-section">
             <span className="watch-quality-label">Quality</span>
             <div className="watch-quality-pills">
@@ -658,7 +752,11 @@ export default function Watch() {
                 <button
                   key={i}
                   className={`watch-quality-pill ${currentSource?.url === src.url ? 'active' : ''}`}
-                  onClick={() => setCurrentSource(src)}
+                  onClick={() => {
+                    // Remember current working source before switching
+                    if (currentSource) lastWorkingSource.current = currentSource;
+                    setCurrentSource(src);
+                  }}
                 >
                   {src.quality || `Source ${i + 1}`}
                   {['1080p', '1080'].includes(src.quality) && <span className="res-badge">HD</span>}
