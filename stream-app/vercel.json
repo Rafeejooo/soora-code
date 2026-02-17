@@ -24,7 +24,7 @@
     },
     {
       "source": "/api/:path*",
-      "destination": "https://soora-code-production.up.railway.app/:path*"
+      "destination": "https://api.soora.fun/:path*"
     },
     {
       "source": "/((?!api/).*)",
