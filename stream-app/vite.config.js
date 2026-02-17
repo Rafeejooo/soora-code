@@ -168,9 +168,12 @@ export default defineConfig({
             const needsHeaders = referer && (
               targetHost === refHost ||
               targetHost.includes('uwucdn') ||
+              targetHost.includes('owocdn') ||
               targetHost.includes('megacloud') ||
               targetHost.includes('megafiles') ||
               targetHost.includes('vizcloud') ||
+              targetHost.includes('rapid-cloud') ||
+              targetHost.includes('rabbitstream') ||
               url.includes('.key') ||
               url.includes('mon.key')
             );

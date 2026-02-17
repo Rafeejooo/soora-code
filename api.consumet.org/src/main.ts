@@ -14,6 +14,7 @@ import meta from './routes/meta';
 import news from './routes/news';
 import chalk from 'chalk';
 import Utils from './utils';
+import proxy from './routes/proxy';
 
 export const redis =
   process.env.REDIS_HOST &&
@@ -147,6 +148,7 @@ export const tmdbApi = process.env.TMDB_KEY && process.env.TMDB_KEY;
   await fastify.register(meta, { prefix: '/meta' });
   await fastify.register(news, { prefix: '/news' });
   await fastify.register(Utils, { prefix: '/utils' });
+  await fastify.register(proxy, { prefix: '/proxy' });
 
   try {
     fastify.get('/', (_, rp) => {
