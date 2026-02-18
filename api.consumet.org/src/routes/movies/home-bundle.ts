@@ -4,6 +4,7 @@ import { MOVIES } from '@consumet/extensions';
 import cache from '../../utils/cache';
 import { redis, REDIS_TTL } from '../../main';
 import { Redis } from 'ioredis';
+import { applyWarpToProvider } from '../../utils/warp';
 
 /**
  * /movies/home-bundle
@@ -22,6 +23,7 @@ const BUNDLE_TTL = Math.max(REDIS_TTL, 1800); // at least 30 min
 
 const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
   const goku = new MOVIES.Goku();
+  applyWarpToProvider(goku, fastify.log);
 
   fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
     try {

@@ -1,25 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply, RegisterOptions } from 'fastify';
 import axios from 'axios';
-import { SocksProxyAgent } from 'socks-proxy-agent';
-
-// WARP SOCKS5 proxy running on localhost:40000 (Cloudflare WARP in proxy mode)
-const WARP_AGENT = new SocksProxyAgent('socks5h://127.0.0.1:40000');
-
-// Domains known to block datacenter IPs — always route through WARP
-const WARP_DOMAINS = [
-  'silvercloud', 'owocdn', 'uwucdn', 'megacloud', 'megafiles',
-  'vizcloud', 'rapid-cloud', 'rabbitstream', 'streameeeeee',
-  'raffaellocdn', 'vidcloud', 'dokicloud',
-];
-
-const shouldUseWarp = (url: string): boolean => {
-  try {
-    const host = new URL(url).hostname;
-    return WARP_DOMAINS.some((d) => host.includes(d));
-  } catch {
-    return false;
-  }
-};
+import { WARP_AGENT, shouldUseWarp } from '../utils/warp';
 
 /**
  * Fetch via axios — uses WARP SOCKS5 proxy for blocked CDN domains,

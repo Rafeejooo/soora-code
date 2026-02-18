@@ -5,9 +5,11 @@ import { StreamingServers } from '@consumet/extensions/dist/models';
 import cache from '../../utils/cache';
 import { redis, REDIS_TTL } from '../../main';
 import { Redis } from 'ioredis';
+import { applyWarpToProvider } from '../../utils/warp';
 
 const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
   const goku = new MOVIES.Goku();
+  applyWarpToProvider(goku, fastify.log);
 
   fastify.get('/', (_, rp) => {
     rp.status(200).send({
