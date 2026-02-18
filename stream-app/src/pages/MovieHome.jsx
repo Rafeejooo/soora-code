@@ -11,9 +11,11 @@ import {
   getPopularTV,
   discoverByGenre,
   discoverTMDB,
+  getMovieHomeBundle,
 } from '../api';
 import Card from '../components/Card';
 import Loading from '../components/Loading';
+import SkeletonSection from '../components/SkeletonSection';
 
 /* ── filter options ── */
 const TYPE_OPTIONS = [
@@ -54,7 +56,9 @@ export default function MovieHome() {
   const [recentTV, setRecentTV] = useState([]);
   const [genreData, setGenreData] = useState({});
   const [allGenres, setAllGenres] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [heroReady, setHeroReady] = useState(false);
+  const [sectionsReady, setSectionsReady] = useState(false);
+  const [genresReady, setGenresReady] = useState(false);
   const [heroIdx, setHeroIdx] = useState(0);
   const [searchVal, setSearchVal] = useState('');
 
@@ -72,61 +76,119 @@ export default function MovieHome() {
 
   const isFilterActive = filterType || filterGenre || filterYear || filterSort !== 'popularity.desc';
 
-  /* ── Initial load ── */
+  /* ── Initial load — bundle first, fallback to individual ── */
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
+    let cancelled = false;
 
-      // Fetch base sections + genres in parallel
+    const normalizeGokuItem = (item) => ({
+      id: item.id,
+      title: item.title || 'Unknown',
+      image: item.image || '',
+      type: item.type || 'Movie',
+      releaseDate: item.releaseDate || '',
+      duration: item.duration || '',
+      mediaType: item.type === 'TV Series' ? 'tv' : 'movie',
+      season: item.season || '',
+      latestEpisode: item.latestEpisode || '',
+    });
+
+    const fetchViaBundle = async () => {
+      try {
+        const [bundleRes, genresRes] = await Promise.all([
+          getMovieHomeBundle(),
+          getTMDBGenres().catch(() => ({ data: [] })),
+        ]);
+        const d = bundleRes.data || bundleRes;
+        if (cancelled) return false;
+
+        // Normalize Goku items from bundle
+        const normList = (arr) => (arr || []).map(normalizeGokuItem);
+
+        // Hero first
+        const tm = normList(d.trendingMovies);
+        if (tm.length > 0) {
+          setTrendingMovies(tm);
+          setHeroReady(true);
+        }
+
+        // Base sections
+        requestAnimationFrame(() => {
+          if (cancelled) return;
+          setRecentMovies(normList(d.recentMovies));
+          setTrendingTV(normList(d.trendingTV));
+          setRecentTV(normList(d.recentTV));
+          setSectionsReady(true);
+        });
+
+        if (genresRes.data) setAllGenres(genresRes.data);
+
+        // Genre sections in background
+        const allGenreResults = await Promise.allSettled(
+          GENRE_SECTIONS.map((g) => discoverByGenre(g.id, 1, 'movie'))
+        );
+        if (cancelled) return true;
+        const gd = {};
+        GENRE_SECTIONS.forEach((g, i) => {
+          if (allGenreResults[i].status === 'fulfilled') {
+            gd[g.id] = allGenreResults[i].value.data?.results || [];
+          }
+        });
+        setGenreData(gd);
+        setGenresReady(true);
+
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    const fetchIndividual = async () => {
+      // Phase 1: Hero (trending movies) — fastest
+      try {
+        const tmRes = await getGokuTrendingMovies();
+        if (cancelled) return;
+        setTrendingMovies(tmRes.data || []);
+        setHeroReady(true);
+      } catch { setHeroReady(true); }
+
+      // Phase 2: Rest of base sections + genres list in parallel
       const [baseResults, genresRes] = await Promise.all([
         Promise.allSettled([
-          getGokuTrendingMovies(),
           getGokuRecentMovies(),
           getGokuTrendingTV(),
           getGokuRecentTV(),
         ]),
         getTMDBGenres().catch(() => ({ data: [] })),
       ]);
+      if (cancelled) return;
 
-      if (baseResults[0].status === 'fulfilled') setTrendingMovies(baseResults[0].value.data || []);
-      if (baseResults[1].status === 'fulfilled') setRecentMovies(baseResults[1].value.data || []);
-      if (baseResults[2].status === 'fulfilled') setTrendingTV(baseResults[2].value.data || []);
-      if (baseResults[3].status === 'fulfilled') setRecentTV(baseResults[3].value.data || []);
-
+      if (baseResults[0].status === 'fulfilled') setRecentMovies(baseResults[0].value.data || []);
+      if (baseResults[1].status === 'fulfilled') setTrendingTV(baseResults[1].value.data || []);
+      if (baseResults[2].status === 'fulfilled') setRecentTV(baseResults[2].value.data || []);
       if (genresRes.data) setAllGenres(genresRes.data);
+      setSectionsReady(true);
 
-      setLoading(false);
-
-      // Lazy-load genre sections (first 5 then rest)
-      const initialGenres = GENRE_SECTIONS.slice(0, 5);
+      // Phase 3: All genre sections in parallel
       const genreResults = await Promise.allSettled(
-        initialGenres.map((g) => discoverByGenre(g.id, 1, 'movie'))
+        GENRE_SECTIONS.map((g) => discoverByGenre(g.id, 1, 'movie'))
       );
+      if (cancelled) return;
       const gd = {};
-      initialGenres.forEach((g, i) => {
+      GENRE_SECTIONS.forEach((g, i) => {
         if (genreResults[i].status === 'fulfilled') {
           gd[g.id] = genreResults[i].value.data?.results || [];
         }
       });
       setGenreData(gd);
-
-      const remaining = GENRE_SECTIONS.slice(5);
-      if (remaining.length > 0) {
-        const moreResults = await Promise.allSettled(
-          remaining.map((g) => discoverByGenre(g.id, 1, 'movie'))
-        );
-        setGenreData((prev) => {
-          const updated = { ...prev };
-          remaining.forEach((g, i) => {
-            if (moreResults[i].status === 'fulfilled') {
-              updated[g.id] = moreResults[i].value.data?.results || [];
-            }
-          });
-          return updated;
-        });
-      }
+      setGenresReady(true);
     };
-    fetchData();
+
+    (async () => {
+      const ok = await fetchViaBundle();
+      if (!ok && !cancelled) await fetchIndividual();
+    })();
+
+    return () => { cancelled = true; };
   }, []);
 
   /* ── Filter search ── */
@@ -194,7 +256,7 @@ export default function MovieHome() {
     setFilterSort('popularity.desc');
   };
 
-  if (loading) return <Loading text="Loading..." theme="sooraflix" />;
+  if (!heroReady) return <Loading text="Loading..." theme="sooraflix" />;
 
   const hero = trendingMovies[heroIdx];
   const gokuHeroImg = (url) => url ? url.replace(/\/resize\/\d+x\d+\//, '/resize/1200x800/') : url;
@@ -467,25 +529,44 @@ export default function MovieHome() {
       {/* ── Default Sections (when no filter active) ── */}
       {!isFilterActive && (
         <>
-          {trendingMovies.length > 0 && <Section title="Trending Movies" items={trendingMovies} type="movie" />}
-          {recentMovies.length > 0 && <Section title="Recent Movies" items={recentMovies} type="movie" />}
-          {trendingTV.length > 0 && <Section title="Trending TV Shows" items={trendingTV} type="movie" />}
-          {recentTV.length > 0 && <Section title="Recent TV Shows" items={recentTV} type="movie" />}
+          {/* Base sections — show skeleton while loading */}
+          {sectionsReady ? (
+            <>
+              {trendingMovies.length > 0 && <Section title="Trending Movies" items={trendingMovies} type="movie" />}
+              {recentMovies.length > 0 && <Section title="Recent Movies" items={recentMovies} type="movie" />}
+              {trendingTV.length > 0 && <Section title="Trending TV Shows" items={trendingTV} type="movie" />}
+              {recentTV.length > 0 && <Section title="Recent TV Shows" items={recentTV} type="movie" />}
+            </>
+          ) : (
+            <>
+              {trendingMovies.length > 0 && <Section title="Trending Movies" items={trendingMovies} type="movie" />}
+              <SkeletonSection />
+              <SkeletonSection />
+              <SkeletonSection />
+            </>
+          )}
 
-          {/* Genre sections */}
-          {GENRE_SECTIONS.map((genre) => {
-            const items = genreData[genre.id];
-            if (!items || items.length === 0) return null;
-            return (
-              <Section
-                key={genre.id}
-                title={genre.label}
-                items={items}
-                type="movie"
-                accentColor={genre.color}
-              />
-            );
-          })}
+          {/* Genre sections — show skeletons while loading */}
+          {genresReady ? (
+            GENRE_SECTIONS.map((genre) => {
+              const items = genreData[genre.id];
+              if (!items || items.length === 0) return null;
+              return (
+                <div key={genre.id} className="section-fade-in">
+                  <Section
+                    title={genre.label}
+                    items={items}
+                    type="movie"
+                    accentColor={genre.color}
+                  />
+                </div>
+              );
+            })
+          ) : (
+            sectionsReady && GENRE_SECTIONS.slice(0, 3).map((g) => (
+              <SkeletonSection key={`skel-${g.id}`} accentColor={g.color} />
+            ))
+          )}
         </>
       )}
 

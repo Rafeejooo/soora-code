@@ -7,8 +7,10 @@ import hianime from './hianime';
 import animekai from './animekai';
 import animesaturn from './animesaturn';
 import kickassanime from './kickassanime';
+import homeBundle from './home-bundle';
 
 const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
+  await fastify.register(homeBundle, { prefix: '/home-bundle' });
   await fastify.register(animepahe, { prefix: '/animepahe' });
   await fastify.register(animeunity, { prefix: '/animeunity' });
   await fastify.register(hianime, { prefix: '/hianime' });

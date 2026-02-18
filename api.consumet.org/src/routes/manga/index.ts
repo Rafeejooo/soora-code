@@ -6,8 +6,10 @@ import mangadex from './mangadex';
 import mangakakalot from './mangakakalot';
 import mangahere from './mangahere';
 import komiku from './komiku';
+import mangaHomeBundle from './home-bundle';
 
 const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
+  await fastify.register(mangaHomeBundle, { prefix: '/home-bundle' });
   await fastify.register(mangadex, { prefix: '/mangadex' });
   await fastify.register(mangahere, { prefix: '/mangahere' });
   await fastify.register(mangapill, { prefix: '/mangapill' });

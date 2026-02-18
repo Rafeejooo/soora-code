@@ -173,6 +173,7 @@ export default function Card({ item, type = 'anime' }) {
           src={imgSrc || fallbackImg}
           alt={title}
           loading="lazy"
+          decoding="async"
           referrerPolicy="no-referrer"
           onError={(e) => {
             if (e.target.src !== fallbackImg) e.target.src = fallbackImg;

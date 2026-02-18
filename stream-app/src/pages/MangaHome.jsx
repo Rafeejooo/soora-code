@@ -9,9 +9,11 @@ import {
   isManhwa,
   getMangaContentType,
   searchKomiku,
+  getMangaHomeBundle,
 } from '../api';
 import Card from '../components/Card';
 import Loading from '../components/Loading';
+import SkeletonSection from '../components/SkeletonSection';
 
 /* ── Section configs per language ── */
 const POPULAR_QUERIES = [
@@ -50,7 +52,8 @@ const GENRE_OPTIONS = [
 
 export default function MangaHome() {
   const [sections, setSections] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [heroReady, setHeroReady] = useState(false);
+  const [loadedSections, setLoadedSections] = useState(new Set()); // track which sections are loaded
   const [searchVal, setSearchVal] = useState('');
   const [heroItems, setHeroItems] = useState([]);
   const [heroIdx, setHeroIdx] = useState(0);
@@ -129,48 +132,117 @@ export default function MangaHome() {
   }, [filterType, filterGenre, selectedLang, isFilterActive]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      const allResults = {};
-      const heroList = [];
-      const seen = new Set();
+    let cancelled = false;
+
+    const fetchViaBundle = async () => {
+      try {
+        const res = await getMangaHomeBundle(selectedLang);
+        const d = res.data || res;
+        if (cancelled) return false;
+
+        // Hero first — instant perceived load
+        if (d.heroItems?.length > 0) {
+          setHeroItems(d.heroItems);
+        }
+        setHeroReady(true);
+
+        // Stagger sections for smooth appearance
+        if (d.sections) {
+          const labels = Object.keys(d.sections);
+          labels.forEach((label, i) => {
+            setTimeout(() => {
+              if (cancelled) return;
+              setSections((prev) => ({ ...prev, [label]: d.sections[label] || [] }));
+              setLoadedSections((prev) => new Set([...prev, label]));
+            }, i * 30);
+          });
+        }
+
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    const fetchIndividual = async () => {
+      setHeroReady(false);
+      setSections({});
+      setLoadedSections(new Set());
+      setHeroItems([]);
+
       const useKomiku = selectedLang === 'id';
       const queries = useKomiku ? KOMIKU_QUERIES : POPULAR_QUERIES;
+      const searchFn = useKomiku ? searchKomiku : searchManga;
+      const providerTag = useKomiku ? 'komiku' : null;
+      const seen = new Set();
 
-      const fetchSection = async (label, sectionQueries) => {
-        const searchFn = useKomiku ? searchKomiku : searchManga;
-        const providerTag = useKomiku ? 'komiku' : null;
+      // Flatten ALL search queries and fire them ALL in parallel (12 calls at once)
+      const allQueries = [];
+      for (const sec of queries) {
+        for (const q of sec.queries) {
+          allQueries.push({ label: sec.label, query: q });
+        }
+      }
 
-        const results = await Promise.allSettled(
-          sectionQueries.map((q) => searchFn(q))
-        );
+      const allResults = await Promise.allSettled(
+        allQueries.map((aq) => searchFn(aq.query))
+      );
+
+      if (cancelled) return;
+
+      // Group results by section label
+      const sectionMap = {};
+      const heroList = [];
+
+      let idx = 0;
+      for (const sec of queries) {
         const items = [];
-        results.forEach((r) => {
-          if (r.status === 'fulfilled') {
-            (r.value.data?.results || []).forEach((item) => {
+        for (const _q of sec.queries) {
+          const result = allResults[idx];
+          if (result.status === 'fulfilled') {
+            (result.value.data?.results || []).forEach((item) => {
               if (!seen.has(item.id)) {
                 seen.add(item.id);
                 items.push(providerTag ? { ...item, provider: providerTag } : item);
               }
             });
           }
-        });
-        return items;
-      };
+          idx++;
+        }
+        sectionMap[sec.label] = items;
 
-      for (const sec of queries) {
-        const items = await fetchSection(sec.label, sec.queries);
-        allResults[sec.label] = items;
         if (sec.label === 'Trending' && items.length > 0) {
           heroList.push(...items.filter((i) => !isMangaNovel(i)).slice(0, 6));
         }
       }
 
-      setSections(allResults);
-      setHeroItems(heroList);
-      setLoading(false);
+      // Hero first
+      if (heroList.length > 0) setHeroItems(heroList);
+      setHeroReady(true);
+
+      // Stagger section renders
+      const labels = queries.map((q) => q.label);
+      labels.forEach((label, i) => {
+        setTimeout(() => {
+          if (cancelled) return;
+          setSections((prev) => ({ ...prev, [label]: sectionMap[label] || [] }));
+          setLoadedSections((prev) => new Set([...prev, label]));
+        }, i * 30);
+      });
     };
-    fetchData();
+
+    // Reset state
+    setHeroReady(false);
+    setSections({});
+    setLoadedSections(new Set());
+    setHeroItems([]);
+
+    (async () => {
+      const ok = await fetchViaBundle();
+      if (!ok && !cancelled) await fetchIndividual();
+    })();
+
+    return () => { cancelled = true; };
   }, [selectedLang]);
 
   // Auto-rotate hero
@@ -194,7 +266,7 @@ export default function MangaHome() {
     setFilterGenre('');
   };
 
-  if (loading) return <Loading text="Loading manga..." theme="sooramics" />;
+  if (!heroReady) return <Loading text="Loading manga..." theme="sooramics" />;
 
   const hero = heroItems[heroIdx];
 
@@ -418,14 +490,20 @@ export default function MangaHome() {
       {!isFilterActive && (
         <>
           {(selectedLang === 'id' ? KOMIKU_QUERIES : POPULAR_QUERIES).map((sec) => (
-            sections[sec.label]?.length > 0 && (
-              <Section key={sec.label} title={sec.label} items={sections[sec.label]} type="manga" />
+            loadedSections.has(sec.label) ? (
+              sections[sec.label]?.length > 0 && (
+                <div key={sec.label} className="section-fade-in">
+                  <Section title={sec.label} items={sections[sec.label]} type="manga" />
+                </div>
+              )
+            ) : (
+              <SkeletonSection key={`skel-${sec.label}`} />
             )
           ))}
         </>
       )}
 
-      {!isFilterActive && Object.values(sections).every((s) => !s?.length) && (
+      {!isFilterActive && loadedSections.size >= (selectedLang === 'id' ? KOMIKU_QUERIES : POPULAR_QUERIES).length && Object.values(sections).every((s) => !s?.length) && (
         <div className="empty-state">
           <p>No manga available. Make sure the Consumet API is running on <code>localhost:3000</code></p>
         </div>

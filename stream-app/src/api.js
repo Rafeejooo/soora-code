@@ -18,6 +18,7 @@ const tmdb = axios.create({
 const memCache = new Map();
 const CACHE_TTL = 10 * 60 * 1000;       // 10 min default
 const MANGA_CACHE_TTL = 30 * 60 * 1000; // 30 min for slow manga fetches
+const BUNDLE_CACHE_TTL = 15 * 60 * 1000; // 15 min for home bundles
 
 const _ssKey = (k) => `soora_cache:${k}`;
 
@@ -42,6 +43,57 @@ const cachedGet = async (key, fetcher, ttl = CACHE_TTL) => {
   } catch { /* quota exceeded or parse error — ignore */ }
 
   // 3) Fetch fresh
+  const data = await fetcher();
+  const entry = { data, ts: now };
+  memCache.set(key, entry);
+  try { sessionStorage.setItem(_ssKey(key), JSON.stringify(entry)); } catch {}
+  return data;
+};
+
+/**
+ * Stale-while-revalidate cache: returns stale data instantly if available,
+ * then refreshes in background. Perfect for homepage bundles.
+ */
+const cachedGetSWR = async (key, fetcher, ttl = CACHE_TTL, staleTTL = ttl * 3) => {
+  const now = Date.now();
+
+  // Check in-memory first
+  const mem = memCache.get(key);
+  if (mem) {
+    if (now - mem.ts < ttl) return mem.data; // fresh
+    if (now - mem.ts < staleTTL) {
+      // Stale but usable — return immediately, revalidate in background
+      fetcher().then((data) => {
+        const entry = { data, ts: Date.now() };
+        memCache.set(key, entry);
+        try { sessionStorage.setItem(_ssKey(key), JSON.stringify(entry)); } catch {}
+      }).catch(() => {});
+      return mem.data;
+    }
+  }
+
+  // Check sessionStorage
+  try {
+    const raw = sessionStorage.getItem(_ssKey(key));
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (now - parsed.ts < staleTTL) {
+        memCache.set(key, parsed);
+        // If stale, trigger background refresh
+        if (now - parsed.ts >= ttl) {
+          fetcher().then((data) => {
+            const entry = { data, ts: Date.now() };
+            memCache.set(key, entry);
+            try { sessionStorage.setItem(_ssKey(key), JSON.stringify(entry)); } catch {}
+          }).catch(() => {});
+        }
+        return parsed.data;
+      }
+      sessionStorage.removeItem(_ssKey(key));
+    }
+  } catch {}
+
+  // Nothing cached — fetch fresh
   const data = await fetcher();
   const entry = { data, ts: now };
   memCache.set(key, entry);
@@ -289,6 +341,14 @@ export const watchAnimeEpisodeByProvider = async (episodeId, provider = 'animeka
   // Default: AnimeKai with full fallback chain
   return watchAnimeEpisode(episodeId, server, category);
 };
+
+// ========== ANIME HOME BUNDLE ==========
+// Single request fetches ALL homepage data, cached with SWR for instant loads
+export const getAnimeHomeBundle = () =>
+  cachedGetSWR('anime:home-bundle', async () => {
+    const res = await api.get('/anime/home-bundle');
+    return res;
+  }, BUNDLE_CACHE_TTL);
 
 export const getAnimeRecentEpisodes = (page = 1) =>
   cachedGet(`anime:recent:${page}`, async () => {
@@ -718,6 +778,13 @@ const normalizeGoku = (item) => ({
   latestEpisode: item.latestEpisode || '',
 });
 
+// ========== MOVIE HOME BUNDLE ==========
+export const getMovieHomeBundle = () =>
+  cachedGetSWR('movies:home-bundle', async () => {
+    const res = await api.get('/movies/home-bundle');
+    return res;
+  }, BUNDLE_CACHE_TTL);
+
 export const getGokuTrendingMovies = () =>
   cachedGet('goku:trending:movie', async () => {
     const res = await api.get('/movies/goku/trending', { params: { type: 'movie' } });
@@ -801,6 +868,13 @@ export const isManhwa = (item) => {
   return id.includes('manhwa') || id.includes('manhua') ||
     /\b(manhwa|manhua)\b/.test(title);
 };
+
+// ========== MANGA HOME BUNDLE ==========
+export const getMangaHomeBundle = (lang = 'en') =>
+  cachedGetSWR(`manga:home-bundle:${lang}`, async () => {
+    const res = await api.get('/manga/home-bundle', { params: { lang } });
+    return res;
+  }, BUNDLE_CACHE_TTL);
 
 export const searchManga = (query, page = 1) =>
   cachedGet(`manga:search:${query}:${page}`, async () => {

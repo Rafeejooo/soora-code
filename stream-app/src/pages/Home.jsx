@@ -7,9 +7,11 @@ import {
   getAnimeTopAiring,
   getAnimeByGenre,
   getAnimeAdvancedSearch,
+  getAnimeHomeBundle,
 } from '../api';
 import Card from '../components/Card';
 import Loading from '../components/Loading';
+import SkeletonSection from '../components/SkeletonSection';
 
 /* ── genre config ── */
 const GENRE_SECTIONS = [
@@ -54,7 +56,9 @@ export default function Home() {
   const [mostPopular, setMostPopular] = useState([]);
   const [topAiring, setTopAiring] = useState([]);
   const [genreData, setGenreData] = useState({}); // { action: [...], romance: [...] }
-  const [loading, setLoading] = useState(true);
+  const [heroReady, setHeroReady] = useState(false);    // hero section loaded
+  const [sectionsReady, setSectionsReady] = useState(false); // base sections loaded
+  const [genresReady, setGenresReady] = useState(false);     // genre sections loaded
   const [heroIdx, setHeroIdx] = useState(0);
   const [searchVal, setSearchVal] = useState('');
 
@@ -71,57 +75,89 @@ export default function Home() {
 
   const isFilterActive = filterType || filterSeason || filterYear;
 
-  /* ── Initial load ── */
+  /* ── Initial load — try bundle first, fallback to individual calls ── */
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
+    let cancelled = false;
 
-      // Fetch spotlight + base sections
+    const fetchViaBundle = async () => {
+      try {
+        const res = await getAnimeHomeBundle();
+        const d = res.data || res;
+        if (cancelled) return;
+
+        // Set hero immediately for instant perceived load
+        if (d.spotlight?.length > 0) {
+          setSpotlight(d.spotlight);
+          setHeroReady(true);
+        }
+
+        // Set base sections — slight delay so hero renders first
+        requestAnimationFrame(() => {
+          if (cancelled) return;
+          if (d.recentEpisodes?.length > 0) setRecentEps(d.recentEpisodes);
+          if (d.mostPopular?.length > 0) setMostPopular(d.mostPopular);
+          if (d.topAiring?.length > 0) setTopAiring(d.topAiring);
+          setSectionsReady(true);
+        });
+
+        // Set genres with a tiny stagger for smooth render
+        setTimeout(() => {
+          if (cancelled) return;
+          if (d.genres && Object.keys(d.genres).length > 0) setGenreData(d.genres);
+          setGenresReady(true);
+        }, 50);
+
+        return true; // success
+      } catch {
+        return false; // fallback needed
+      }
+    };
+
+    const fetchIndividual = async () => {
+      // Phase 1: Spotlight only (fastest perceived load)
+      try {
+        const spotlightRes = await getAnimeSpotlight();
+        if (cancelled) return;
+        const spotData = spotlightRes.data?.results || spotlightRes.data || [];
+        setSpotlight(spotData);
+        setHeroReady(true);
+      } catch { setHeroReady(true); }
+
+      // Phase 2: Base sections in parallel
       const baseResults = await Promise.allSettled([
-        getAnimeSpotlight(),
         getAnimeRecentEpisodes(1),
         getAnimeMostPopular(1),
         getAnimeTopAiring(1),
       ]);
+      if (cancelled) return;
 
-      if (baseResults[0].status === 'fulfilled') setSpotlight(baseResults[0].value.data.results || baseResults[0].value.data || []);
-      if (baseResults[1].status === 'fulfilled') setRecentEps(baseResults[1].value.data.results || baseResults[1].value.data || []);
-      if (baseResults[2].status === 'fulfilled') setMostPopular(baseResults[2].value.data.results || baseResults[2].value.data || []);
-      if (baseResults[3].status === 'fulfilled') setTopAiring(baseResults[3].value.data.results || baseResults[3].value.data || []);
+      if (baseResults[0].status === 'fulfilled') setRecentEps(baseResults[0].value.data?.results || baseResults[0].value.data || []);
+      if (baseResults[1].status === 'fulfilled') setMostPopular(baseResults[1].value.data?.results || baseResults[1].value.data || []);
+      if (baseResults[2].status === 'fulfilled') setTopAiring(baseResults[2].value.data?.results || baseResults[2].value.data || []);
+      setSectionsReady(true);
 
-      // Fetch genre sections in parallel (first 6 for initial load)
-      const initialGenres = GENRE_SECTIONS.slice(0, 6);
+      // Phase 3: All genres in parallel
       const genreResults = await Promise.allSettled(
-        initialGenres.map((g) => getAnimeByGenre(g.key, 1))
+        GENRE_SECTIONS.map((g) => getAnimeByGenre(g.key, 1))
       );
+      if (cancelled) return;
 
       const gd = {};
-      initialGenres.forEach((g, i) => {
+      GENRE_SECTIONS.forEach((g, i) => {
         if (genreResults[i].status === 'fulfilled') {
-          gd[g.key] = genreResults[i].value.data.results || genreResults[i].value.data || [];
+          gd[g.key] = genreResults[i].value.data?.results || genreResults[i].value.data || [];
         }
       });
       setGenreData(gd);
-      setLoading(false);
-
-      // Then lazy-load the remaining genres
-      const remainingGenres = GENRE_SECTIONS.slice(6);
-      if (remainingGenres.length > 0) {
-        const moreResults = await Promise.allSettled(
-          remainingGenres.map((g) => getAnimeByGenre(g.key, 1))
-        );
-        setGenreData((prev) => {
-          const updated = { ...prev };
-          remainingGenres.forEach((g, i) => {
-            if (moreResults[i].status === 'fulfilled') {
-              updated[g.key] = moreResults[i].value.data.results || moreResults[i].value.data || [];
-            }
-          });
-          return updated;
-        });
-      }
+      setGenresReady(true);
     };
-    fetchData();
+
+    (async () => {
+      const bundleOk = await fetchViaBundle();
+      if (!bundleOk && !cancelled) await fetchIndividual();
+    })();
+
+    return () => { cancelled = true; };
   }, []);
 
   /* ── Filter search ── */
@@ -174,7 +210,7 @@ export default function Home() {
     setFilterYear('');
   };
 
-  if (loading) return <Loading text="Loading..." />;
+  if (!heroReady) return <Loading text="Loading..." />;
 
   const hero = spotlight[heroIdx];
 
@@ -413,25 +449,41 @@ export default function Home() {
       {/* ── Default Sections (when no filter active) ── */}
       {!isFilterActive && (
         <>
-          {/* Curated sections */}
-          {recentEps.length > 0 && <Section title="Baru Update" items={recentEps} type="anime" />}
-          {topAiring.length > 0 && <Section title="Top Airing" items={topAiring} type="anime" />}
-          {mostPopular.length > 0 && <Section title="Paling Populer" items={mostPopular} type="anime" />}
+          {/* Base sections — show skeleton while loading */}
+          {sectionsReady ? (
+            <>
+              {recentEps.length > 0 && <Section title="Baru Update" items={recentEps} type="anime" />}
+              {topAiring.length > 0 && <Section title="Top Airing" items={topAiring} type="anime" />}
+              {mostPopular.length > 0 && <Section title="Paling Populer" items={mostPopular} type="anime" />}
+            </>
+          ) : (
+            <>
+              <SkeletonSection />
+              <SkeletonSection />
+              <SkeletonSection />
+            </>
+          )}
 
-          {/* Genre sections */}
-          {GENRE_SECTIONS.map((genre) => {
-            const items = genreData[genre.key];
-            if (!items || items.length === 0) return null;
-            return (
-              <Section
-                key={genre.key}
-                title={genre.label}
-                items={items}
-                type="anime"
-                accentColor={genre.color}
-              />
-            );
-          })}
+          {/* Genre sections — show skeletons while loading */}
+          {genresReady ? (
+            GENRE_SECTIONS.map((genre) => {
+              const items = genreData[genre.key];
+              if (!items || items.length === 0) return null;
+              return (
+                <Section
+                  key={genre.key}
+                  title={genre.label}
+                  items={items}
+                  type="anime"
+                  accentColor={genre.color}
+                />
+              );
+            })
+          ) : (
+            sectionsReady && GENRE_SECTIONS.slice(0, 4).map((g) => (
+              <SkeletonSection key={`skel-${g.key}`} accentColor={g.color} />
+            ))
+          )}
         </>
       )}
 
