@@ -36,6 +36,17 @@ export function buildMangaUrl(id) {
 }
 
 /**
+ * Auto-detect manga provider from ID format:
+ * - Starts with digits (e.g. "6372/solo-glitch-player") → mangapill
+ * - Plain slug (e.g. "solo-leveling-id") → komiku
+ */
+export function detectMangaProvider(id) {
+  if (!id) return 'mangapill';
+  if (/^\d/.test(id)) return 'mangapill';
+  return 'komiku';
+}
+
+/**
  * Auto-detect movie provider from ID format:
  * - Contains "watch-" → goku
  * - Purely numeric → tmdb

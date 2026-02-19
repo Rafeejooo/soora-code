@@ -238,10 +238,15 @@ export default function MangaHome() {
     setLoadedSections(new Set());
     setHeroItems([]);
 
-    (async () => {
-      const ok = await fetchViaBundle();
-      if (!ok && !cancelled) await fetchIndividual();
-    })();
+    if (selectedLang === 'id') {
+      // Indonesian: skip bundle (returns English data), go straight to Komiku fetches
+      fetchIndividual();
+    } else {
+      (async () => {
+        const ok = await fetchViaBundle();
+        if (!ok && !cancelled) await fetchIndividual();
+      })();
+    }
 
     return () => { cancelled = true; };
   }, [selectedLang]);

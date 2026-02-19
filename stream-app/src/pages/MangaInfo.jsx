@@ -4,7 +4,7 @@ import {
   getMangaInfo, normalizeMangaTitle, mangaImgProxy, isMangaNovel, getMangaContentType,
   getKomikuInfo, searchKomiku,
 } from '../api';
-import { useSEO, buildMangaSchema, buildMangaUrl } from '../utils/seo';
+import { useSEO, buildMangaSchema, buildMangaUrl, detectMangaProvider } from '../utils/seo';
 import Loading from '../components/Loading';
 
 // Build cover image URL from manga ID when API info doesn't provide one
@@ -18,7 +18,7 @@ const buildCoverUrl = (id) => {
 export default function MangaInfo() {
   const params = useParams();
   const id = params['*'] || ''; // splat captures the full ID including slashes
-  const provider = 'mangapill'; // default provider, auto-detected internally
+  const provider = detectMangaProvider(id); // auto-detect: digit-prefix → mangapill, slug → komiku
   const navigate = useNavigate();
 
   const [info, setInfo] = useState(null);
