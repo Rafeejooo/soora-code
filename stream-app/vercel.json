@@ -6,6 +6,10 @@
   },
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
       "source": "/manga-img",
       "destination": "/api/manga-img"
     },

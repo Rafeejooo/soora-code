@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   getMangaInfo, normalizeMangaTitle, mangaImgProxy, isMangaNovel, getMangaContentType,
   getKomikuInfo, searchKomiku,
 } from '../api';
+import { useSEO, buildMangaSchema, buildMangaUrl } from '../utils/seo';
 import Loading from '../components/Loading';
 
 // Build cover image URL from manga ID when API info doesn't provide one
@@ -15,9 +16,9 @@ const buildCoverUrl = (id) => {
 };
 
 export default function MangaInfo() {
-  const [searchParams] = useSearchParams();
-  const id = searchParams.get('id');
-  const provider = searchParams.get('provider') || 'mangapill';
+  const params = useParams();
+  const id = params['*'] || ''; // splat captures the full ID including slashes
+  const provider = 'mangapill'; // default provider, auto-detected internally
   const navigate = useNavigate();
 
   const [info, setInfo] = useState(null);
@@ -109,6 +110,21 @@ export default function MangaInfo() {
     fetchInfo();
   }, [id, provider, selectedLang]);
 
+  // SEO hook (must be before early returns to satisfy Rules of Hooks)
+  const seoTitle = info ? normalizeMangaTitle(info.title) : '';
+  const seoContentType = info ? getMangaContentType({ id, title: info.title }) : 'Manga';
+  const seoCanonical = id ? buildMangaUrl(id) : '';
+  const seoChapterCount = info?.chapters?.length || 0;
+
+  useSEO(info ? {
+    title: `Baca ${seoContentType} ${seoTitle} Bahasa Indonesia Chapter Terlengkap | Gratis - Soora`,
+    description: `Baca ${seoContentType.toLowerCase()} ${seoTitle} bahasa Indonesia chapter terlengkap gratis.${seoChapterCount ? ` ${seoChapterCount} chapter tersedia.` : ''} Manga trending terbaru sub Indo, update chapter terbaru hanya di Soora.`,
+    canonical: seoCanonical,
+    image: info.image || '',
+    type: 'book',
+    schema: buildMangaSchema({ ...info, title: seoTitle }, seoCanonical),
+  } : {});
+
   if (!id) return <div className="error-msg">No manga ID provided</div>;
   if (loading) return <Loading text="Loading manga info..." theme="sooramics" />;
   if (error) return (
@@ -130,6 +146,8 @@ export default function MangaInfo() {
   const contentType = getMangaContentType({ id, title: info.title });
   const chapters = info.chapters || [];
 
+  const genres = (info.genres || []).filter((g) => g && g.trim() && g !== 'Genres');
+
   // Sort chapters by number
   const getChNum = (ch) => {
     if (ch.chapter != null && ch.chapter !== '') return parseFloat(ch.chapter) || 0;
@@ -150,7 +168,6 @@ export default function MangaInfo() {
     : sortedChapters;
   const displayChapters = showAllChapters ? filteredChapters : filteredChapters.slice(0, 50);
 
-  const genres = (info.genres || []).filter((g) => g && g.trim() && g !== 'Genres');
   const status = info.status || '';
   const description = info.description || '';
 

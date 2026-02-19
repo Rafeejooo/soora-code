@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMyList, removeFromMyList } from '../utils/mylist';
 import { mangaImgProxy, tmdbImg } from '../api';
+import { buildAnimeUrl, buildMovieUrl, buildMangaUrl } from '../utils/seo';
 
 const SECTION_CONFIG = {
   anime: {
@@ -124,12 +125,12 @@ export default function MyList({ section = 'anime' }) {
 
   const handleClick = (item) => {
     if (section === 'anime') {
-      navigate(`/anime/info?id=${encodeURIComponent(item.id)}`);
+      navigate(buildAnimeUrl(item.id));
     } else if (section === 'manga') {
-      navigate(`/manga/info?id=${encodeURIComponent(item.id)}&provider=${item.provider || 'mangapill'}`);
+      navigate(buildMangaUrl(item.id));
     } else {
       const mt = item.mediaType || 'movie';
-      navigate(`/movies/info?id=${item.tmdbId || item.id}&type=${mt}`);
+      navigate(buildMovieUrl(item.tmdbId || item.id, mt));
     }
   };
 

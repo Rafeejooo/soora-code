@@ -3,6 +3,7 @@ import Navbar from './components/Navbar';
 import MiniPlayer from './components/MiniPlayer';
 import { MiniPlayerProvider } from './context/MiniPlayerContext';
 import { AuthProvider } from './context/AuthContext';
+import { LegacyAnimeRedirect, LegacyMovieRedirect, LegacyMangaRedirect } from './components/LegacyRedirect';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Landing from './pages/Landing';
@@ -45,29 +46,36 @@ function AppLayout() {
         <Route path="/register" element={<Register />} />
         {/* sooramics+ hidden route */}
         <Route path="/33" element={<SooramicsPlus />} />
+
         {/* sooranime routes */}
         <Route path="/anime" element={<Home />} />
         <Route path="/anime/search" element={<Search searchType="anime" />} />
-        <Route path="/anime/info" element={<AnimeInfo />} />
+        <Route path="/anime/info" element={<LegacyAnimeRedirect />} />
         <Route path="/anime/mylist" element={<MyList section="anime" />} />
+        <Route path="/anime/:id" element={<AnimeInfo />} />
         <Route path="/watch/anime" element={<Watch />} />
+
         {/* sooraflix routes */}
         <Route path="/movies" element={<MovieHome />} />
         <Route path="/movies/search" element={<Search searchType="movie" />} />
-        <Route path="/movies/info" element={<MovieInfo />} />
+        <Route path="/movies/info" element={<LegacyMovieRedirect />} />
         <Route path="/movies/mylist" element={<MyList section="movie" />} />
+        <Route path="/movies/*" element={<MovieInfo />} />
         <Route path="/watch/movie" element={<Watch />} />
+
         {/* sooramics routes */}
         <Route path="/manga" element={<MangaHome />} />
         <Route path="/manga/search" element={<Search searchType="manga" />} />
-        <Route path="/manga/info" element={<MangaInfo />} />
+        <Route path="/manga/info" element={<LegacyMangaRedirect />} />
         <Route path="/manga/mylist" element={<MyList section="manga" />} />
         <Route path="/manga/read" element={<MangaReader />} />
+        <Route path="/manga/*" element={<MangaInfo />} />
+
         {/* shared — legacy route redirects to anime mylist */}
         <Route path="/mylist" element={<MyList section="anime" />} />
         {/* Legacy redirects */}
         <Route path="/search/:type" element={<Search />} />
-        <Route path="/movie/info" element={<MovieInfo />} />
+        <Route path="/movie/info" element={<LegacyMovieRedirect />} />
       </Routes>
       {!isLanding && !isAuthPage && !isMangaReader && !isSooramicsPlus && <MiniPlayer />}
     </MiniPlayerProvider>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAnimeInfo, getHiAnimeInfo } from '../api';
+import { buildAnimeUrl, buildMovieUrl } from '../utils/seo';
 
 /**
  * CardPopup — rendered via portal at document.body with position:fixed.
@@ -67,21 +68,21 @@ export default function CardPopup({ item, type, style: posStyle, onMouseEnter, o
       } else if (episodes.length > 0) {
         navigate(`/watch/anime?episodeId=${encodeURIComponent(episodes[0].id)}&title=${encodeURIComponent(title)}&ep=${episodes[0].number || 1}&animeId=${encodeURIComponent(item.id)}`);
       } else {
-        navigate(`/anime/info?id=${encodeURIComponent(item.id)}`);
+        navigate(buildAnimeUrl(item.id));
       }
     } else {
       const mt = item.mediaType || 'movie';
-      navigate(`/movies/info?id=${item.id || item.tmdbId}&type=${mt}`);
+      navigate(buildMovieUrl(item.id || item.tmdbId, mt));
     }
   };
 
   const handleInfo = (e) => {
     e.stopPropagation();
     if (type === 'anime') {
-      navigate(`/anime/info?id=${encodeURIComponent(item.id)}`);
+      navigate(buildAnimeUrl(item.id));
     } else {
       const mt = item.mediaType || 'movie';
-      navigate(`/movies/info?id=${item.id || item.tmdbId}&type=${mt}`);
+      navigate(buildMovieUrl(item.id || item.tmdbId, mt));
     }
   };
 

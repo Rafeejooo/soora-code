@@ -9,6 +9,7 @@ import {
   getAnimeAdvancedSearch,
   getAnimeHomeBundle,
 } from '../api';
+import { buildAnimeUrl } from '../utils/seo';
 import Card from '../components/Card';
 import Loading from '../components/Loading';
 import SkeletonSection from '../components/SkeletonSection';
@@ -251,11 +252,11 @@ export default function Home() {
             )}
             <HeroMeta hero={hero} />
             <div className="hero-actions">
-              <button className="btn-play" onClick={() => navigate(`/anime/info?id=${encodeURIComponent(hero.id)}`)}>
+              <button className="btn-play" onClick={() => navigate(buildAnimeUrl(hero.id))}>
                 <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                 Watch Now
               </button>
-              <button className="btn-glass" onClick={() => navigate(`/anime/info?id=${encodeURIComponent(hero.id)}`)}>
+              <button className="btn-glass" onClick={() => navigate(buildAnimeUrl(hero.id))}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                 Details
               </button>

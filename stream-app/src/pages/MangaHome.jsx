@@ -11,6 +11,7 @@ import {
   searchKomiku,
   getMangaHomeBundle,
 } from '../api';
+import { buildMangaUrl } from '../utils/seo';
 import Card from '../components/Card';
 import Loading from '../components/Loading';
 import SkeletonSection from '../components/SkeletonSection';
@@ -293,7 +294,7 @@ export default function MangaHome() {
             <div className="hero-actions">
               <button
                 className="btn-play sooramics-btn-play"
-                onClick={() => navigate(`/manga/info?id=${encodeURIComponent(hero.id)}&provider=${hero.provider || 'mangapill'}`)}
+                onClick={() => navigate(buildMangaUrl(hero.id))}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
                   <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
@@ -303,7 +304,7 @@ export default function MangaHome() {
               </button>
               <button
                 className="btn-glass"
-                onClick={() => navigate(`/manga/info?id=${encodeURIComponent(hero.id)}&provider=${hero.provider || 'mangapill'}`)}
+                onClick={() => navigate(buildMangaUrl(hero.id))}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
                   <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>

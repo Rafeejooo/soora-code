@@ -15,6 +15,7 @@ import {
   getLK21HomeBundle,
   searchLK21,
 } from '../api';
+import { buildMovieUrl } from '../utils/seo';
 import Card from '../components/Card';
 import Loading from '../components/Loading';
 import SkeletonSection from '../components/SkeletonSection';
@@ -470,11 +471,11 @@ export default function MovieHome() {
               {hero.duration && <span className="hero-tag">{hero.duration}</span>}
             </div>
             <div className="hero-actions">
-              <button className="btn-play sooraflix-btn-play" onClick={() => { const isLK = hero.provider === 'lk21'; const hid = isLK ? (hero.lk21Id || hero.id) : hero.id; navigate(`/movies/info?id=${encodeURIComponent(hid)}&type=${hero.mediaType || 'movie'}${isLK ? '&provider=lk21' : ''}`); }}>
+              <button className="btn-play sooraflix-btn-play" onClick={() => { const isLK = hero.provider === 'lk21'; const hid = isLK ? (hero.lk21Id || hero.id) : hero.id; navigate(buildMovieUrl(hid, hero.mediaType || 'movie')); }}>
                 <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                 Watch Now
               </button>
-              <button className="btn-glass" onClick={() => { const isLK = hero.provider === 'lk21'; const hid = isLK ? (hero.lk21Id || hero.id) : hero.id; navigate(`/movies/info?id=${encodeURIComponent(hid)}&type=${hero.mediaType || 'movie'}${isLK ? '&provider=lk21' : ''}`); }}>
+              <button className="btn-glass" onClick={() => { const isLK = hero.provider === 'lk21'; const hid = isLK ? (hero.lk21Id || hero.id) : hero.id; navigate(buildMovieUrl(hid, hero.mediaType || 'movie')); }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                 Details
               </button>

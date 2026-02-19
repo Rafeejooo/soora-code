@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { addToMyList, removeFromMyList, isInMyList } from '../utils/mylist';
 import { mangaImgProxy, getMangaContentType } from '../api';
+import { buildAnimeUrl, buildMovieUrl, buildMangaUrl } from '../utils/seo';
 import CardPopup from './CardPopup';
 
 export default function Card({ item, type = 'anime' }) {
@@ -24,15 +25,15 @@ export default function Card({ item, type = 'anime' }) {
 
   const handleClick = () => {
     if (type === 'anime') {
-      navigate(`/anime/info?id=${encodeURIComponent(item.id)}`);
+      navigate(buildAnimeUrl(item.id));
     } else if (type === 'manga') {
-      navigate(`/manga/info?id=${encodeURIComponent(item.id)}&provider=${item.provider || 'mangapill'}`);
+      navigate(buildMangaUrl(item.id));
     } else if (item.provider === 'lk21') {
       const mt = item.mediaType || 'movie';
-      navigate(`/movies/info?id=${encodeURIComponent(item.lk21Id || item.id)}&type=${mt}&provider=lk21`);
+      navigate(buildMovieUrl(item.lk21Id || item.id, mt));
     } else {
       const mt = item.mediaType || 'movie';
-      navigate(`/movies/info?id=${item.id}&type=${mt}`);
+      navigate(buildMovieUrl(item.id, mt));
     }
   };
 

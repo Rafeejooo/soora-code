@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { getAnimeInfo, getHiAnimeInfo } from '../api';
+import { useSEO, buildAnimeSchema, buildAnimeUrl } from '../utils/seo';
 import Loading from '../components/Loading';
 
 export default function AnimeInfo() {
-  const [searchParams] = useSearchParams();
-  const id = searchParams.get('id');
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const [info, setInfo] = useState(null);
@@ -43,6 +43,21 @@ export default function AnimeInfo() {
     };
     fetchInfo();
   }, [id]);
+
+  // Derive SEO data (must be before early returns to satisfy Rules of Hooks)
+  const seoTitle = info
+    ? (info.title?.english || info.title?.romaji || info.title?.userPreferred || info.title || 'Unknown')
+    : '';
+  const seoCanonical = id ? buildAnimeUrl(id) : '';
+
+  useSEO(info ? {
+    title: `Nonton Anime ${seoTitle} Sub Indo Lengkap | Streaming HD Gratis - Soora`,
+    description: `Nonton streaming anime ${seoTitle} subtitle Indonesia full episode HD gratis. Anime trending terbaru dengan sub Indo terlengkap hanya di Soora. Cek daftar episode, sinopsis & info lengkap.`,
+    canonical: seoCanonical,
+    image: info.image || info.cover || '',
+    type: 'video.tv_show',
+    schema: buildAnimeSchema(info, seoCanonical),
+  } : {});
 
   if (!id) return <div className="error-msg">No anime ID provided</div>;
   if (loading) return <Loading text="Loading anime info..." />;

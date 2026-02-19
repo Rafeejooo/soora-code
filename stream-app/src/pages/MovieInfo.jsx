@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   getMovieDetailsTMDB,
   getTVDetailsTMDB,
@@ -11,6 +11,7 @@ import {
   getLK21Info,
   getLK21SeriesInfo,
 } from '../api';
+import { useSEO, buildMovieSchema, buildMovieUrl, detectMovieProvider } from '../utils/seo';
 import Card from '../components/Card';
 import Loading from '../components/Loading';
 
@@ -21,10 +22,11 @@ const isGokuId = (id) => id && (id.includes('watch-') || id.includes('/'));
 const gokuLargeImg = (url) => url ? url.replace(/\/resize\/\d+x\d+\//, '/resize/600x900/') : url;
 
 export default function MovieInfo() {
+  const params = useParams();
   const [searchParams] = useSearchParams();
-  const id = searchParams.get('id');
+  const id = params['*'] || ''; // splat captures the full ID including slashes
   const type = searchParams.get('type') || 'movie'; // 'movie' or 'tv'
-  const provider = searchParams.get('provider'); // 'lk21' or null
+  const provider = detectMovieProvider(id); // auto-detect from ID format
   const navigate = useNavigate();
 
   const [info, setInfo] = useState(null);
@@ -84,6 +86,41 @@ export default function MovieInfo() {
     };
     fetchInfo();
   }, [id, type, provider]);
+
+  // SEO hook (must be before early returns to satisfy Rules of Hooks)
+  const seoMovieTitle = info
+    ? (source === 'goku' || source === 'lk21' ? (info.title || 'Unknown') : (info.title || info.name || 'Unknown'))
+    : '';
+  const seoYear = info
+    ? (source === 'goku' || source === 'lk21'
+      ? (info.releaseDate || '')
+      : (info.release_date || info.first_air_date || '').split('-')[0])
+    : '';
+  const seoDesc = info
+    ? (tmdbData?.overview || info.synopsis || info.description || info.overview || '')
+    : '';
+  const seoGenres = info
+    ? ((source === 'goku' || source === 'lk21')
+      ? (tmdbData?.genres || (info.genres || []).map((g, i) => ({ id: i, name: g })))
+      : (info.genres || []))
+    : [];
+  const seoCanonical = id ? buildMovieUrl(id, type) : '';
+  const seoPoster = info
+    ? (source === 'lk21'
+      ? (tmdbData?.poster_path ? `https://image.tmdb.org/t/p/w500${tmdbData.poster_path}` : info.posterImg || '')
+      : source === 'goku'
+        ? (tmdbData?.poster_path ? `https://image.tmdb.org/t/p/w500${tmdbData.poster_path}` : info.image || '')
+        : (info.poster_path ? `https://image.tmdb.org/t/p/w500${info.poster_path}` : ''))
+    : '';
+
+  useSEO(info ? {
+    title: `Nonton ${type === 'tv' ? 'Series' : 'Film'} ${seoMovieTitle}${seoYear ? ` (${seoYear})` : ''} Sub Indo | Streaming HD Gratis - Soora`,
+    description: `Nonton streaming ${type === 'tv' ? 'series' : 'film'} ${seoMovieTitle} subtitle Indonesia full ${type === 'tv' ? 'episode' : 'movie'} HD gratis.${seoGenres.length ? ` Genre: ${seoGenres.map(g => typeof g === 'string' ? g : g.name).filter(Boolean).join(', ')}.` : ''} Trending terbaru bahasa Indo hanya di Soora.`,
+    canonical: seoCanonical,
+    image: seoPoster,
+    type: type === 'tv' ? 'video.tv_show' : 'video.movie',
+    schema: buildMovieSchema({ ...info, ...tmdbData, title: seoMovieTitle, overview: seoDesc }, type, seoCanonical),
+  } : {});
 
   if (!id) return <div className="error-msg">No movie ID provided</div>;
   if (loading) return <Loading text="Loading..." theme="sooraflix" />;
