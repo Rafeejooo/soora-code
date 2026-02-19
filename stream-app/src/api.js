@@ -816,6 +816,85 @@ export const searchGoku = async (query) => {
   return { data: { results: items } };
 };
 
+// ========== LK21 (Indonesian movie/series provider) ==========
+const normalizeLK21 = (item) => ({
+  id: item._id,
+  lk21Id: item._id,
+  title: item.title || 'Unknown',
+  image: item.posterImg || '',
+  type: item.type === 'series' ? 'TV Series' : 'Movie',
+  mediaType: item.type === 'series' ? 'tv' : 'movie',
+  rating: item.rating || '',
+  qualityResolution: item.qualityResolution || '',
+  genres: item.genres || [],
+  episode: item.episode || null,
+  provider: 'lk21',
+});
+
+export const getLK21HomeBundle = () =>
+  cachedGetSWR('lk21:home-bundle', async () => {
+    const res = await api.get('/movies/lk21/home-bundle');
+    return res;
+  }, BUNDLE_CACHE_TTL);
+
+export const getLK21PopularMovies = (page = 1) =>
+  cachedGet(`lk21:popular:movies:${page}`, async () => {
+    const res = await api.get('/movies/lk21/popular', { params: { page } });
+    return { data: (Array.isArray(res.data) ? res.data : []).map(normalizeLK21) };
+  });
+
+export const getLK21RecentMovies = (page = 1) =>
+  cachedGet(`lk21:recent:movies:${page}`, async () => {
+    const res = await api.get('/movies/lk21/recent', { params: { page } });
+    return { data: (Array.isArray(res.data) ? res.data : []).map(normalizeLK21) };
+  });
+
+export const getLK21TopRatedMovies = (page = 1) =>
+  cachedGet(`lk21:top-rated:movies:${page}`, async () => {
+    const res = await api.get('/movies/lk21/top-rated', { params: { page } });
+    return { data: (Array.isArray(res.data) ? res.data : []).map(normalizeLK21) };
+  });
+
+export const getLK21LatestSeries = (page = 1) =>
+  cachedGet(`lk21:latest:series:${page}`, async () => {
+    const res = await api.get('/movies/lk21/series', { params: { page } });
+    return { data: (Array.isArray(res.data) ? res.data : []).map(normalizeLK21) };
+  });
+
+export const getLK21PopularSeries = (page = 1) =>
+  cachedGet(`lk21:popular:series:${page}`, async () => {
+    const res = await api.get('/movies/lk21/series/popular', { params: { page } });
+    return { data: (Array.isArray(res.data) ? res.data : []).map(normalizeLK21) };
+  });
+
+export const searchLK21 = async (query) => {
+  const res = await api.get(`/movies/lk21/search/${encodeURIComponent(query)}`);
+  const items = (res.data?.results || []).map(normalizeLK21);
+  return { data: { results: items } };
+};
+
+export const getLK21Info = async (id) => {
+  const res = await api.get(`/movies/lk21/info/${encodeURIComponent(id)}`);
+  return res;
+};
+
+export const getLK21SeriesInfo = async (id) => {
+  const res = await api.get(`/movies/lk21/series/info/${encodeURIComponent(id)}`);
+  return res;
+};
+
+export const getLK21MovieStreams = async (id) => {
+  const res = await api.get(`/movies/lk21/streams/${encodeURIComponent(id)}`);
+  return res;
+};
+
+export const getLK21SeriesStreams = async (id, season = 1, episode = 1) => {
+  const res = await api.get(`/movies/lk21/series/streams/${encodeURIComponent(id)}`, {
+    params: { season, episode },
+  });
+  return res;
+};
+
 // ========== MANGA (MangaPill — primary, MangaHere — fallback) ==========
 const normalizeMangaTitle = (title) => {
   if (!title) return 'Unknown';

@@ -4,6 +4,7 @@ import {
   searchAnime,
   searchMoviesTMDB,
   searchGoku,
+  searchLK21,
   searchManga,
   searchKomiku,
   hasTMDBKey,
@@ -14,6 +15,7 @@ import {
   getAnimeTopAiring,
   getGokuTrendingMovies,
   getGokuTrendingTV,
+  getLK21HomeBundle,
   getPopularManga,
 } from '../api';
 import Card from '../components/Card';
@@ -127,19 +129,49 @@ export default function Search({ searchType }) {
           setDiscover(merged.sort(() => Math.random() - 0.5).slice(0, 18));
           setDiscoverLabel('Trending Anime');
         } else if (type === 'movie') {
-          const [mRes, tRes] = await Promise.allSettled([
-            getGokuTrendingMovies(),
-            getGokuTrendingTV(),
-          ]);
-          const movies = mRes.status === 'fulfilled' ? (mRes.value.data || []) : [];
-          const tv = tRes.status === 'fulfilled' ? (tRes.value.data || []) : [];
-          const seen = new Set();
-          const merged = [];
-          [...movies, ...tv].forEach(i => {
-            if (!seen.has(i.id)) { seen.add(i.id); merged.push(i); }
-          });
-          setDiscover(merged.sort(() => Math.random() - 0.5).slice(0, 18));
-          setDiscoverLabel('Trending Movies & TV');
+          const movieLang = localStorage.getItem('soora_movie_lang') || 'en';
+          if (movieLang === 'id') {
+            try {
+              const bundleRes = await getLK21HomeBundle();
+              const d = bundleRes.data || bundleRes;
+              const normLK = (arr) => (arr || []).map(item => ({
+                id: item._id || item.id,
+                lk21Id: item._id || item.id,
+                title: item.title || 'Unknown',
+                image: item.posterImg || item.image || '',
+                type: item.type === 'series' ? 'TV Series' : 'Movie',
+                mediaType: item.type === 'series' ? 'tv' : 'movie',
+                rating: item.rating || '',
+                provider: 'lk21',
+              }));
+              const all = [
+                ...normLK(d.popularMovies),
+                ...normLK(d.recentMovies),
+                ...normLK(d.latestSeries),
+              ];
+              const seen = new Set();
+              const merged = [];
+              all.forEach(i => { if (!seen.has(i.id)) { seen.add(i.id); merged.push(i); } });
+              setDiscover(merged.sort(() => Math.random() - 0.5).slice(0, 18));
+              setDiscoverLabel('Film Trending Indonesia');
+            } catch {
+              setDiscover([]);
+            }
+          } else {
+            const [mRes, tRes] = await Promise.allSettled([
+              getGokuTrendingMovies(),
+              getGokuTrendingTV(),
+            ]);
+            const movies = mRes.status === 'fulfilled' ? (mRes.value.data || []) : [];
+            const tv = tRes.status === 'fulfilled' ? (tRes.value.data || []) : [];
+            const seen = new Set();
+            const merged = [];
+            [...movies, ...tv].forEach(i => {
+              if (!seen.has(i.id)) { seen.add(i.id); merged.push(i); }
+            });
+            setDiscover(merged.sort(() => Math.random() - 0.5).slice(0, 18));
+            setDiscoverLabel('Trending Movies & TV');
+          }
         } else if (type === 'manga') {
           const res = await getPopularManga();
           const items = res.data?.results || [];
@@ -179,7 +211,21 @@ export default function Search({ searchType }) {
     try {
       let res;
       if (type === 'movie') {
-        res = await searchGoku(q);
+        const movieLang = localStorage.getItem('soora_movie_lang') || 'en';
+        if (movieLang === 'id') {
+          res = await searchLK21(q);
+          if (res.data?.results) {
+            res.data.results = res.data.results.map(item => ({
+              ...item,
+              provider: 'lk21',
+              lk21Id: item._id || item.id,
+              image: item.posterImg || item.image || '',
+              mediaType: item.type === 'series' ? 'tv' : 'movie',
+            }));
+          }
+        } else {
+          res = await searchGoku(q);
+        }
       } else if (type === 'manga') {
         const mangaLang = localStorage.getItem('soora_manga_lang') || 'en';
         if (mangaLang === 'id') {

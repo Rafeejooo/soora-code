@@ -21,6 +21,17 @@ import { applyWarpToProvider } from '../../utils/warp';
  */
 const BUNDLE_TTL = Math.max(REDIS_TTL, 1800); // at least 30 min
 
+// ─── In-memory cache (fallback when no Redis) ───
+const _memStore = new Map<string, { data: any; ts: number }>();
+async function memCache<T>(key: string, fetcher: () => Promise<T>, ttl: number): Promise<T> {
+  const now = Date.now();
+  const cached = _memStore.get(key);
+  if (cached && now - cached.ts < ttl * 1000) return cached.data as T;
+  const data = await fetcher();
+  _memStore.set(key, { data, ts: now });
+  return data;
+}
+
 const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
   const goku = new MOVIES.Goku();
   applyWarpToProvider(goku, fastify.log);
@@ -59,10 +70,9 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
       if (redis) {
         bundle = await cache.fetch(redis as Redis, cacheKey, fetchBundle, BUNDLE_TTL);
       } else {
-        bundle = await fetchBundle();
+        bundle = await memCache(cacheKey, fetchBundle, BUNDLE_TTL);
       }
 
-      reply.header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
       reply.status(200).send(bundle);
     } catch (err) {
       reply.status(500).send({

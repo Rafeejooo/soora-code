@@ -8,6 +8,8 @@ import {
   hasTMDBKey,
   getGokuInfo,
   findTMDBDetailsByTitle,
+  getLK21Info,
+  getLK21SeriesInfo,
 } from '../api';
 import Card from '../components/Card';
 import Loading from '../components/Loading';
@@ -22,13 +24,14 @@ export default function MovieInfo() {
   const [searchParams] = useSearchParams();
   const id = searchParams.get('id');
   const type = searchParams.get('type') || 'movie'; // 'movie' or 'tv'
+  const provider = searchParams.get('provider'); // 'lk21' or null
   const navigate = useNavigate();
 
   const [info, setInfo] = useState(null);
   const [tmdbData, setTmdbData] = useState(null); // Enrichment data from TMDB
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [source, setSource] = useState(null); // 'goku' or 'tmdb'
+  const [source, setSource] = useState(null); // 'goku', 'tmdb', or 'lk21'
 
   useEffect(() => {
     if (!id) return;
@@ -37,7 +40,21 @@ export default function MovieInfo() {
       setError(null);
       setTmdbData(null);
       try {
-        if (isGokuId(id)) {
+        if (provider === 'lk21') {
+          setSource('lk21');
+          const res = type === 'tv'
+            ? await getLK21SeriesInfo(id)
+            : await getLK21Info(id);
+          setInfo(res.data);
+
+          // Enrich with TMDB data (cast images, recommendations, similar, backdrop)
+          if (hasTMDBKey() && res.data?.title) {
+            try {
+              const tmdbRes = await findTMDBDetailsByTitle(res.data.title, type);
+              if (tmdbRes.data) setTmdbData(tmdbRes.data);
+            } catch { /* TMDB enrichment is optional */ }
+          }
+        } else if (isGokuId(id)) {
           setSource('goku');
           const res = await getGokuInfo(id);
           setInfo(res.data);
@@ -66,55 +83,61 @@ export default function MovieInfo() {
       }
     };
     fetchInfo();
-  }, [id, type]);
+  }, [id, type, provider]);
 
   if (!id) return <div className="error-msg">No movie ID provided</div>;
   if (loading) return <Loading text="Loading..." theme="sooraflix" />;
   if (error) return <div className="error-msg">{error}</div>;
   if (!info) return <div className="error-msg">No data found</div>;
 
-  // Normalize fields for both Goku and TMDB
+  // Normalize fields for Goku, TMDB, and LK21
   const isGoku = source === 'goku';
-  const title = isGoku
+  const isLK21 = source === 'lk21';
+  const isAlt = isGoku || isLK21; // non-TMDB source
+  const title = isAlt
     ? (info.title || 'Unknown')
     : (info.title || info.name || 'Unknown');
-  const poster = isGoku
-    ? (tmdbData?.poster_path ? tmdbImg(tmdbData.poster_path, 'w500') : gokuLargeImg(info.image))
-    : tmdbImg(info.poster_path, 'w500');
-  const backdrop = isGoku
-    ? (tmdbData?.backdrop_path ? tmdbBackdrop(tmdbData.backdrop_path) : gokuLargeImg(info.cover || info.image))
-    : tmdbBackdrop(info.backdrop_path);
-  const year = isGoku
+  const poster = isLK21
+    ? (tmdbData?.poster_path ? tmdbImg(tmdbData.poster_path, 'w500') : info.posterImg || '')
+    : isGoku
+      ? (tmdbData?.poster_path ? tmdbImg(tmdbData.poster_path, 'w500') : gokuLargeImg(info.image))
+      : tmdbImg(info.poster_path, 'w500');
+  const backdrop = isLK21
+    ? (tmdbData?.backdrop_path ? tmdbBackdrop(tmdbData.backdrop_path) : info.posterImg || '')
+    : isGoku
+      ? (tmdbData?.backdrop_path ? tmdbBackdrop(tmdbData.backdrop_path) : gokuLargeImg(info.cover || info.image))
+      : tmdbBackdrop(info.backdrop_path);
+  const year = isAlt
     ? (info.releaseDate || '')
     : (info.release_date || info.first_air_date || '').split('-')[0];
-  const description = isGoku
-    ? (tmdbData?.overview || info.description || '')
+  const description = isAlt
+    ? (tmdbData?.overview || info.synopsis || info.description || '')
     : (info.overview || '');
-  const genres = isGoku
+  const genres = isAlt
     ? (tmdbData?.genres || (info.genres || []).map((g, i) => ({ id: i, name: g })))
     : (info.genres || []);
-  const cast = isGoku
+  const cast = isAlt
     ? (tmdbData?.credits?.cast?.slice(0, 10) || (info.casts || []).map((name, i) => ({ id: i, name, character: '' })))
     : (info.credits?.cast?.slice(0, 10) || []);
-  const duration = isGoku
+  const duration = isAlt
     ? (info.duration || '')
     : (info.runtime > 0 ? `${info.runtime} min` : '');
-  const production = isGoku
+  const production = isAlt
     ? (tmdbData?.production_companies?.map((c) => c.name).join(', ') || info.production || '')
     : (info.production_companies || []).map((c) => c.name).join(', ');
-  const rating = isGoku
-    ? (tmdbData?.vote_average?.toFixed(1) || null)
+  const rating = isAlt
+    ? (tmdbData?.vote_average?.toFixed(1) || info.rating || null)
     : info.vote_average?.toFixed(1);
-  const tagline = isGoku ? (tmdbData?.tagline || '') : (info.tagline || '');
+  const tagline = isAlt ? (tmdbData?.tagline || '') : (info.tagline || '');
   const episodes = isGoku ? (info.episodes || []) : [];
-  const recommendations = isGoku
+  const recommendations = isAlt
     ? (tmdbData?.recommendations?.results || []).slice(0, 12)
     : (info.recommendations?.results || []).slice(0, 12);
-  const similarItems = isGoku
+  const similarItems = isAlt
     ? (tmdbData?.similar?.results || []).slice(0, 12)
     : (info.similar?.results || []).slice(0, 12);
-  const seasons = isGoku ? [] : (info.seasons?.filter((s) => s.season_number > 0) || []);
-  const tmdbId = isGoku ? tmdbData?.id : info.id;
+  const seasons = isAlt ? [] : (info.seasons?.filter((s) => s.season_number > 0) || []);
+  const tmdbId = isAlt ? tmdbData?.id : info.id;
 
   // Build seasons from Goku episodes
   const gokuSeasons = [];
@@ -131,7 +154,17 @@ export default function MovieInfo() {
   }
 
   const handleWatch = (s = 1, ep = 1) => {
-    if (isGoku) {
+    if (isLK21) {
+      if (type === 'tv') {
+        navigate(
+          `/watch/movie?lk21Id=${encodeURIComponent(id)}&type=tv&season=${s}&episode=${ep}&title=${encodeURIComponent(title)}`
+        );
+      } else {
+        navigate(
+          `/watch/movie?lk21Id=${encodeURIComponent(id)}&type=movie&title=${encodeURIComponent(title)}`
+        );
+      }
+    } else if (isGoku) {
       if (type === 'tv') {
         navigate(
           `/watch/movie?gokuId=${encodeURIComponent(id)}&type=tv&season=${s}&episode=${ep}&title=${encodeURIComponent(title)}`

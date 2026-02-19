@@ -31,8 +31,12 @@ const proxyFetch = async (url: string, headers: Record<string, string>) => {
  */
 const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
   fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
-    const { url, referer } = request.query as { url?: string; referer?: string };
+    const { url, referer, base } = request.query as { url?: string; referer?: string; base?: string };
     if (!url) return reply.status(400).send('Missing url');
+
+    // base: the proxy path prefix the CLIENT uses (e.g. "/api/proxy" via Vercel, or full URL like "https://stream.soora.fun/proxy")
+    // Defaults to "/proxy" (direct VPS access)
+    const proxyBase = base || '/proxy';
 
     try {
       // Build origin from referer
@@ -95,12 +99,14 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
 
         const toAbs = (u: string) => (u.startsWith('http') ? u : baseUrl + u);
 
+        const baseParam = base ? `&base=${encodeURIComponent(proxyBase)}` : '';
+
         // Rewrite #EXT-X-KEY:URI
         text = text.replace(
           /(#EXT-X-KEY:[^\n]*URI=")([^"]+)(")/g,
           (_match: string, pre: string, uri: string, post: string) => {
             const absUri = toAbs(uri.trim());
-            return `${pre}/api/proxy?url=${encodeURIComponent(absUri)}${refParam}${post}`;
+            return `${pre}${proxyBase}?url=${encodeURIComponent(absUri)}${refParam}${baseParam}${post}`;
           },
         );
 
@@ -109,7 +115,7 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
           /(#EXT-X-MAP:[^\n]*URI=")([^"]+)(")/g,
           (_match: string, pre: string, uri: string, post: string) => {
             const absUri = toAbs(uri.trim());
-            return `${pre}/api/proxy?url=${encodeURIComponent(absUri)}${refParam}${post}`;
+            return `${pre}${proxyBase}?url=${encodeURIComponent(absUri)}${refParam}${baseParam}${post}`;
           },
         );
 
@@ -118,7 +124,7 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
           line = line.trim();
           if (!line) return line;
           const absUrl = toAbs(line);
-          return `/api/proxy?url=${encodeURIComponent(absUrl)}${refParam}`;
+          return `${proxyBase}?url=${encodeURIComponent(absUrl)}${refParam}${baseParam}`;
         });
 
         return reply.send(text);

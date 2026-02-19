@@ -174,6 +174,9 @@ export default defineConfig({
               targetHost.includes('vizcloud') ||
               targetHost.includes('rapid-cloud') ||
               targetHost.includes('rabbitstream') ||
+              targetHost.includes('hownetwork') ||
+              targetHost.includes('turboviplay') ||
+              targetHost.includes('turbovid') ||
               url.includes('.key') ||
               url.includes('mon.key')
             );

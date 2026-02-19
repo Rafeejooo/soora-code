@@ -12,6 +12,8 @@ import {
   discoverByGenre,
   discoverTMDB,
   getMovieHomeBundle,
+  getLK21HomeBundle,
+  searchLK21,
 } from '../api';
 import Card from '../components/Card';
 import Loading from '../components/Loading';
@@ -61,6 +63,9 @@ export default function MovieHome() {
   const [genresReady, setGenresReady] = useState(false);
   const [heroIdx, setHeroIdx] = useState(0);
   const [searchVal, setSearchVal] = useState('');
+  const [selectedLang, setSelectedLang] = useState(() => {
+    return localStorage.getItem('soora_movie_lang') || 'en';
+  });
 
   /* filters */
   const [filterOpen, setFilterOpen] = useState(false);
@@ -74,11 +79,27 @@ export default function MovieHome() {
   const navigate = useNavigate();
   const heroInterval = useRef(null);
 
+  // Persist language choice
+  useEffect(() => {
+    localStorage.setItem('soora_movie_lang', selectedLang);
+  }, [selectedLang]);
+
   const isFilterActive = filterType || filterGenre || filterYear || filterSort !== 'popularity.desc';
 
   /* ── Initial load — bundle first, fallback to individual ── */
   useEffect(() => {
     let cancelled = false;
+
+    // Reset state on language change
+    setTrendingMovies([]);
+    setTrendingTV([]);
+    setRecentMovies([]);
+    setRecentTV([]);
+    setGenreData({});
+    setHeroReady(false);
+    setSectionsReady(false);
+    setGenresReady(false);
+    setHeroIdx(0);
 
     const normalizeGokuItem = (item) => ({
       id: item.id,
@@ -92,6 +113,56 @@ export default function MovieHome() {
       latestEpisode: item.latestEpisode || '',
     });
 
+    // ── LK21 (Indonesia) mode ──
+    const fetchLK21 = async () => {
+      try {
+        const bundleRes = await getLK21HomeBundle();
+        const d = bundleRes.data || bundleRes;
+        if (cancelled) return;
+
+        const normLK = (arr) => (arr || []).map((item) => ({
+          id: item._id || item.id,
+          lk21Id: item._id || item.id,
+          title: item.title || 'Unknown',
+          image: item.posterImg || item.image || '',
+          type: item.type === 'series' ? 'TV Series' : 'Movie',
+          mediaType: item.type === 'series' ? 'tv' : 'movie',
+          rating: item.rating || '',
+          qualityResolution: item.qualityResolution || '',
+          genres: item.genres || [],
+          provider: 'lk21',
+        }));
+
+        const popular = normLK(d.popularMovies);
+        if (popular.length > 0) {
+          setTrendingMovies(popular);
+          setHeroReady(true);
+        } else {
+          setHeroReady(true);
+        }
+
+        requestAnimationFrame(() => {
+          if (cancelled) return;
+          setRecentMovies(normLK(d.recentMovies));
+          setTrendingTV(normLK(d.latestSeries));
+          setRecentTV(normLK(d.popularSeries));
+          setSectionsReady(true);
+          // LK21 doesn't have TMDB genre sections — show top rated as extra section
+          const topRated = normLK(d.topRatedMovies);
+          if (topRated.length > 0) {
+            setGenreData({ topRated });
+          }
+          setGenresReady(true);
+        });
+      } catch (err) {
+        console.warn('LK21 bundle failed:', err);
+        setHeroReady(true);
+        setSectionsReady(true);
+        setGenresReady(true);
+      }
+    };
+
+    // ── Goku/TMDB (English) mode ──
     const fetchViaBundle = async () => {
       try {
         const [bundleRes, genresRes] = await Promise.all([
@@ -106,17 +177,30 @@ export default function MovieHome() {
 
         // Hero first
         const tm = normList(d.trendingMovies);
+        const rm = normList(d.recentMovies);
+        const ttv = normList(d.trendingTV);
+        const rtv = normList(d.recentTV);
+
+        // If bundle returned completely empty, signal caller to try fallback
+        const hasData = tm.length > 0 || rm.length > 0 || ttv.length > 0 || rtv.length > 0;
+        if (!hasData) {
+          setHeroReady(true);
+          setSectionsReady(true);
+          setGenresReady(true);
+          return false; // trigger fetchIndividual or empty-state
+        }
+
         if (tm.length > 0) {
           setTrendingMovies(tm);
-          setHeroReady(true);
         }
+        setHeroReady(true);
 
         // Base sections
         requestAnimationFrame(() => {
           if (cancelled) return;
-          setRecentMovies(normList(d.recentMovies));
-          setTrendingTV(normList(d.trendingTV));
-          setRecentTV(normList(d.recentTV));
+          setRecentMovies(rm);
+          setTrendingTV(ttv);
+          setRecentTV(rtv);
           setSectionsReady(true);
         });
 
@@ -143,53 +227,128 @@ export default function MovieHome() {
     };
 
     const fetchIndividual = async () => {
+      let hasAnyData = false;
+
       // Phase 1: Hero (trending movies) — fastest
       try {
         const tmRes = await getGokuTrendingMovies();
-        if (cancelled) return;
-        setTrendingMovies(tmRes.data || []);
+        if (cancelled) return false;
+        const data = tmRes.data || [];
+        if (data.length > 0) hasAnyData = true;
+        setTrendingMovies(data);
         setHeroReady(true);
       } catch { setHeroReady(true); }
 
       // Phase 2: Rest of base sections + genres list in parallel
-      const [baseResults, genresRes] = await Promise.all([
-        Promise.allSettled([
-          getGokuRecentMovies(),
-          getGokuTrendingTV(),
-          getGokuRecentTV(),
-        ]),
-        getTMDBGenres().catch(() => ({ data: [] })),
-      ]);
-      if (cancelled) return;
+      try {
+        const [baseResults, genresRes] = await Promise.all([
+          Promise.allSettled([
+            getGokuRecentMovies(),
+            getGokuTrendingTV(),
+            getGokuRecentTV(),
+          ]),
+          getTMDBGenres().catch(() => ({ data: [] })),
+        ]);
+        if (cancelled) return false;
 
-      if (baseResults[0].status === 'fulfilled') setRecentMovies(baseResults[0].value.data || []);
-      if (baseResults[1].status === 'fulfilled') setTrendingTV(baseResults[1].value.data || []);
-      if (baseResults[2].status === 'fulfilled') setRecentTV(baseResults[2].value.data || []);
-      if (genresRes.data) setAllGenres(genresRes.data);
+        const rm = baseResults[0].status === 'fulfilled' ? baseResults[0].value.data || [] : [];
+        const ttv = baseResults[1].status === 'fulfilled' ? baseResults[1].value.data || [] : [];
+        const rtv = baseResults[2].status === 'fulfilled' ? baseResults[2].value.data || [] : [];
+        if (rm.length || ttv.length || rtv.length) hasAnyData = true;
+        setRecentMovies(rm);
+        setTrendingTV(ttv);
+        setRecentTV(rtv);
+        if (genresRes.data) setAllGenres(genresRes.data);
+      } catch { /* ignore */ }
       setSectionsReady(true);
 
+      // If no data at all (WARP down), skip genre fetch and signal failure
+      if (!hasAnyData) {
+        setGenresReady(true);
+        return false;
+      }
+
       // Phase 3: All genre sections in parallel
-      const genreResults = await Promise.allSettled(
-        GENRE_SECTIONS.map((g) => discoverByGenre(g.id, 1, 'movie'))
-      );
-      if (cancelled) return;
-      const gd = {};
-      GENRE_SECTIONS.forEach((g, i) => {
-        if (genreResults[i].status === 'fulfilled') {
-          gd[g.id] = genreResults[i].value.data?.results || [];
-        }
-      });
-      setGenreData(gd);
+      try {
+        const genreResults = await Promise.allSettled(
+          GENRE_SECTIONS.map((g) => discoverByGenre(g.id, 1, 'movie'))
+        );
+        if (cancelled) return true;
+        const gd = {};
+        GENRE_SECTIONS.forEach((g, i) => {
+          if (genreResults[i].status === 'fulfilled') {
+            gd[g.id] = genreResults[i].value.data?.results || [];
+          }
+        });
+        setGenreData(gd);
+      } catch { /* ignore */ }
       setGenresReady(true);
+      return true;
     };
 
-    (async () => {
-      const ok = await fetchViaBundle();
-      if (!ok && !cancelled) await fetchIndividual();
-    })();
+    // ── TMDB fallback for EN mode when Goku is unreachable ──
+    const fetchTMDBFallback = async () => {
+      try {
+        // Phase 1: Hero from TMDB trending
+        const [trendRes, genresRes] = await Promise.all([
+          getTrendingTMDB('movie', 'week'),
+          getTMDBGenres().catch(() => ({ data: [] })),
+        ]);
+        if (cancelled) return;
+        const trending = trendRes.data?.results || [];
+        if (trending.length > 0) {
+          setTrendingMovies(trending);
+        }
+        setHeroReady(true);
+        if (genresRes.data) setAllGenres(genresRes.data);
+
+        // Phase 2: Popular movies/TV + trending TV
+        const [popMovies, popTV, trendTV] = await Promise.allSettled([
+          getPopularMovies(),
+          getPopularTV(),
+          getTrendingTMDB('tv', 'week'),
+        ]);
+        if (cancelled) return;
+        if (popMovies.status === 'fulfilled') setRecentMovies(popMovies.value.data?.results || []);
+        if (trendTV.status === 'fulfilled') setTrendingTV(trendTV.value.data?.results || []);
+        if (popTV.status === 'fulfilled') setRecentTV(popTV.value.data?.results || []);
+        setSectionsReady(true);
+
+        // Phase 3: Genre sections
+        const genreResults = await Promise.allSettled(
+          GENRE_SECTIONS.map((g) => discoverByGenre(g.id, 1, 'movie'))
+        );
+        if (cancelled) return;
+        const gd = {};
+        GENRE_SECTIONS.forEach((g, i) => {
+          if (genreResults[i].status === 'fulfilled') {
+            gd[g.id] = genreResults[i].value.data?.results || [];
+          }
+        });
+        setGenreData(gd);
+        setGenresReady(true);
+      } catch {
+        setHeroReady(true);
+        setSectionsReady(true);
+        setGenresReady(true);
+      }
+    };
+
+    if (selectedLang === 'id') {
+      fetchLK21();
+    } else {
+      (async () => {
+        const ok = await fetchViaBundle();
+        if (!ok && !cancelled) {
+          const indOk = await fetchIndividual();
+          // If Goku individual also fails, use TMDB as final fallback
+          if (!indOk && !cancelled) await fetchTMDBFallback();
+        }
+      })();
+    }
 
     return () => { cancelled = true; };
-  }, []);
+  }, [selectedLang]);
 
   /* ── Filter search ── */
   useEffect(() => {
@@ -201,7 +360,28 @@ export default function MovieHome() {
     const fetchFiltered = async () => {
       setFilterLoading(true);
       try {
-        if (filterType) {
+        if (selectedLang === 'id') {
+          // LK21 mode: use search for genre/type filtering
+          const genreConfig = GENRE_SECTIONS.find((g) => String(g.id) === filterGenre);
+          const queries = genreConfig ? [genreConfig.label.toLowerCase()] : ['film', 'terbaru'];
+          const results = await Promise.allSettled(queries.map((q) => searchLK21(q)));
+          let items = [];
+          const seen = new Set();
+          results.forEach((r) => {
+            if (r.status === 'fulfilled') {
+              (r.value.data?.results || []).forEach((item) => {
+                if (!seen.has(item.id)) {
+                  seen.add(item.id);
+                  items.push(item);
+                }
+              });
+            }
+          });
+          // Client-side type filter
+          if (filterType === 'movie') items = items.filter((i) => i.mediaType === 'movie');
+          else if (filterType === 'tv') items = items.filter((i) => i.mediaType === 'tv');
+          setFilteredResults(items.slice(0, 40));
+        } else if (filterType) {
           // Single media type
           const res = await discoverTMDB({
             mediaType: filterType,
@@ -231,7 +411,7 @@ export default function MovieHome() {
 
     const debounce = setTimeout(fetchFiltered, 300);
     return () => clearTimeout(debounce);
-  }, [filterType, filterGenre, filterYear, filterSort, isFilterActive]);
+  }, [filterType, filterGenre, filterYear, filterSort, isFilterActive, selectedLang]);
 
   /* ── Auto-rotate hero ── */
   useEffect(() => {
@@ -276,7 +456,7 @@ export default function MovieHome() {
       {hero && (
         <div className="hero-banner sooraflix-hero" key={heroIdx}>
           <div className="hero-bg">
-            <img src={gokuHeroImg(hero.image)} alt="" />
+            <img src={hero.cover || gokuHeroImg(hero.image)} alt="" />
           </div>
           <div className="hero-content">
             <div className="hero-top-row">
@@ -290,11 +470,11 @@ export default function MovieHome() {
               {hero.duration && <span className="hero-tag">{hero.duration}</span>}
             </div>
             <div className="hero-actions">
-              <button className="btn-play sooraflix-btn-play" onClick={() => navigate(`/movies/info?id=${encodeURIComponent(hero.id)}&type=${hero.mediaType || 'movie'}`)}>
+              <button className="btn-play sooraflix-btn-play" onClick={() => { const isLK = hero.provider === 'lk21'; const hid = isLK ? (hero.lk21Id || hero.id) : hero.id; navigate(`/movies/info?id=${encodeURIComponent(hid)}&type=${hero.mediaType || 'movie'}${isLK ? '&provider=lk21' : ''}`); }}>
                 <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                 Watch Now
               </button>
-              <button className="btn-glass" onClick={() => navigate(`/movies/info?id=${encodeURIComponent(hero.id)}&type=${hero.mediaType || 'movie'}`)}>
+              <button className="btn-glass" onClick={() => { const isLK = hero.provider === 'lk21'; const hid = isLK ? (hero.lk21Id || hero.id) : hero.id; navigate(`/movies/info?id=${encodeURIComponent(hid)}&type=${hero.mediaType || 'movie'}${isLK ? '&provider=lk21' : ''}`); }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                 Details
               </button>
@@ -350,8 +530,26 @@ export default function MovieHome() {
           {/* Collapsible body */}
           <div className="af-body">
             <div className="af-body-inner">
-              {/* Type + Sort side by side */}
+              {/* Language + Type + Sort */}
               <div className="af-top">
+                <div className="af-group">
+                  <span className="af-label">Bahasa</span>
+                  <div className="af-pills">
+                    <button
+                      className={`af-pill ${selectedLang === 'en' ? 'active' : ''}`}
+                      onClick={() => setSelectedLang('en')}
+                    >
+                      🌐 English
+                    </button>
+                    <button
+                      className={`af-pill ${selectedLang === 'id' ? 'active' : ''}`}
+                      onClick={() => setSelectedLang('id')}
+                    >
+                      🇮🇩 Indonesia
+                    </button>
+                  </div>
+                </div>
+                <div className="af-divider" />
                 <div className="af-group">
                   <span className="af-label">Tipe</span>
                   <div className="af-pills">
@@ -366,25 +564,29 @@ export default function MovieHome() {
                     ))}
                   </div>
                 </div>
-                <div className="af-divider" />
-                <div className="af-group">
-                  <span className="af-label">Urutan</span>
-                  <div className="af-pills">
-                    {SORT_OPTIONS.map((o) => (
-                      <button
-                        key={o.value}
-                        className={`af-pill ${filterSort === o.value ? 'active' : ''}`}
-                        onClick={() => setFilterSort(o.value)}
-                      >
-                        {o.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                {selectedLang !== 'id' && (
+                  <>
+                    <div className="af-divider" />
+                    <div className="af-group">
+                      <span className="af-label">Urutan</span>
+                      <div className="af-pills">
+                        {SORT_OPTIONS.map((o) => (
+                          <button
+                            key={o.value}
+                            className={`af-pill ${filterSort === o.value ? 'active' : ''}`}
+                            onClick={() => setFilterSort(o.value)}
+                          >
+                            {o.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
-              {/* Genre picker */}
-              {allGenres.length > 0 && (
+              {/* Genre picker — only for EN mode (TMDB genres) */}
+              {selectedLang !== 'id' && allGenres.length > 0 && (
                 <div className="af-year-section">
                   <span className="af-label">Genre</span>
                   <div className="af-genre-track">
@@ -407,7 +609,8 @@ export default function MovieHome() {
                 </div>
               )}
 
-              {/* Year picker */}
+              {/* Year picker — only for EN mode */}
+              {selectedLang !== 'id' && (
               <div className="af-year-section">
                 <span className="af-label">Tahun</span>
                 <div className="af-year-track">
@@ -440,6 +643,7 @@ export default function MovieHome() {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Active summary bar */}
               {isFilterActive && (
@@ -532,47 +736,103 @@ export default function MovieHome() {
           {/* Base sections — show skeleton while loading */}
           {sectionsReady ? (
             <>
-              {trendingMovies.length > 0 && <Section title="Trending Movies" items={trendingMovies} type="movie" />}
-              {recentMovies.length > 0 && <Section title="Recent Movies" items={recentMovies} type="movie" />}
-              {trendingTV.length > 0 && <Section title="Trending TV Shows" items={trendingTV} type="movie" />}
-              {recentTV.length > 0 && <Section title="Recent TV Shows" items={recentTV} type="movie" />}
+              {trendingMovies.length > 0 && (
+                <Section
+                  title={selectedLang === 'id' ? 'Film Populer' : 'Trending Movies'}
+                  items={trendingMovies}
+                  type="movie"
+                />
+              )}
+              {recentMovies.length > 0 && (
+                <Section
+                  title={selectedLang === 'id' ? 'Rilis Terbaru' : 'Recent Movies'}
+                  items={recentMovies}
+                  type="movie"
+                />
+              )}
+              {trendingTV.length > 0 && (
+                <Section
+                  title={selectedLang === 'id' ? 'Series Terbaru' : 'Trending TV Shows'}
+                  items={trendingTV}
+                  type="movie"
+                />
+              )}
+              {recentTV.length > 0 && (
+                <Section
+                  title={selectedLang === 'id' ? 'Series Populer' : 'Recent TV Shows'}
+                  items={recentTV}
+                  type="movie"
+                />
+              )}
             </>
           ) : (
             <>
-              {trendingMovies.length > 0 && <Section title="Trending Movies" items={trendingMovies} type="movie" />}
+              {trendingMovies.length > 0 && (
+                <Section
+                  title={selectedLang === 'id' ? 'Film Populer' : 'Trending Movies'}
+                  items={trendingMovies}
+                  type="movie"
+                />
+              )}
               <SkeletonSection />
               <SkeletonSection />
               <SkeletonSection />
             </>
           )}
 
-          {/* Genre sections — show skeletons while loading */}
+          {/* Genre sections (EN) or Top Rated (ID) — show skeletons while loading */}
           {genresReady ? (
-            GENRE_SECTIONS.map((genre) => {
-              const items = genreData[genre.id];
-              if (!items || items.length === 0) return null;
-              return (
-                <div key={genre.id} className="section-fade-in">
+            selectedLang === 'id' ? (
+              genreData.topRated && genreData.topRated.length > 0 && (
+                <div className="section-fade-in">
                   <Section
-                    title={genre.label}
-                    items={items}
+                    title="Rating Tertinggi"
+                    items={genreData.topRated}
                     type="movie"
-                    accentColor={genre.color}
+                    accentColor="#fbbf24"
                   />
                 </div>
-              );
-            })
+              )
+            ) : (
+              GENRE_SECTIONS.map((genre) => {
+                const items = genreData[genre.id];
+                if (!items || items.length === 0) return null;
+                return (
+                  <div key={genre.id} className="section-fade-in">
+                    <Section
+                      title={genre.label}
+                      items={items}
+                      type="movie"
+                      accentColor={genre.color}
+                    />
+                  </div>
+                );
+              })
+            )
           ) : (
-            sectionsReady && GENRE_SECTIONS.slice(0, 3).map((g) => (
+            sectionsReady && selectedLang !== 'id' && GENRE_SECTIONS.slice(0, 3).map((g) => (
               <SkeletonSection key={`skel-${g.id}`} accentColor={g.color} />
             ))
           )}
         </>
       )}
 
-      {!trendingMovies.length && !recentMovies.length && (
+      {!trendingMovies.length && !recentMovies.length && heroReady && sectionsReady && (
         <div className="empty-state">
-          <p>No movie data available. Make sure the API server is running.</p>
+          {selectedLang === 'id' ? (
+            <p>Tidak ada data film. Pastikan server API berjalan.</p>
+          ) : (
+            <>
+              <p>No movie data available. The Goku provider may be unreachable (WARP proxy required).</p>
+              <button
+                className="btn-play sooraflix-btn-play"
+                style={{ marginTop: '1rem', padding: '0.6rem 1.5rem', cursor: 'pointer' }}
+                onClick={() => setSelectedLang('id')}
+              >
+                🇮🇩 Switch to Indonesian Movies
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

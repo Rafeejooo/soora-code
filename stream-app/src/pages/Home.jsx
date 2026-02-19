@@ -88,7 +88,16 @@ export default function Home() {
         // Set hero immediately for instant perceived load
         if (d.spotlight?.length > 0) {
           setSpotlight(d.spotlight);
-          setHeroReady(true);
+        }
+        setHeroReady(true);
+
+        // If bundle returned completely empty, signal caller to try fallback
+        const hasData = d.spotlight?.length > 0 || d.recentEpisodes?.length > 0 ||
+          d.mostPopular?.length > 0 || d.topAiring?.length > 0;
+        if (!hasData) {
+          setSectionsReady(true);
+          setGenresReady(true);
+          return false;
         }
 
         // Set base sections — slight delay so hero renders first

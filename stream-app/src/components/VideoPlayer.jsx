@@ -51,8 +51,14 @@ const VideoPlayer = forwardRef(function VideoPlayer(
   }));
 
   const proxyUrl = useCallback(
-    (url) =>
-      `/api/proxy?url=${encodeURIComponent(url)}${referer ? `&referer=${encodeURIComponent(referer)}` : ''}`,
+    (url) => {
+      const streamBase = import.meta.env.VITE_STREAM_URL;
+      // If VITE_STREAM_URL is set (e.g. https://stream.soora.fun), use it directly
+      // Otherwise fall back to /api/proxy (proxied via Vercel rewrite)
+      const base = streamBase ? `${streamBase}/proxy` : '/api/proxy';
+      const baseParam = streamBase ? `&base=${encodeURIComponent(base)}` : '';
+      return `${base}?url=${encodeURIComponent(url)}${referer ? `&referer=${encodeURIComponent(referer)}` : ''}${baseParam}`;
+    },
     [referer]
   );
 

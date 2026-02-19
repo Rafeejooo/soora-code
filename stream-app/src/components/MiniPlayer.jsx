@@ -22,7 +22,10 @@ export default function MiniPlayer() {
   const proxyUrl = useCallback(
     (url) => {
       const ref = miniPlayer?.referer || '';
-      return `/api/proxy?url=${encodeURIComponent(url)}${ref ? `&referer=${encodeURIComponent(ref)}` : ''}`;
+      const streamBase = import.meta.env.VITE_STREAM_URL;
+      const base = streamBase ? `${streamBase}/proxy` : '/api/proxy';
+      const baseParam = streamBase ? `&base=${encodeURIComponent(base)}` : '';
+      return `${base}?url=${encodeURIComponent(url)}${ref ? `&referer=${encodeURIComponent(ref)}` : ''}${baseParam}`;
     },
     [miniPlayer?.referer]
   );

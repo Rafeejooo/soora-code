@@ -7,9 +7,11 @@ import goku from './goku';
 import sflix from './sflix';
 import himovies from './himovies';
 import movieHomeBundle from './home-bundle';
+import lk21 from './lk21';
 
 const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
   await fastify.register(movieHomeBundle, { prefix: '/home-bundle' });
+  await fastify.register(lk21, { prefix: '/lk21' });
   await fastify.register(flixhq, { prefix: '/flixhq' });
   await fastify.register(dramacool, { prefix: '/dramacool' });
   await fastify.register(goku, { prefix: '/goku' });

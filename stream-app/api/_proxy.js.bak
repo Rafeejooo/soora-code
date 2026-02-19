@@ -11,8 +11,11 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
 
-  const { url, referer } = req.query;
+  const { url, referer, base } = req.query;
   if (!url) { res.status(400).send('Missing url'); return; }
+
+  // base: the proxy path prefix the CLIENT uses (e.g. "/api/proxy" via Vercel, or absolute URL like "https://stream.soora.fun/proxy")
+  const proxyBase = base || '/api/proxy';
 
   try {
     // Build origin from referer
@@ -36,6 +39,9 @@ export default async function handler(req, res) {
       targetHost.includes('vizcloud') ||
       targetHost.includes('rapid-cloud') ||
       targetHost.includes('rabbitstream') ||
+      targetHost.includes('hownetwork') ||
+      targetHost.includes('turboviplay') ||
+      targetHost.includes('turbovid') ||
       url.includes('.key') ||
       url.includes('mon.key')
     );
@@ -77,17 +83,18 @@ export default async function handler(req, res) {
       const refParam = referer ? `&referer=${encodeURIComponent(referer)}` : '';
 
       const toAbs = (u) => u.startsWith('http') ? u : baseUrl + u;
+      const baseParam = base ? `&base=${encodeURIComponent(proxyBase)}` : '';
 
       // Rewrite #EXT-X-KEY:URI
       text = text.replace(/(#EXT-X-KEY:[^\n]*URI=")([^"]+)(")/g, (match, pre, uri, post) => {
         const absUri = toAbs(uri.trim());
-        return `${pre}/api/proxy?url=${encodeURIComponent(absUri)}${refParam}${post}`;
+        return `${pre}${proxyBase}?url=${encodeURIComponent(absUri)}${refParam}${baseParam}${post}`;
       });
 
       // Rewrite #EXT-X-MAP:URI
       text = text.replace(/(#EXT-X-MAP:[^\n]*URI=")([^"]+)(")/g, (match, pre, uri, post) => {
         const absUri = toAbs(uri.trim());
-        return `${pre}/api/proxy?url=${encodeURIComponent(absUri)}${refParam}${post}`;
+        return `${pre}${proxyBase}?url=${encodeURIComponent(absUri)}${refParam}${baseParam}${post}`;
       });
 
       // Rewrite segment/sub-playlist URLs
@@ -95,7 +102,7 @@ export default async function handler(req, res) {
         line = line.trim();
         if (!line) return line;
         const absUrl = toAbs(line);
-        return `/api/proxy?url=${encodeURIComponent(absUrl)}${refParam}`;
+        return `${proxyBase}?url=${encodeURIComponent(absUrl)}${refParam}${baseParam}`;
       });
 
       res.send(text);
