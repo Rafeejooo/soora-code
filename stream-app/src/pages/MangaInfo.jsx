@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   getMangaInfo, normalizeMangaTitle, mangaImgProxy, isMangaNovel, getMangaContentType,
-  getKomikuInfo, searchKomiku,
+  getKomikuInfo, searchKomiku, getKomikuChapterPages, getMangaChapterPages,
 } from '../api';
 import { useSEO, buildMangaSchema, buildMangaUrl, detectMangaProvider } from '../utils/seo';
+import { downloadChapter, isChapterDownloaded, getDownloadedChapters, deleteChapter } from '../utils/mangaDB';
 import Loading from '../components/Loading';
 
 // Build cover image URL from manga ID when API info doesn't provide one
@@ -30,6 +31,11 @@ export default function MangaInfo() {
   const [chapterSearch, setChapterSearch] = useState('');
   const [coverError, setCoverError] = useState(false);
   const [usedProvider, setUsedProvider] = useState(provider); // tracks actual provider used
+
+  // ── Download state ──
+  const [downloadingCh, setDownloadingCh] = useState(null); // chapterId being downloaded
+  const [dlProgress, setDlProgress] = useState({ done: 0, total: 0 });
+  const [downloadedSet, setDownloadedSet] = useState(new Set()); // set of downloaded chapterIds
 
   // Read persisted language
   const selectedLang = localStorage.getItem('soora_manga_lang') || 'en';
@@ -109,6 +115,71 @@ export default function MangaInfo() {
     };
     fetchInfo();
   }, [id, provider, selectedLang]);
+
+  // Check which chapters are already downloaded
+  useEffect(() => {
+    if (!info?.chapters?.length) return;
+    (async () => {
+      const set = new Set();
+      for (const ch of info.chapters) {
+        if (await isChapterDownloaded(ch.id)) set.add(ch.id);
+      }
+      setDownloadedSet(set);
+    })();
+  }, [info]);
+
+  // Download chapter handler
+  const handleDownloadChapter = async (ch) => {
+    if (downloadingCh || downloadedSet.has(ch.id)) return;
+    setDownloadingCh(ch.id);
+    setDlProgress({ done: 0, total: 0 });
+
+    try {
+      // Fetch chapter pages first
+      const isKomiku = usedProvider === 'komiku';
+      const pagesRes = isKomiku
+        ? await getKomikuChapterPages(ch.id)
+        : await getMangaChapterPages(ch.id, usedProvider);
+      const pages = pagesRes.data || [];
+      if (pages.length === 0) throw new Error('No pages found');
+
+      const chNum = ch.chapter || ch.id?.match(/chapter[_-]?([\d.]+)/)?.[1] || '?';
+
+      // Get cover URL for manga metadata
+      const rawImage = info.image || buildCoverUrl(id);
+      const coverUrl = rawImage
+        ? (rawImage.includes('komiku.org') ? rawImage : rawImage)
+        : '';
+
+      await downloadChapter({
+        mangaId: id,
+        chapterId: ch.id,
+        chapterTitle: ch.title || `Chapter ${chNum}`,
+        chapterNum: chNum,
+        provider: usedProvider,
+        mangaTitle: normalizeMangaTitle(info.title),
+        mangaCover: coverUrl,
+        pages,
+        onProgress: (done, total) => setDlProgress({ done, total }),
+      });
+
+      setDownloadedSet((prev) => new Set([...prev, ch.id]));
+    } catch (err) {
+      console.error('Download failed:', err);
+      alert(`Download gagal: ${err.message}`);
+    } finally {
+      setDownloadingCh(null);
+    }
+  };
+
+  const handleDeleteDownload = async (chId) => {
+    await deleteChapter(chId);
+    setDownloadedSet((prev) => {
+      const next = new Set(prev);
+      next.delete(chId);
+      return next;
+    });
+  };
 
   // SEO hook (must be before early returns to satisfy Rules of Hooks)
   const seoTitle = info ? normalizeMangaTitle(info.title) : '';
@@ -359,24 +430,64 @@ export default function MangaInfo() {
               const chNum = ch.chapter || ch.id?.match(/chapter[_-]?([\d.]+)/)?.[1] || `${i + 1}`;
               const chTitle = ch.title && ch.title !== `Chapter ${chNum}` ? ch.title : null;
               const chLang = ch.translatedLanguage;
+              const isDled = downloadedSet.has(ch.id);
+              const isDling = downloadingCh === ch.id;
               return (
                 <div
                   key={ch.id || i}
-                  className="mangainfo-chapter-item"
-                  onClick={() => navigate(`/manga/read?id=${encodeURIComponent(readerMangaId)}&chapterId=${encodeURIComponent(ch.id)}&provider=${readerProvider}`)}
+                  className={`mangainfo-chapter-item ${isDled ? 'mangainfo-ch-downloaded' : ''}`}
                 >
-                  <div className="mangainfo-ch-left">
+                  <div
+                    className="mangainfo-ch-left"
+                    onClick={() => navigate(`/manga/read?id=${encodeURIComponent(readerMangaId)}&chapterId=${encodeURIComponent(ch.id)}&provider=${readerProvider}${isDled ? '&offline=1' : ''}`)}
+                  >
                     <span className="mangainfo-ch-number">{chNum}</span>
                     <div className="mangainfo-ch-text">
                       <span className="mangainfo-chapter-name">
                         {chTitle || `Chapter ${chNum}`}
+                        {isDled && <span className="mangainfo-ch-offline-badge">offline</span>}
                       </span>
                       {ch.releaseDate && <span className="mangainfo-chapter-date">{ch.releaseDate}</span>}
                     </div>
                   </div>
-                  <svg className="mangainfo-ch-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                    <path d="m9 18 6-6-6-6"/>
-                  </svg>
+                  <div className="mangainfo-ch-actions">
+                    {isDling ? (
+                      <div className="mangainfo-ch-dl-progress">
+                        <div className="mangainfo-ch-dl-bar" style={{ width: `${dlProgress.total ? (dlProgress.done / dlProgress.total * 100) : 0}%` }} />
+                        <span>{dlProgress.done}/{dlProgress.total}</span>
+                      </div>
+                    ) : isDled ? (
+                      <button
+                        className="mangainfo-ch-dl-btn mangainfo-ch-dl-done"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteDownload(ch.id); }}
+                        title="Hapus download"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                          <path d="M20 6L9 17l-5-5"/>
+                        </svg>
+                      </button>
+                    ) : (
+                      <button
+                        className="mangainfo-ch-dl-btn"
+                        onClick={(e) => { e.stopPropagation(); handleDownloadChapter(ch); }}
+                        disabled={!!downloadingCh}
+                        title="Download untuk offline"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                          <polyline points="7 10 12 15 17 10"/>
+                          <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                      </button>
+                    )}
+                    <svg
+                      className="mangainfo-ch-arrow"
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"
+                      onClick={() => navigate(`/manga/read?id=${encodeURIComponent(readerMangaId)}&chapterId=${encodeURIComponent(ch.id)}&provider=${readerProvider}${isDled ? '&offline=1' : ''}`)}
+                    >
+                      <path d="m9 18 6-6-6-6"/>
+                    </svg>
+                  </div>
                 </div>
               );
             })}

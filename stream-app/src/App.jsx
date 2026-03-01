@@ -12,6 +12,7 @@ import MovieHome from './pages/MovieHome';
 import MangaHome from './pages/MangaHome';
 import MangaInfo from './pages/MangaInfo';
 import MangaReader from './pages/MangaReader';
+import MangaDownloads from './pages/MangaDownloads';
 import Search from './pages/Search';
 import AnimeInfo from './pages/AnimeInfo';
 import MovieInfo from './pages/MovieInfo';
@@ -75,6 +76,7 @@ function AppLayout() {
         <Route path="/manga/search" element={<Search searchType="manga" />} />
         <Route path="/manga/info" element={<LegacyMangaRedirect />} />
         <Route path="/manga/mylist" element={<MyList section="manga" />} />
+        <Route path="/manga/downloads" element={<MangaDownloads />} />
         <Route path="/manga/read" element={<MangaReader />} />
         <Route path="/manga/*" element={<MangaInfo />} />
 

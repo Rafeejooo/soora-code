@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getMangaChapterPages, getMangaInfo, getMangaDexChapterPages, getMangaDexInfo, getKomikuChapterPages, getKomikuInfo, normalizeMangaTitle, mangaImgProxy } from '../api';
 import { buildMangaUrl } from '../utils/seo';
+import { getOfflinePages, getChapterMeta } from '../utils/mangaDB';
 import Loading from '../components/Loading';
 
 export default function MangaReader() {
@@ -9,6 +10,7 @@ export default function MangaReader() {
   const mangaId = searchParams.get('id');
   const chapterId = searchParams.get('chapterId');
   const provider = searchParams.get('provider') || 'mangapill';
+  const isOffline = searchParams.get('offline') === '1';
   const navigate = useNavigate();
 
   const [pages, setPages] = useState([]);
@@ -38,11 +40,44 @@ export default function MangaReader() {
   const nextChapter = currentIdx < sortedChapters.length - 1 ? sortedChapters[currentIdx + 1] : null;
   const currentChapter = sortedChapters[currentIdx] || null;
 
-  // Fetch chapter pages + manga info
+  // Fetch chapter pages + manga info (or load offline)
   useEffect(() => {
     if (!chapterId) return;
     const isMangaDex = provider === 'mangadex';
     const selectedLang = localStorage.getItem('soora_manga_lang') || 'en';
+
+    // Offline: load from IndexedDB
+    if (isOffline) {
+      (async () => {
+        setLoading(true);
+        setError(null);
+        setCurrentPage(0);
+        setImgErrors({});
+        try {
+          const blobUrls = await getOfflinePages(chapterId);
+          if (!blobUrls || blobUrls.length === 0) throw new Error('No offline pages found');
+          setPages(blobUrls.map((url, i) => ({ img: url, page: i + 1, _blob: true })));
+          // Try to load manga info for chapter nav (non-critical)
+          try {
+            const chMeta = await getChapterMeta(chapterId);
+            if (chMeta && mangaId) {
+              const isKomiku = provider === 'komiku';
+              const infoFn = isKomiku ? getKomikuInfo : isMangaDex ? (id) => getMangaDexInfo(id, selectedLang) : (id) => getMangaInfo(id, provider);
+              const infoRes = await infoFn(mangaId);
+              if (infoRes?.data) setMangaInfo(infoRes.data);
+            }
+          } catch (_) { /* ignore */ }
+        } catch (err) {
+          setError(err.message || 'Failed to load offline chapter');
+        } finally {
+          setLoading(false);
+        }
+      })();
+      return () => {
+        // Revoke blob URLs on cleanup
+        pages.forEach(p => { if (p._blob && p.img) try { URL.revokeObjectURL(p.img); } catch (_) {} });
+      };
+    }
 
     const fetchData = async () => {
       setLoading(true);
@@ -83,7 +118,7 @@ export default function MangaReader() {
       }
     };
     fetchData();
-  }, [chapterId, mangaId, provider]);
+  }, [chapterId, mangaId, provider, isOffline]);
 
   // Controls are toggled by click only (no auto-hide timer)
   const toggleControls = useCallback(() => {
@@ -208,6 +243,8 @@ export default function MangaReader() {
   const getPageSrc = (page) => {
     const url = page.img;
     if (!url) return '';
+    // Blob URLs (offline) - return as-is
+    if (page._blob || url.startsWith('blob:')) return url;
     if (isMangaDex || url.includes('mangadex.org')) return url;
     if (provider === 'komiku' || url.includes('komiku.org')) return url;
     return mangaImgProxy(url);
