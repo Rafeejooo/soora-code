@@ -13,6 +13,23 @@ import { buildAnimeUrl } from '../utils/seo';
 import Card from '../components/Card';
 import Loading from '../components/Loading';
 import SkeletonSection from '../components/SkeletonSection';
+import MobileAppBanner from '../components/MobileAppBanner';
+
+/* ── page-level state cache (persists across mounts for instant back-nav) ── */
+const _pageCache = { ts: 0, data: null };
+const PAGE_CACHE_TTL = 10 * 60 * 1000; // 10 min
+
+const _savePageCache = (state) => {
+  _pageCache.data = state;
+  _pageCache.ts = Date.now();
+};
+
+const _loadPageCache = () => {
+  if (_pageCache.data && Date.now() - _pageCache.ts < PAGE_CACHE_TTL) {
+    return _pageCache.data;
+  }
+  return null;
+};
 
 /* ── genre config ── */
 const GENRE_SECTIONS = [
@@ -52,14 +69,15 @@ const QUICK_YEARS = Array.from({ length: 8 }, (_, i) => currentYear - i);
 const ALL_YEARS = Array.from({ length: 30 }, (_, i) => currentYear - i);
 
 export default function Home() {
-  const [spotlight, setSpotlight] = useState([]);
-  const [recentEps, setRecentEps] = useState([]);
-  const [mostPopular, setMostPopular] = useState([]);
-  const [topAiring, setTopAiring] = useState([]);
-  const [genreData, setGenreData] = useState({}); // { action: [...], romance: [...] }
-  const [heroReady, setHeroReady] = useState(false);    // hero section loaded
-  const [sectionsReady, setSectionsReady] = useState(false); // base sections loaded
-  const [genresReady, setGenresReady] = useState(false);     // genre sections loaded
+  const cached = _loadPageCache();
+  const [spotlight, setSpotlight] = useState(cached?.spotlight || []);
+  const [recentEps, setRecentEps] = useState(cached?.recentEps || []);
+  const [mostPopular, setMostPopular] = useState(cached?.mostPopular || []);
+  const [topAiring, setTopAiring] = useState(cached?.topAiring || []);
+  const [genreData, setGenreData] = useState(cached?.genreData || {}); // { action: [...], romance: [...] }
+  const [heroReady, setHeroReady] = useState(!!cached);    // hero section loaded
+  const [sectionsReady, setSectionsReady] = useState(!!cached); // base sections loaded
+  const [genresReady, setGenresReady] = useState(!!cached);     // genre sections loaded
   const [heroIdx, setHeroIdx] = useState(0);
   const [searchVal, setSearchVal] = useState('');
 
@@ -80,42 +98,81 @@ export default function Home() {
   useEffect(() => {
     let cancelled = false;
 
+    // If we have a page cache, skip the staggered render delays
+    const hasCachedState = !!_loadPageCache();
+
+    const applyBundleData = (d) => {
+      const newSpotlight = d.spotlight?.length > 0 ? d.spotlight : [];
+      const newRecent = d.recentEpisodes?.length > 0 ? d.recentEpisodes : [];
+      const newPopular = d.mostPopular?.length > 0 ? d.mostPopular : [];
+      const newAiring = d.topAiring?.length > 0 ? d.topAiring : [];
+      const newGenres = d.genres && Object.keys(d.genres).length > 0 ? d.genres : {};
+
+      if (newSpotlight.length) setSpotlight(newSpotlight);
+      setHeroReady(true);
+      if (newRecent.length) setRecentEps(newRecent);
+      if (newPopular.length) setMostPopular(newPopular);
+      if (newAiring.length) setTopAiring(newAiring);
+      setSectionsReady(true);
+      if (Object.keys(newGenres).length) setGenreData(newGenres);
+      setGenresReady(true);
+
+      // Persist to page cache using local values
+      _savePageCache({
+        spotlight: newSpotlight,
+        recentEps: newRecent,
+        mostPopular: newPopular,
+        topAiring: newAiring,
+        genreData: newGenres,
+      });
+    };
+
     const fetchViaBundle = async () => {
       try {
         const res = await getAnimeHomeBundle();
         const d = res.data || res;
         if (cancelled) return;
 
-        // Set hero immediately for instant perceived load
-        if (d.spotlight?.length > 0) {
-          setSpotlight(d.spotlight);
-        }
-        setHeroReady(true);
-
-        // If bundle returned completely empty, signal caller to try fallback
         const hasData = d.spotlight?.length > 0 || d.recentEpisodes?.length > 0 ||
           d.mostPopular?.length > 0 || d.topAiring?.length > 0;
         if (!hasData) {
+          setHeroReady(true);
           setSectionsReady(true);
           setGenresReady(true);
           return false;
         }
 
-        // Set base sections — slight delay so hero renders first
-        requestAnimationFrame(() => {
-          if (cancelled) return;
-          if (d.recentEpisodes?.length > 0) setRecentEps(d.recentEpisodes);
-          if (d.mostPopular?.length > 0) setMostPopular(d.mostPopular);
-          if (d.topAiring?.length > 0) setTopAiring(d.topAiring);
-          setSectionsReady(true);
-        });
+        if (hasCachedState) {
+          // Already showing cached data — apply silently without staggering
+          applyBundleData(d);
+        } else {
+          // First load — stagger for smooth progressive render
+          if (d.spotlight?.length > 0) setSpotlight(d.spotlight);
+          setHeroReady(true);
 
-        // Set genres with a tiny stagger for smooth render
-        setTimeout(() => {
-          if (cancelled) return;
-          if (d.genres && Object.keys(d.genres).length > 0) setGenreData(d.genres);
-          setGenresReady(true);
-        }, 50);
+          requestAnimationFrame(() => {
+            if (cancelled) return;
+            if (d.recentEpisodes?.length > 0) setRecentEps(d.recentEpisodes);
+            if (d.mostPopular?.length > 0) setMostPopular(d.mostPopular);
+            if (d.topAiring?.length > 0) setTopAiring(d.topAiring);
+            setSectionsReady(true);
+          });
+
+          setTimeout(() => {
+            if (cancelled) return;
+            if (d.genres && Object.keys(d.genres).length > 0) setGenreData(d.genres);
+            setGenresReady(true);
+
+            // Save to page cache after all data applied
+            _savePageCache({
+              spotlight: d.spotlight?.length > 0 ? d.spotlight : [],
+              recentEps: d.recentEpisodes?.length > 0 ? d.recentEpisodes : [],
+              mostPopular: d.mostPopular?.length > 0 ? d.mostPopular : [],
+              topAiring: d.topAiring?.length > 0 ? d.topAiring : [],
+              genreData: d.genres && Object.keys(d.genres).length > 0 ? d.genres : {},
+            });
+          }, 50);
+        }
 
         return true; // success
       } catch {
@@ -124,12 +181,13 @@ export default function Home() {
     };
 
     const fetchIndividual = async () => {
+      let _spot = [];
       // Phase 1: Spotlight only (fastest perceived load)
       try {
         const spotlightRes = await getAnimeSpotlight();
         if (cancelled) return;
-        const spotData = spotlightRes.data?.results || spotlightRes.data || [];
-        setSpotlight(spotData);
+        _spot = spotlightRes.data?.results || spotlightRes.data || [];
+        setSpotlight(_spot);
         setHeroReady(true);
       } catch { setHeroReady(true); }
 
@@ -141,9 +199,12 @@ export default function Home() {
       ]);
       if (cancelled) return;
 
-      if (baseResults[0].status === 'fulfilled') setRecentEps(baseResults[0].value.data?.results || baseResults[0].value.data || []);
-      if (baseResults[1].status === 'fulfilled') setMostPopular(baseResults[1].value.data?.results || baseResults[1].value.data || []);
-      if (baseResults[2].status === 'fulfilled') setTopAiring(baseResults[2].value.data?.results || baseResults[2].value.data || []);
+      const re = baseResults[0].status === 'fulfilled' ? baseResults[0].value.data?.results || baseResults[0].value.data || [] : [];
+      const mp = baseResults[1].status === 'fulfilled' ? baseResults[1].value.data?.results || baseResults[1].value.data || [] : [];
+      const ta = baseResults[2].status === 'fulfilled' ? baseResults[2].value.data?.results || baseResults[2].value.data || [] : [];
+      setRecentEps(re);
+      setMostPopular(mp);
+      setTopAiring(ta);
       setSectionsReady(true);
 
       // Phase 3: All genres in parallel
@@ -160,6 +221,15 @@ export default function Home() {
       });
       setGenreData(gd);
       setGenresReady(true);
+
+      // Save to page cache
+      _savePageCache({
+        spotlight: _spot,
+        recentEps: re,
+        mostPopular: mp,
+        topAiring: ta,
+        genreData: gd,
+      });
     };
 
     (async () => {
@@ -455,6 +525,9 @@ export default function Home() {
           ) : null}
         </div>
       )}
+
+      {/* ── Mobile App Download Banner ── */}
+      <MobileAppBanner />
 
       {/* ── Default Sections (when no filter active) ── */}
       {!isFilterActive && (

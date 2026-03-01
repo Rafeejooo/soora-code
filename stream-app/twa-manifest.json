@@ -1,0 +1,63 @@
+{
+  "packageId": "fun.soora.app",
+  "host": "soora.fun",
+  "name": "Soora",
+  "launcherName": "Soora",
+  "display": "standalone",
+  "themeColor": "#6c5ce7",
+  "themeColorDark": "#06060e",
+  "navigationColor": "#06060e",
+  "navigationColorDark": "#06060e",
+  "navigationDividerColor": "#06060e",
+  "navigationDividerColorDark": "#06060e",
+  "backgroundColor": "#06060e",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://soora.fun/icons/icon-512x512.png",
+  "maskableIconUrl": "https://soora.fun/icons/icon-maskable-512x512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./soora-keystore.jks",
+    "alias": "soora"
+  },
+  "appVersionCode": 1,
+  "appVersionName": "1.0.0",
+  "shortcuts": [
+    {
+      "name": "Anime",
+      "shortName": "Anime",
+      "url": "/anime",
+      "chosenIconUrl": "https://soora.fun/soranime.svg"
+    },
+    {
+      "name": "Film & Series",
+      "shortName": "Film",
+      "url": "/movies",
+      "chosenIconUrl": "https://soora.fun/soranime.svg"
+    },
+    {
+      "name": "Manga",
+      "shortName": "Manga",
+      "url": "/manga",
+      "chosenIconUrl": "https://soora.fun/soranime.svg"
+    }
+  ],
+  "generatorApp": "custom-build",
+  "webManifestUrl": "https://soora.fun/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": false
+    },
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://soora.fun/",
+  "minSdkVersion": 19,
+  "orientation": "default",
+  "fingerprints": []
+}

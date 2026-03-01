@@ -19,6 +19,7 @@ import { buildMovieUrl } from '../utils/seo';
 import Card from '../components/Card';
 import Loading from '../components/Loading';
 import SkeletonSection from '../components/SkeletonSection';
+import MobileAppBanner from '../components/MobileAppBanner';
 
 /* ── filter options ── */
 const TYPE_OPTIONS = [
@@ -52,21 +53,37 @@ const GENRE_SECTIONS = [
   { id: 99, label: 'Documentary', color: '#22d3ee' },
 ];
 
+/* ── page-level state cache (persists across mounts for instant back-nav) ── */
+const _moviePageCache = {}; // keyed by lang: { en: { ts, data }, id: { ts, data } }
+const PAGE_CACHE_TTL = 10 * 60 * 1000; // 10 min
+
+const _saveMoviePageCache = (lang, state) => {
+  _moviePageCache[lang] = { data: state, ts: Date.now() };
+};
+
+const _loadMoviePageCache = (lang) => {
+  const c = _moviePageCache[lang];
+  if (c && Date.now() - c.ts < PAGE_CACHE_TTL) return c.data;
+  return null;
+};
+
 export default function MovieHome() {
-  const [trendingMovies, setTrendingMovies] = useState([]);
-  const [trendingTV, setTrendingTV] = useState([]);
-  const [recentMovies, setRecentMovies] = useState([]);
-  const [recentTV, setRecentTV] = useState([]);
-  const [genreData, setGenreData] = useState({});
-  const [allGenres, setAllGenres] = useState([]);
-  const [heroReady, setHeroReady] = useState(false);
-  const [sectionsReady, setSectionsReady] = useState(false);
-  const [genresReady, setGenresReady] = useState(false);
-  const [heroIdx, setHeroIdx] = useState(0);
-  const [searchVal, setSearchVal] = useState('');
   const [selectedLang, setSelectedLang] = useState(() => {
     return localStorage.getItem('soora_movie_lang') || 'en';
   });
+
+  const cached = _loadMoviePageCache(selectedLang);
+  const [trendingMovies, setTrendingMovies] = useState(cached?.trendingMovies || []);
+  const [trendingTV, setTrendingTV] = useState(cached?.trendingTV || []);
+  const [recentMovies, setRecentMovies] = useState(cached?.recentMovies || []);
+  const [recentTV, setRecentTV] = useState(cached?.recentTV || []);
+  const [genreData, setGenreData] = useState(cached?.genreData || {});
+  const [allGenres, setAllGenres] = useState(cached?.allGenres || []);
+  const [heroReady, setHeroReady] = useState(!!cached);
+  const [sectionsReady, setSectionsReady] = useState(!!cached);
+  const [genresReady, setGenresReady] = useState(!!cached);
+  const [heroIdx, setHeroIdx] = useState(0);
+  const [searchVal, setSearchVal] = useState('');
 
   /* filters */
   const [filterOpen, setFilterOpen] = useState(false);
@@ -91,16 +108,32 @@ export default function MovieHome() {
   useEffect(() => {
     let cancelled = false;
 
-    // Reset state on language change
-    setTrendingMovies([]);
-    setTrendingTV([]);
-    setRecentMovies([]);
-    setRecentTV([]);
-    setGenreData({});
-    setHeroReady(false);
-    setSectionsReady(false);
-    setGenresReady(false);
-    setHeroIdx(0);
+    // Check if we have a warm page cache for this language
+    const langCache = _loadMoviePageCache(selectedLang);
+    if (langCache) {
+      // Restore from cache instantly — no loading states
+      setTrendingMovies(langCache.trendingMovies || []);
+      setTrendingTV(langCache.trendingTV || []);
+      setRecentMovies(langCache.recentMovies || []);
+      setRecentTV(langCache.recentTV || []);
+      setGenreData(langCache.genreData || {});
+      setAllGenres(langCache.allGenres || []);
+      setHeroReady(true);
+      setSectionsReady(true);
+      setGenresReady(true);
+      setHeroIdx(0);
+    } else {
+      // Reset state on language change when no cache
+      setTrendingMovies([]);
+      setTrendingTV([]);
+      setRecentMovies([]);
+      setRecentTV([]);
+      setGenreData({});
+      setHeroReady(false);
+      setSectionsReady(false);
+      setGenresReady(false);
+      setHeroIdx(0);
+    }
 
     const normalizeGokuItem = (item) => ({
       id: item.id,
@@ -135,25 +168,29 @@ export default function MovieHome() {
         }));
 
         const popular = normLK(d.popularMovies);
-        if (popular.length > 0) {
-          setTrendingMovies(popular);
-          setHeroReady(true);
-        } else {
-          setHeroReady(true);
-        }
+        const rm = normLK(d.recentMovies);
+        const ls = normLK(d.latestSeries);
+        const ps = normLK(d.popularSeries);
+        const topRated = normLK(d.topRatedMovies);
+        const gd = topRated.length > 0 ? { topRated } : {};
 
-        requestAnimationFrame(() => {
-          if (cancelled) return;
-          setRecentMovies(normLK(d.recentMovies));
-          setTrendingTV(normLK(d.latestSeries));
-          setRecentTV(normLK(d.popularSeries));
-          setSectionsReady(true);
-          // LK21 doesn't have TMDB genre sections — show top rated as extra section
-          const topRated = normLK(d.topRatedMovies);
-          if (topRated.length > 0) {
-            setGenreData({ topRated });
-          }
-          setGenresReady(true);
+        setTrendingMovies(popular);
+        setHeroReady(true);
+        setRecentMovies(rm);
+        setTrendingTV(ls);
+        setRecentTV(ps);
+        setSectionsReady(true);
+        setGenreData(gd);
+        setGenresReady(true);
+
+        // Save to page cache
+        _saveMoviePageCache('id', {
+          trendingMovies: popular,
+          trendingTV: ls,
+          recentMovies: rm,
+          recentTV: ps,
+          genreData: gd,
+          allGenres: [],
         });
       } catch (err) {
         console.warn('LK21 bundle failed:', err);
@@ -176,36 +213,24 @@ export default function MovieHome() {
         // Normalize Goku items from bundle
         const normList = (arr) => (arr || []).map(normalizeGokuItem);
 
-        // Hero first
         const tm = normList(d.trendingMovies);
         const rm = normList(d.recentMovies);
         const ttv = normList(d.trendingTV);
         const rtv = normList(d.recentTV);
+        const genres = genresRes.data || [];
 
         // If bundle returned completely empty, signal caller to try fallback
         const hasData = tm.length > 0 || rm.length > 0 || ttv.length > 0 || rtv.length > 0;
-        if (!hasData) {
-          setHeroReady(true);
-          setSectionsReady(true);
-          setGenresReady(true);
-          return false; // trigger fetchIndividual or empty-state
-        }
+        if (!hasData) return false;
 
-        if (tm.length > 0) {
-          setTrendingMovies(tm);
-        }
+        // Apply all data at once (no staggering needed)
+        setTrendingMovies(tm);
         setHeroReady(true);
-
-        // Base sections
-        requestAnimationFrame(() => {
-          if (cancelled) return;
-          setRecentMovies(rm);
-          setTrendingTV(ttv);
-          setRecentTV(rtv);
-          setSectionsReady(true);
-        });
-
-        if (genresRes.data) setAllGenres(genresRes.data);
+        setRecentMovies(rm);
+        setTrendingTV(ttv);
+        setRecentTV(rtv);
+        setSectionsReady(true);
+        if (genres.length) setAllGenres(genres);
 
         // Genre sections in background
         const allGenreResults = await Promise.allSettled(
@@ -221,24 +246,38 @@ export default function MovieHome() {
         setGenreData(gd);
         setGenresReady(true);
 
+        // Save to page cache
+        _saveMoviePageCache('en', {
+          trendingMovies: tm,
+          trendingTV: ttv,
+          recentMovies: rm,
+          recentTV: rtv,
+          genreData: gd,
+          allGenres: genres,
+        });
+
         return true;
       } catch {
         return false;
       }
     };
 
+    // eslint-disable-next-line no-unused-vars
     const fetchIndividual = async () => {
       let hasAnyData = false;
+      let _tm = [], _rm = [], _ttv = [], _rtv = [], _gd = {}, _ag = [];
 
       // Phase 1: Hero (trending movies) — fastest
       try {
         const tmRes = await getGokuTrendingMovies();
         if (cancelled) return false;
-        const data = tmRes.data || [];
-        if (data.length > 0) hasAnyData = true;
-        setTrendingMovies(data);
-        setHeroReady(true);
-      } catch { setHeroReady(true); }
+        _tm = tmRes.data || [];
+        if (_tm.length > 0) {
+          hasAnyData = true;
+          setTrendingMovies(_tm);
+          setHeroReady(true);
+        }
+      } catch { /* Goku hero failed — outer handler will set ready */ }
 
       // Phase 2: Rest of base sections + genres list in parallel
       try {
@@ -252,22 +291,20 @@ export default function MovieHome() {
         ]);
         if (cancelled) return false;
 
-        const rm = baseResults[0].status === 'fulfilled' ? baseResults[0].value.data || [] : [];
-        const ttv = baseResults[1].status === 'fulfilled' ? baseResults[1].value.data || [] : [];
-        const rtv = baseResults[2].status === 'fulfilled' ? baseResults[2].value.data || [] : [];
-        if (rm.length || ttv.length || rtv.length) hasAnyData = true;
-        setRecentMovies(rm);
-        setTrendingTV(ttv);
-        setRecentTV(rtv);
-        if (genresRes.data) setAllGenres(genresRes.data);
+        _rm = baseResults[0].status === 'fulfilled' ? baseResults[0].value.data || [] : [];
+        _ttv = baseResults[1].status === 'fulfilled' ? baseResults[1].value.data || [] : [];
+        _rtv = baseResults[2].status === 'fulfilled' ? baseResults[2].value.data || [] : [];
+        if (_rm.length || _ttv.length || _rtv.length) hasAnyData = true;
+        setRecentMovies(_rm);
+        setTrendingTV(_ttv);
+        setRecentTV(_rtv);
+        _ag = genresRes.data || [];
+        if (_ag.length) setAllGenres(_ag);
       } catch { /* ignore */ }
-      setSectionsReady(true);
+      if (hasAnyData) setSectionsReady(true);
 
       // If no data at all (WARP down), skip genre fetch and signal failure
-      if (!hasAnyData) {
-        setGenresReady(true);
-        return false;
-      }
+      if (!hasAnyData) return false;
 
       // Phase 3: All genre sections in parallel
       try {
@@ -275,20 +312,30 @@ export default function MovieHome() {
           GENRE_SECTIONS.map((g) => discoverByGenre(g.id, 1, 'movie'))
         );
         if (cancelled) return true;
-        const gd = {};
         GENRE_SECTIONS.forEach((g, i) => {
           if (genreResults[i].status === 'fulfilled') {
-            gd[g.id] = genreResults[i].value.data?.results || [];
+            _gd[g.id] = genreResults[i].value.data?.results || [];
           }
         });
-        setGenreData(gd);
+        setGenreData(_gd);
       } catch { /* ignore */ }
       setGenresReady(true);
+
+      // Save to page cache with local variables
+      _saveMoviePageCache('en', {
+        trendingMovies: _tm,
+        trendingTV: _ttv,
+        recentMovies: _rm,
+        recentTV: _rtv,
+        genreData: _gd,
+        allGenres: _ag,
+      });
       return true;
     };
 
     // ── TMDB fallback for EN mode when Goku is unreachable ──
     const fetchTMDBFallback = async () => {
+      let _tm = [], _rm = [], _ttv = [], _rtv = [], _gd = {}, _ag = [];
       try {
         // Phase 1: Hero from TMDB trending
         const [trendRes, genresRes] = await Promise.all([
@@ -296,12 +343,11 @@ export default function MovieHome() {
           getTMDBGenres().catch(() => ({ data: [] })),
         ]);
         if (cancelled) return;
-        const trending = trendRes.data?.results || [];
-        if (trending.length > 0) {
-          setTrendingMovies(trending);
-        }
+        _tm = trendRes.data?.results || [];
+        if (_tm.length > 0) setTrendingMovies(_tm);
         setHeroReady(true);
-        if (genresRes.data) setAllGenres(genresRes.data);
+        _ag = genresRes.data || [];
+        if (_ag.length) setAllGenres(_ag);
 
         // Phase 2: Popular movies/TV + trending TV
         const [popMovies, popTV, trendTV] = await Promise.allSettled([
@@ -310,9 +356,12 @@ export default function MovieHome() {
           getTrendingTMDB('tv', 'week'),
         ]);
         if (cancelled) return;
-        if (popMovies.status === 'fulfilled') setRecentMovies(popMovies.value.data?.results || []);
-        if (trendTV.status === 'fulfilled') setTrendingTV(trendTV.value.data?.results || []);
-        if (popTV.status === 'fulfilled') setRecentTV(popTV.value.data?.results || []);
+        _rm = popMovies.status === 'fulfilled' ? popMovies.value.data?.results || [] : [];
+        _ttv = trendTV.status === 'fulfilled' ? trendTV.value.data?.results || [] : [];
+        _rtv = popTV.status === 'fulfilled' ? popTV.value.data?.results || [] : [];
+        setRecentMovies(_rm);
+        setTrendingTV(_ttv);
+        setRecentTV(_rtv);
         setSectionsReady(true);
 
         // Phase 3: Genre sections
@@ -320,14 +369,23 @@ export default function MovieHome() {
           GENRE_SECTIONS.map((g) => discoverByGenre(g.id, 1, 'movie'))
         );
         if (cancelled) return;
-        const gd = {};
         GENRE_SECTIONS.forEach((g, i) => {
           if (genreResults[i].status === 'fulfilled') {
-            gd[g.id] = genreResults[i].value.data?.results || [];
+            _gd[g.id] = genreResults[i].value.data?.results || [];
           }
         });
-        setGenreData(gd);
+        setGenreData(_gd);
         setGenresReady(true);
+
+        // Save to page cache
+        _saveMoviePageCache('en', {
+          trendingMovies: _tm,
+          trendingTV: _ttv,
+          recentMovies: _rm,
+          recentTV: _rtv,
+          genreData: _gd,
+          allGenres: _ag,
+        });
       } catch {
         setHeroReady(true);
         setSectionsReady(true);
@@ -339,11 +397,32 @@ export default function MovieHome() {
       fetchLK21();
     } else {
       (async () => {
-        const ok = await fetchViaBundle();
-        if (!ok && !cancelled) {
+        // Run Goku and TMDB in parallel — first success wins
+        let gokuOk = false;
+
+        const gokuRace = (async () => {
+          const bundleOk = await fetchViaBundle();
+          if (bundleOk) { gokuOk = true; return; }
+          if (cancelled) return;
           const indOk = await fetchIndividual();
-          // If Goku individual also fails, use TMDB as final fallback
-          if (!indOk && !cancelled) await fetchTMDBFallback();
+          if (indOk) gokuOk = true;
+        })().catch(() => {});
+
+        // Start TMDB after a short delay (give Goku a head start)
+        // so we don't fire two full fetches when Goku works fine
+        const tmdbRace = new Promise((r) => setTimeout(r, 2000)).then(async () => {
+          // If Goku already loaded, skip TMDB
+          if (gokuOk || cancelled) return;
+          await fetchTMDBFallback();
+        }).catch(() => {});
+
+        await Promise.allSettled([gokuRace, tmdbRace]);
+
+        // After both attempts, ensure ready flags are set
+        if (!cancelled) {
+          setHeroReady(true);
+          setSectionsReady(true);
+          setGenresReady(true);
         }
       })();
     }
@@ -730,6 +809,9 @@ export default function MovieHome() {
           ) : null}
         </div>
       )}
+
+      {/* ── Mobile App Download Banner ── */}
+      <MobileAppBanner />
 
       {/* ── Default Sections (when no filter active) ── */}
       {!isFilterActive && (

@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "fun.soora.app",
+      "sha256_cert_fingerprints": [
+        "17:B9:12:6E:64:12:8D:AC:C4:63:84:EE:27:FF:A9:00:45:6F:FC:BC:77:D6:83:42:98:E1:9C:47:97:54:9B:DD"
+      ]
+    }
+  }
+]

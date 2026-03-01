@@ -49,10 +49,13 @@ export default function AnimeInfo() {
     ? (info.title?.english || info.title?.romaji || info.title?.userPreferred || info.title || 'Unknown')
     : '';
   const seoCanonical = id ? buildAnimeUrl(id) : '';
+  const seoEpCount = info?.totalEpisodes || info?.episodes?.length || 0;
+  const seoStatus = info?.status || '';
+  const seoGenres = info?.genres || [];
 
   useSEO(info ? {
-    title: `Nonton Anime ${seoTitle} Sub Indo Lengkap | Streaming HD Gratis - Soora`,
-    description: `Nonton streaming anime ${seoTitle} subtitle Indonesia full episode HD gratis. Anime trending terbaru dengan sub Indo terlengkap hanya di Soora. Cek daftar episode, sinopsis & info lengkap.`,
+    title: `Nonton Anime ${seoTitle} Sub Indo Gratis Tanpa Iklan${seoEpCount ? ` [${seoEpCount} Episode]` : ''} | HD - Soora`,
+    description: `Nonton streaming anime ${seoTitle} subtitle Indonesia full episode HD gratis tanpa iklan.${seoEpCount ? ` ${seoEpCount} episode tersedia.` : ''}${seoStatus ? ` Status: ${seoStatus}.` : ''}${seoGenres.length ? ` Genre: ${seoGenres.slice(0, 3).join(', ')}.` : ''} Update episode terbaru setiap hari. Kualitas tinggi tanpa buffering hanya di Soora.`,
     canonical: seoCanonical,
     image: info.image || info.cover || '',
     type: 'video.tv_show',

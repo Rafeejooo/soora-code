@@ -18,16 +18,21 @@ import MovieInfo from './pages/MovieInfo';
 import Watch from './pages/Watch';
 import MyList from './pages/MyList';
 import SooramicsPlus from './pages/SooramicsPlus';
+import { usePWAMobileOptimizations } from './hooks/usePWAMobile';
 import './App.css';
 
 function AppLayout() {
   const location = useLocation();
+
+  // PWA mobile optimizations (overscroll, back button, orientation, etc.)
+  usePWAMobileOptimizations();
+
   const isLanding = location.pathname === '/';
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
   const isSooramicsPlus = location.pathname.startsWith('/2');
 
   // Detect which "app" we're in based on path
-  const isMovieSection = location.pathname.startsWith('/movies') || location.pathname.startsWith('/watch/movie');
+  const isMovieSection = location.pathname.startsWith('/movies') || location.pathname.startsWith('/movie/') || location.pathname.startsWith('/series/') || location.pathname.startsWith('/watch/movie');
   const isMangaSection = location.pathname.startsWith('/manga');
   const isAnimeMyList = location.pathname === '/anime/mylist';
   const isMovieMyList = location.pathname === '/movies/mylist';
@@ -60,6 +65,8 @@ function AppLayout() {
         <Route path="/movies/search" element={<Search searchType="movie" />} />
         <Route path="/movies/info" element={<LegacyMovieRedirect />} />
         <Route path="/movies/mylist" element={<MyList section="movie" />} />
+        <Route path="/movie/*" element={<MovieInfo mediaType="movie" />} />
+        <Route path="/series/*" element={<MovieInfo mediaType="tv" />} />
         <Route path="/movies/*" element={<MovieInfo />} />
         <Route path="/watch/movie" element={<Watch />} />
 
@@ -76,6 +83,7 @@ function AppLayout() {
         {/* Legacy redirects */}
         <Route path="/search/:type" element={<Search />} />
         <Route path="/movie/info" element={<LegacyMovieRedirect />} />
+        <Route path="/series/info" element={<LegacyMovieRedirect />} />
       </Routes>
       {!isLanding && !isAuthPage && !isMangaReader && !isSooramicsPlus && <MiniPlayer />}
     </MiniPlayerProvider>

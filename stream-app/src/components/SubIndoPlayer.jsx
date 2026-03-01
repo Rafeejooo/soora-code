@@ -270,7 +270,7 @@ export default function SubIndoPlayer({ animeTitle, japaneseTitle, episode = 1 }
             allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
             style={{ width: '100%', height: '100%', border: 'none' }}
             title="Sub Indo Player"
-            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+            referrerPolicy="no-referrer"
           />
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>

@@ -1,0 +1,23 @@
+{
+  "name": "Soora",
+  "short_name": "Soora",
+  "description": "Nonton Anime, Film & Baca Manga Sub Indo Gratis Tanpa Iklan",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#6c5ce7",
+  "icons": [
+    {
+      "src": "/soranime.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/soora.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

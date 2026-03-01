@@ -3,9 +3,10 @@
  * Used for backward compatibility and SEO transition.
  *
  * Example:
- *  /anime/info?id=bleach-806          → /anime/bleach-806
- *  /movies/info?id=xyz&type=movie     → /movies/xyz?type=movie
- *  /manga/info?id=6372/slug           → /manga/6372/slug
+ *  /anime/info?id=bleach-806              → /anime/bleach-806
+ *  /movies/info?id=xyz&type=movie         → /movie/xyz
+ *  /movies/info?id=xyz&type=tv            → /series/xyz
+ *  /manga/info?id=6372/slug               → /manga/6372/slug
  */
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { encodePathId } from '../utils/seo';
@@ -23,8 +24,8 @@ export function LegacyMovieRedirect() {
   if (!id) return <Navigate to="/movies" replace />;
 
   const type = searchParams.get('type');
-  const qs = type ? `?type=${encodeURIComponent(type)}` : '';
-  return <Navigate to={`/movies/${encodePathId(id)}${qs}`} replace />;
+  const route = type === 'tv' ? 'series' : 'movie';
+  return <Navigate to={`/${route}/${encodePathId(id)}`} replace />;
 }
 
 export function LegacyMangaRedirect() {

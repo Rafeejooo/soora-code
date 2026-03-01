@@ -50,6 +50,7 @@ export default function AnimeEmbedPlayer({ malId, episode = 1 }) {
 
   const server = availableServers[activeServer] || availableServers[0];
   const url = server?.buildUrl(malId, episode);
+  const isAutoEmbed = server?.name === 'AutoEmbed';
 
   // Start a countdown — if it fires, show "try next" hint
   const startTimer = useCallback(() => {
@@ -117,7 +118,8 @@ export default function AnimeEmbedPlayer({ malId, episode = 1 }) {
           allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
           style={{ width: '100%', height: '100%', border: 'none' }}
           title="Anime Player"
-          sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+          referrerPolicy="no-referrer"
+          {...(isAutoEmbed ? { sandbox: 'allow-same-origin allow-scripts allow-forms' } : {})}
         />
       </div>
 

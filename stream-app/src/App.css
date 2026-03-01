@@ -9291,3 +9291,144 @@ a:hover {
   .auth-form-title { font-size: 1.3rem; }
   .auth-float-field input { font-size: 0.84rem; padding: 1.1rem 0.6rem 0.45rem; }
 }
+
+/* ═══════════════════════════════════════════
+   Install App Card (fixed section on home)
+   ═══════════════════════════════════════════ */
+.install-card {
+  margin: 0 4% 1.5rem;
+}
+.install-card-inner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(124,92,252,0.12) 0%, rgba(108,92,231,0.06) 100%);
+  border: 1px solid rgba(124,92,252,0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.install-card-icon {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: rgba(124,92,252,0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.install-card-icon img {
+  width: 36px;
+  height: 36px;
+}
+.install-card-body {
+  flex: 1;
+  min-width: 0;
+}
+.install-card-title {
+  margin: 0 0 0.15rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+.install-card-desc {
+  margin: 0 0 0.6rem;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.35;
+}
+.install-card-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #7c5cfc 0%, #6c5ce7 100%);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.install-card-btn:hover {
+  background: linear-gradient(135deg, #8b6dff 0%, #7c5cfc 100%);
+  transform: scale(1.03);
+}
+.install-card-btn:active {
+  transform: scale(0.97);
+}
+.install-card-btn svg {
+  flex-shrink: 0;
+}
+/* Guide dropdown */
+.install-card-guide {
+  margin-top: 0.6rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.65);
+  line-height: 1.5;
+  animation: ic-fade 0.25s ease;
+}
+@keyframes ic-fade {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.install-card-guide p { margin: 0; }
+.install-card-guide strong { color: rgba(255,255,255,0.9); }
+.install-card-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 5px;
+  background: rgba(255,255,255,0.08);
+  font-weight: 600;
+  color: rgba(255,255,255,0.8);
+  font-size: 0.76rem;
+}
+.install-card-key svg { vertical-align: -2px; }
+
+/* ── SooraFlix variant ── */
+.sooraflix-page .install-card-inner {
+  background: linear-gradient(135deg, rgba(229,62,62,0.1) 0%, rgba(229,62,62,0.04) 100%);
+  border-color: rgba(229,62,62,0.2);
+}
+.sooraflix-page .install-card-icon {
+  background: rgba(229,62,62,0.18);
+}
+.sooraflix-page .install-card-btn {
+  background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+}
+.sooraflix-page .install-card-btn:hover {
+  background: linear-gradient(135deg, #f05050 0%, #e53e3e 100%);
+}
+
+/* ── Sooramics variant ── */
+.sooramics-page .install-card-inner {
+  background: linear-gradient(135deg, rgba(0,212,170,0.1) 0%, rgba(0,212,170,0.04) 100%);
+  border-color: rgba(0,212,170,0.2);
+}
+.sooramics-page .install-card-icon {
+  background: rgba(0,212,170,0.18);
+}
+.sooramics-page .install-card-btn {
+  background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
+}
+.sooramics-page .install-card-btn:hover {
+  background: linear-gradient(135deg, #0de8be 0%, #00d4aa 100%);
+}
+
+/* ── Mobile adjustments ── */
+@media (max-width: 480px) {
+  .install-card-inner { flex-direction: column; text-align: center; gap: 0.6rem; padding: 1rem; }
+  .install-card-desc { margin-bottom: 0.5rem; }
+}

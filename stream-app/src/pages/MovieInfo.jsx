@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   getMovieDetailsTMDB,
   getTVDetailsTMDB,
@@ -21,11 +21,12 @@ const isGokuId = (id) => id && (id.includes('watch-') || id.includes('/'));
 // Enlarge Goku thumbnail (250x400 → 600x900)
 const gokuLargeImg = (url) => url ? url.replace(/\/resize\/\d+x\d+\//, '/resize/600x900/') : url;
 
-export default function MovieInfo() {
+export default function MovieInfo({ mediaType: routeMediaType }) {
   const params = useParams();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
   const id = params['*'] || ''; // splat captures the full ID including slashes
-  const type = searchParams.get('type') || 'movie'; // 'movie' or 'tv'
+  // Determine type: prop from route > path-based detection > fallback
+  const type = routeMediaType || (location.pathname.startsWith('/series') ? 'tv' : 'movie');
   const provider = detectMovieProvider(id); // auto-detect from ID format
   const navigate = useNavigate();
 
@@ -113,9 +114,11 @@ export default function MovieInfo() {
         : (info.poster_path ? `https://image.tmdb.org/t/p/w500${info.poster_path}` : ''))
     : '';
 
+  const seoGenreText = seoGenres.map(g => typeof g === 'string' ? g : g.name).filter(Boolean).slice(0, 3).join(', ');
+
   useSEO(info ? {
-    title: `Nonton ${type === 'tv' ? 'Series' : 'Film'} ${seoMovieTitle}${seoYear ? ` (${seoYear})` : ''} Sub Indo | Streaming HD Gratis - Soora`,
-    description: `Nonton streaming ${type === 'tv' ? 'series' : 'film'} ${seoMovieTitle} subtitle Indonesia full ${type === 'tv' ? 'episode' : 'movie'} HD gratis.${seoGenres.length ? ` Genre: ${seoGenres.map(g => typeof g === 'string' ? g : g.name).filter(Boolean).join(', ')}.` : ''} Trending terbaru bahasa Indo hanya di Soora.`,
+    title: `Nonton ${type === 'tv' ? 'Series' : 'Film'} ${seoMovieTitle}${seoYear ? ` (${seoYear})` : ''} Sub Indo Gratis Tanpa Iklan | HD - Soora`,
+    description: `Nonton streaming ${type === 'tv' ? 'series' : 'film'} ${seoMovieTitle}${seoYear ? ` (${seoYear})` : ''} subtitle Indonesia full ${type === 'tv' ? 'episode' : 'movie'} HD gratis tanpa iklan.${seoGenreText ? ` Genre: ${seoGenreText}.` : ''} Kualitas tinggi tanpa buffering, update terbaru hanya di Soora.`,
     canonical: seoCanonical,
     image: seoPoster,
     type: type === 'tv' ? 'video.tv_show' : 'video.movie',

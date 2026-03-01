@@ -116,9 +116,12 @@ export default function MangaInfo() {
   const seoCanonical = id ? buildMangaUrl(id) : '';
   const seoChapterCount = info?.chapters?.length || 0;
 
+  const seoMangaGenres = info ? (info.genres || []).filter(g => g && g.trim() && g !== 'Genres').slice(0, 3).join(', ') : '';
+  const seoMangaStatus = info?.status || '';
+
   useSEO(info ? {
-    title: `Baca ${seoContentType} ${seoTitle} Bahasa Indonesia Chapter Terlengkap | Gratis - Soora`,
-    description: `Baca ${seoContentType.toLowerCase()} ${seoTitle} bahasa Indonesia chapter terlengkap gratis.${seoChapterCount ? ` ${seoChapterCount} chapter tersedia.` : ''} Manga trending terbaru sub Indo, update chapter terbaru hanya di Soora.`,
+    title: `Baca ${seoContentType} ${seoTitle} Bahasa Indonesia Gratis Tanpa Iklan${seoChapterCount ? ` [${seoChapterCount} Chapter]` : ''} - Soora`,
+    description: `Baca ${seoContentType.toLowerCase()} ${seoTitle} bahasa Indonesia gratis tanpa iklan.${seoChapterCount ? ` ${seoChapterCount} chapter lengkap tersedia.` : ''}${seoMangaStatus ? ` Status: ${seoMangaStatus}.` : ''}${seoMangaGenres ? ` Genre: ${seoMangaGenres}.` : ''} Update chapter terbaru setiap hari, baca online tanpa download hanya di Soora.`,
     canonical: seoCanonical,
     image: info.image || '',
     type: 'book',

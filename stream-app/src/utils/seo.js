@@ -13,8 +13,9 @@ import { useEffect } from 'react';
  * Preserves slashes as path separators, encodes everything else.
  */
 export function encodePathId(id) {
-  if (!id) return '';
-  return id.split('/').map(s => encodeURIComponent(s)).join('/');
+  if (id == null || id === '') return '';
+  const str = String(id);
+  return str.split('/').map(s => encodeURIComponent(s)).join('/');
 }
 
 /** Build anime info URL: /anime/:id */
@@ -22,12 +23,10 @@ export function buildAnimeUrl(id) {
   return `/anime/${encodeURIComponent(id)}`;
 }
 
-/** Build movie info URL: /movies/:id[?type=...] — provider is auto-detected */
+/** Build movie/series info URL: /movie/:id or /series/:id — clean path-based routing */
 export function buildMovieUrl(id, type) {
-  const params = new URLSearchParams();
-  if (type) params.set('type', type);
-  const qs = params.toString();
-  return `/movies/${encodePathId(id)}${qs ? '?' + qs : ''}`;
+  const route = type === 'tv' ? 'series' : 'movie';
+  return `/${route}/${encodePathId(id)}`;
 }
 
 /** Build manga info URL: /manga/:id — provider is auto-detected */
@@ -63,7 +62,7 @@ export function detectMovieProvider(id) {
 
 const SITE_NAME = 'Soora';
 const BASE_URL = 'https://www.soora.fun';
-const DEFAULT_TITLE = 'Soora — Nonton Anime, Film & Baca Manga Sub Indo Gratis';
+const DEFAULT_TITLE = 'Soora — Nonton Anime, Film & Baca Manga Sub Indo Gratis Tanpa Iklan';
 
 /**
  * Manage document head for SEO: title, meta description, OG tags,

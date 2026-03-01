@@ -49,6 +49,7 @@ export default function MovieEmbedPlayer({ tmdbId, mediaType = 'movie', season =
 
   const server = availableServers[activeServer] || availableServers[0];
   const url = server?.buildUrl(tmdbId, mediaType, season, episode);
+  const isAutoEmbed = server?.name === 'AutoEmbed';
 
   const startTimer = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -99,7 +100,8 @@ export default function MovieEmbedPlayer({ tmdbId, mediaType = 'movie', season =
           allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
           style={{ width: '100%', height: '100%', border: 'none' }}
           title="Movie Player"
-          sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+          referrerPolicy="no-referrer"
+          {...(isAutoEmbed ? { sandbox: 'allow-same-origin allow-scripts allow-forms' } : {})}
         />
       </div>
 
