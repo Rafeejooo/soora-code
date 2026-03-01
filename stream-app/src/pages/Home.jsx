@@ -13,7 +13,7 @@ import { buildAnimeUrl } from '../utils/seo';
 import Card from '../components/Card';
 import Loading from '../components/Loading';
 import SkeletonSection from '../components/SkeletonSection';
-import MobileAppBanner from '../components/MobileAppBanner';
+
 
 /* ── page-level state cache (persists across mounts for instant back-nav) ── */
 const _pageCache = { ts: 0, data: null };
@@ -526,8 +526,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* ── Mobile App Download Banner ── */}
-      <MobileAppBanner />
+
 
       {/* ── Default Sections (when no filter active) ── */}
       {!isFilterActive && (

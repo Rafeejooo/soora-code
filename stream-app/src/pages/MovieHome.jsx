@@ -19,7 +19,7 @@ import { buildMovieUrl } from '../utils/seo';
 import Card from '../components/Card';
 import Loading from '../components/Loading';
 import SkeletonSection from '../components/SkeletonSection';
-import MobileAppBanner from '../components/MobileAppBanner';
+
 
 /* ── filter options ── */
 const TYPE_OPTIONS = [
@@ -810,8 +810,7 @@ export default function MovieHome() {
         </div>
       )}
 
-      {/* ── Mobile App Download Banner ── */}
-      <MobileAppBanner />
+
 
       {/* ── Default Sections (when no filter active) ── */}
       {!isFilterActive && (

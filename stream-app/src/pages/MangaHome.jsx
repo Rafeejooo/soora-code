@@ -13,7 +13,7 @@ import {
 } from '../api';
 import { buildMangaUrl } from '../utils/seo';
 import Card from '../components/Card';
-import MobileAppBanner from '../components/MobileAppBanner';
+
 import Loading from '../components/Loading';
 import SkeletonSection from '../components/SkeletonSection';
 
@@ -493,8 +493,7 @@ export default function MangaHome() {
         </div>
       )}
 
-      {/* ── Mobile App Download Banner ── */}
-      <MobileAppBanner />
+
 
       {/* ── Default Sections (when no filter active) ── */}
       {!isFilterActive && (
