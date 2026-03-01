@@ -218,69 +218,6 @@ export default function Landing({ showSooramicsPlus = false, onSooramicsPlusClic
       <div className="landing-orb landing-orb-3" />
 
       <div className="landing-content">
-        {/* ── Top Header Bar ── */}
-        <header className="landing-header">
-          <div className="landing-header-left">
-            <div className="landing-logo-mark">
-              <svg viewBox="0 0 40 40" width="28" height="28" fill="none">
-                <circle cx="20" cy="20" r="17" stroke="url(#logoGradH)" strokeWidth="2"/>
-                <path d="M13 26C13.8 27 15.5 28 18 28c3.5 0 5.5-2 5.5-4.2 0-2.3-1.8-3.2-4.5-3.8l-1-.2C15.5 19.3 14 18.5 14 16.8c0-1.8 1.8-3.3 4.2-3.3 1.8 0 3.2.7 4 1.5" stroke="url(#logoGradH)" strokeWidth="2.2" strokeLinecap="round"/>
-                <defs>
-                  <linearGradient id="logoGradH" x1="0" y1="0" x2="40" y2="40">
-                    <stop offset="0%" stopColor="#7c5cfc"/>
-                    <stop offset="50%" stopColor="#ff6b9d"/>
-                    <stop offset="100%" stopColor="#00d4aa"/>
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
-            <span className="landing-header-brand">soora</span>
-          </div>
-
-          {!installed && (
-            <div className="landing-header-right">
-              <button className="landing-install-btn" onClick={handleInstall}>
-                <span className="landing-install-btn-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/>
-                    <line x1="12" y1="15" x2="12" y2="3"/>
-                  </svg>
-                </span>
-                <span className="landing-install-btn-text">Install App</span>
-                <span className="landing-install-btn-badge">FREE</span>
-              </button>
-            </div>
-          )}
-        </header>
-
-        {/* Install guide tooltip */}
-        {showGuide && !installed && (
-          <div className="landing-install-guide">
-            <div className="landing-install-guide-arrow" />
-            {isIOS ? (
-              <p>
-                <strong>Safari:</strong> Ketuk{' '}
-                <span className="landing-install-key">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-                  Share
-                </span>{' '}
-                → <strong>"Add to Home Screen"</strong>
-              </p>
-            ) : isAndroid ? (
-              <p>
-                <strong>Chrome:</strong> Ketuk <span className="landing-install-key">⋮</span> (menu) →{' '}
-                <strong>"Install App"</strong> atau <strong>"Add to Home Screen"</strong>
-              </p>
-            ) : (
-              <p>
-                Buka menu browser → <strong>"Install App"</strong> atau{' '}
-                <strong>"Add to Home Screen"</strong>
-              </p>
-            )}
-          </div>
-        )}
-
         {/* Logo */}
         <div className="landing-logo">
           <div className="landing-logo-mark">
@@ -348,6 +285,60 @@ export default function Landing({ showSooramicsPlus = false, onSooramicsPlusClic
           <p>&copy; 2026 soora. Open-source entertainment platform.</p>
         </footer>
       </div>
+
+      {/* ── Mobile-only floating install bar ── */}
+      {!installed && (
+        <div className="landing-mobile-install">
+          <div className="landing-mobile-install-inner">
+            <div className="landing-mobile-install-info">
+              <div className="landing-mobile-install-icon">
+                <svg viewBox="0 0 40 40" width="32" height="32" fill="none">
+                  <circle cx="20" cy="20" r="17" stroke="url(#mInstG)" strokeWidth="2"/>
+                  <path d="M13 26C13.8 27 15.5 28 18 28c3.5 0 5.5-2 5.5-4.2 0-2.3-1.8-3.2-4.5-3.8l-1-.2C15.5 19.3 14 18.5 14 16.8c0-1.8 1.8-3.3 4.2-3.3 1.8 0 3.2.7 4 1.5" stroke="url(#mInstG)" strokeWidth="2.2" strokeLinecap="round"/>
+                  <defs>
+                    <linearGradient id="mInstG" x1="0" y1="0" x2="40" y2="40">
+                      <stop offset="0%" stopColor="#7c5cfc"/>
+                      <stop offset="50%" stopColor="#ff6b9d"/>
+                      <stop offset="100%" stopColor="#00d4aa"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+              <div>
+                <div className="landing-mobile-install-title">Soora App</div>
+                <div className="landing-mobile-install-sub">Install gratis · Tanpa Play Store</div>
+              </div>
+            </div>
+            <button className="landing-mobile-install-btn" onClick={handleInstall}>
+              Install
+            </button>
+          </div>
+
+          {showGuide && (
+            <div className="landing-mobile-install-guide">
+              {isIOS ? (
+                <p>
+                  Ketuk{' '}
+                  <span className="landing-install-key">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                    Share
+                  </span>{' '}
+                  → <strong>Add to Home Screen</strong>
+                </p>
+              ) : isAndroid ? (
+                <p>
+                  Ketuk <span className="landing-install-key">⋮</span> →{' '}
+                  <strong>Install App</strong> / <strong>Add to Home Screen</strong>
+                </p>
+              ) : (
+                <p>
+                  Menu browser → <strong>Install App</strong>
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

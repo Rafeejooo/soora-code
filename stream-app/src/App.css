@@ -7378,128 +7378,11 @@ a:hover {
   opacity: 0.6;
 }
 
-/* ── Landing Header Bar ── */
-.landing-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  margin-bottom: 2rem;
-  animation: landingFadeUp 0.6s ease-out;
-}
-.landing-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-.landing-header-brand {
-  font-size: 1.4rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  background: linear-gradient(135deg, #f0f0f5 0%, #8888a8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.landing-header-right {
-  animation: landingFadeUp 0.6s ease-out 0.3s both;
+/* ── Mobile-only Floating Install Bar ── */
+.landing-mobile-install {
+  display: none; /* hidden on desktop */
 }
 
-/* Install Button */
-.landing-install-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.55rem 1.1rem 0.55rem 0.85rem;
-  border: none;
-  border-radius: 50px;
-  background: linear-gradient(135deg, #7c5cfc 0%, #a855f7 50%, #ff6b9d 100%);
-  color: #fff;
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow:
-    0 0 20px rgba(124, 92, 252, 0.3),
-    0 0 60px rgba(124, 92, 252, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  letter-spacing: 0.01em;
-}
-.landing-install-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
-  pointer-events: none;
-}
-.landing-install-btn:hover {
-  transform: translateY(-2px) scale(1.03);
-  box-shadow:
-    0 0 30px rgba(124, 92, 252, 0.45),
-    0 0 80px rgba(168, 85, 247, 0.2),
-    0 8px 24px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25);
-}
-.landing-install-btn:active {
-  transform: translateY(0) scale(0.98);
-}
-.landing-install-btn-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
-  flex-shrink: 0;
-}
-.landing-install-btn-text {
-  white-space: nowrap;
-}
-.landing-install-btn-badge {
-  font-size: 0.55rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 0.15rem 0.45rem;
-  border-radius: 20px;
-  text-transform: uppercase;
-}
-
-/* Install Guide Tooltip */
-.landing-install-guide {
-  position: relative;
-  margin: -1rem auto 1.5rem;
-  padding: 0.9rem 1.3rem;
-  background: rgba(20, 20, 40, 0.9);
-  border: 1px solid rgba(124, 92, 252, 0.25);
-  border-radius: 14px;
-  max-width: 380px;
-  text-align: left;
-  font-size: 0.82rem;
-  color: var(--text-secondary);
-  backdrop-filter: blur(20px);
-  animation: landingFadeUp 0.3s ease-out;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-.landing-install-guide-arrow {
-  position: absolute;
-  top: -6px;
-  right: 40px;
-  width: 12px;
-  height: 12px;
-  background: rgba(20, 20, 40, 0.9);
-  border-top: 1px solid rgba(124, 92, 252, 0.25);
-  border-left: 1px solid rgba(124, 92, 252, 0.25);
-  transform: rotate(45deg);
-}
-.landing-install-guide p {
-  margin: 0;
-  line-height: 1.6;
-}
 .landing-install-key {
   display: inline-flex;
   align-items: center;
@@ -7508,7 +7391,7 @@ a:hover {
   border-radius: 4px;
   background: rgba(124, 92, 252, 0.15);
   border: 1px solid rgba(124, 92, 252, 0.3);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   vertical-align: middle;
 }
 
@@ -7533,7 +7416,7 @@ a:hover {
     height: 28px;
   }
   .landing-content {
-    padding: 2rem 1rem;
+    padding: 2rem 1rem 6rem; /* extra bottom padding for floating bar */
   }
   .landing-tagline {
     font-size: 1rem;
@@ -7544,19 +7427,108 @@ a:hover {
   .landing-orb {
     display: none;
   }
-  .landing-install-btn-text {
-    display: none;
+
+  /* Show floating install bar on mobile */
+  .landing-mobile-install {
+    display: block;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 0 0.75rem 0.75rem;
+    pointer-events: none;
+    animation: mobileInstSlideUp 0.5s ease-out 0.8s both;
   }
-  .landing-install-btn {
-    padding: 0.5rem 0.7rem;
-    gap: 0.35rem;
+  @keyframes mobileInstSlideUp {
+    from { opacity: 0; transform: translateY(100%); }
+    to   { opacity: 1; transform: translateY(0); }
   }
-  .landing-install-btn-badge {
-    font-size: 0.5rem;
-    padding: 0.12rem 0.35rem;
+
+  .landing-mobile-install-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.7rem 0.8rem;
+    border-radius: 16px;
+    background: rgba(12, 12, 28, 0.92);
+    border: 1px solid rgba(124, 92, 252, 0.2);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow:
+      0 -4px 30px rgba(0, 0, 0, 0.4),
+      0 0 40px rgba(124, 92, 252, 0.08);
+    pointer-events: auto;
   }
-  .landing-install-guide-arrow {
-    right: 24px;
+
+  .landing-mobile-install-info {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+  }
+
+  .landing-mobile-install-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(124, 92, 252, 0.1);
+    border: 1px solid rgba(124, 92, 252, 0.15);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+  }
+
+  .landing-mobile-install-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #f0f0f5;
+    line-height: 1.2;
+  }
+
+  .landing-mobile-install-sub {
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.45);
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .landing-mobile-install-btn {
+    flex-shrink: 0;
+    padding: 0.55rem 1.3rem;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #7c5cfc 0%, #a855f7 50%, #ff6b9d 100%);
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: all 0.2s ease;
+    box-shadow: 0 0 16px rgba(124, 92, 252, 0.3);
+  }
+  .landing-mobile-install-btn:active {
+    transform: scale(0.95);
+    opacity: 0.9;
+  }
+
+  .landing-mobile-install-guide {
+    margin-top: 0.5rem;
+    padding: 0.65rem 0.9rem;
+    border-radius: 12px;
+    background: rgba(20, 20, 40, 0.95);
+    border: 1px solid rgba(124, 92, 252, 0.2);
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+    pointer-events: auto;
+    animation: landingFadeUp 0.25s ease-out;
+  }
+  .landing-mobile-install-guide p {
+    margin: 0;
+    line-height: 1.6;
   }
 }
 @media (max-width: 480px) {
