@@ -10,7 +10,6 @@ import animeRoutes from './routes/anime';
 import movieRoutes from './routes/movies';
 import mangaRoutes from './routes/manga';
 import proxyRoutes from './routes/proxy';
-import passthroughRoutes from './routes/passthrough';
 
 const app = express();
 
@@ -87,10 +86,24 @@ app.get('/manga-img', async (req, res) => {
   } catch { res.status(502).send('Image proxy error'); }
 });
 
-// ========== PASSTHROUGH ==========
-// Any unmatched /api/* route gets forwarded to Consumet directly
-// This ensures existing frontend calls still work during migration
-app.use('/passthrough', passthroughRoutes);
+// ========== GLOBAL PASSTHROUGH ==========
+// Any route not handled by orchestrated routes gets forwarded to Consumet directly.
+// This ensures existing frontend calls still work during migration.
+app.use('*', async (req, res, next) => {
+  // Skip if already handled or is an internal route
+  if (req.originalUrl === '/' || req.originalUrl === '/health' || req.originalUrl.startsWith('/cache')) {
+    return next();
+  }
+  try {
+    const { passthrough } = await import('./services/consumet');
+    const data = await passthrough(req.originalUrl.split('?')[0], req.query as Record<string, any>);
+    res.json(data);
+  } catch (err: any) {
+    const status = err.response?.status || 502;
+    const message = err.response?.data || { error: 'Upstream error' };
+    res.status(status).json(message);
+  }
+});
 
 // ========== ERROR HANDLING ==========
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

@@ -166,4 +166,16 @@ router.get('/komiku/read/:chapterId', async (req: Request, res: Response) => {
   }
 });
 
+// ========== CATCH-ALL: Forward unmatched /manga/* to Consumet ==========
+router.all('/*', async (req: Request, res: Response) => {
+  try {
+    const data = await consumet.passthrough(`/manga${req.path}`, req.query as Record<string, any>);
+    res.json(data);
+  } catch (err: any) {
+    const status = err.response?.status || 502;
+    const message = err.response?.data || { error: 'Upstream error' };
+    res.status(status).json(message);
+  }
+});
+
 export default router;
