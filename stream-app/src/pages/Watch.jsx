@@ -63,6 +63,8 @@ export default function Watch() {
   const episodeId = searchParams.get('episodeId');
   const epNum = searchParams.get('ep') || '';
   const animeId = searchParams.get('animeId');
+  const subIndoParam = searchParams.get('subIndo') === '1'; // Auto-activate Sub Indo from homepage
+  const samehadakuId = searchParams.get('samehadakuId') || null; // Direct Samehadaku anime ID
 
   // Anime HLS state
   const [sources, setSources] = useState([]);
@@ -98,8 +100,8 @@ export default function Watch() {
   const [alId, setAlId] = useState(null);
   const [resolvedTmdbId, setResolvedTmdbId] = useState(null); // TMDB ID found from Goku enrichment
   const [useEmbedPlayer, setUseEmbedPlayer] = useState(false);
-  const [useSubIndo, setUseSubIndo] = useState(false);
-  const [subLang, setSubLang] = useState(null); // null = direct, 'id' | 'en' | 'multi'
+  const [useSubIndo, setUseSubIndo] = useState(subIndoParam); // Auto-activate from Sub Indo tab
+  const [subLang, setSubLang] = useState(subIndoParam ? 'id' : null); // null = direct, 'id' | 'en' | 'multi'
   const [retryKey, setRetryKey] = useState(0); // bump to re-trigger data fetch
 
   const playerRef = useRef(null);
@@ -628,6 +630,13 @@ export default function Watch() {
         }
 
         // Now try to load the stream (with auto-fallback AnimeKai → HiAnime)
+        // Skip direct stream if user chose Sub Indo mode — go straight to SubIndo player
+        if (useSubIndo || subIndoParam) {
+          console.info('[Watch] Sub Indo mode active, skipping direct stream fetch');
+          setLoading(false);
+          return;
+        }
+
         console.info('[Watch] Loading stream for:', episodeId, '| ep:', epNum, '| animeId:', animeId);
         const data = (await watchAnimeEpisode(episodeId, undefined, undefined, epNum)).data;
         const fallbackProvider = data._fallback || 'animekai';
@@ -643,25 +652,37 @@ export default function Watch() {
         setCurrentSource(picked);
         lastWorkingSource.current = null; // reset — will be set once playback starts
         if (srcs.length === 0) {
-          setError('No playable streams found.');
-          // Auto-switch to embed only when we have ZERO sources (fetch completely failed)
-          if (gotMalId || gotAlId) setUseEmbedPlayer(true);
+          // No sources — auto-switch to embed if IDs available, or try Sub Indo
+          if (gotMalId || gotAlId) {
+            console.info('[Watch] No sources, auto-switching to embed player');
+            setUseEmbedPlayer(true);
+          } else {
+            // No MAL/AL IDs and no sources — try Sub Indo as last resort
+            console.info('[Watch] No sources and no embed IDs, trying Sub Indo');
+            setUseSubIndo(true);
+            setSubLang('id');
+          }
         }
       } catch (err) {
         console.error('[Watch] All anime stream providers failed:', err.message);
-        setError(err.message || 'Stream unavailable');
-        // Auto-switch to embed only when fetch completely fails
+        // Auto-switch to embed or Sub Indo
         if (gotMalId || gotAlId) {
           console.info('[Watch] Auto-switching to embed player (malId:', gotMalId, 'alId:', gotAlId, ')');
           setUseEmbedPlayer(true);
           if (!subLang) setSubLang('multi');
+        } else {
+          // Last resort: try Sub Indo
+          console.info('[Watch] No embed IDs available, trying Sub Indo');
+          setUseSubIndo(true);
+          setSubLang('id');
         }
+        setError(null); // Clear error since we're auto-switching
       } finally {
         setLoading(false);
       }
     };
     fetchAnimeData();
-  }, [episodeId, animeId, isAnime, retryKey]);
+  }, [episodeId, animeId, isAnime, retryKey, useSubIndo, subIndoParam]);
 
   const handlePlayerError = useCallback((msg) => {
     console.warn('Player error:', msg);
@@ -678,8 +699,8 @@ export default function Watch() {
 
     // Current source itself can't play (codec error, network etc.).
     // Auto-switch to embed if available — UNLESS user explicitly clicked Direct.
-    if (malId && !userForcedDirect.current) {
-      console.info('[Watch] Stream unplayable, auto-switching to embed (malId:', malId, ')');
+    if ((malId || alId) && !userForcedDirect.current) {
+      console.info('[Watch] Stream unplayable, auto-switching to embed (malId:', malId, 'alId:', alId, ')');
       setCurrentSource(null);
       setError(null);
       setUseEmbedPlayer(true);
@@ -806,10 +827,12 @@ export default function Watch() {
             animeTitle={animeInfo?.title || title}
             japaneseTitle={animeInfo?.japaneseTitle || animeInfo?.otherName || ''}
             episode={parseInt(epNum) || 1}
+            samehadakuId={samehadakuId}
           />
-        ) : isAnime && useEmbedPlayer && malId ? (
+        ) : isAnime && useEmbedPlayer && (malId || alId) ? (
           <AnimeEmbedPlayer
             malId={malId}
+            alId={alId}
             episode={parseInt(epNum) || 1}
           />
         ) : isMovie && useEmbedPlayer && effectiveTmdbId ? (
@@ -866,7 +889,7 @@ export default function Watch() {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
                   Retry
                 </button>
-                {isAnime && malId && (
+                {isAnime && (malId || alId) && (
                   <button className="btn-play btn-sm" onClick={() => { setError(null); setSubLang('multi'); setUseEmbedPlayer(true); }}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
                     Embedded Player
@@ -893,7 +916,7 @@ export default function Watch() {
                 <button className="btn-play btn-sm" onClick={handleRetry}>
                   Retry
                 </button>
-                {((isAnime && malId) || (isMovie && effectiveTmdbId)) && (
+                {((isAnime && (malId || alId)) || (isMovie && effectiveTmdbId)) && (
                   <button className="btn-play btn-sm" onClick={() => { setSubLang('multi'); setUseEmbedPlayer(true); }}>
                     Embedded Player
                   </button>
@@ -941,7 +964,7 @@ export default function Watch() {
               )}
             </div>
           </div>
-        ) : (isAnime && malId) || (isMovie && effectiveTmdbId) ? (
+        ) : (isAnime && (malId || alId)) || (isMovie && effectiveTmdbId) ? (
           <div className="watch-player-mode">
             <span className="watch-player-mode-label">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

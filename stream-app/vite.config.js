@@ -260,9 +260,9 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // Proxy consumet API calls but NOT /api/proxy or /api/manga-img (handled by plugins above)
+      // Proxy API calls to soora-backend (which orchestrates Consumet + TMDB + other sources)
       '/api': {
-        target: 'http://127.0.0.1:3000',
+        target: 'http://127.0.0.1:4000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
         // Skip paths handled by the stream-proxy and manga-img-proxy plugins

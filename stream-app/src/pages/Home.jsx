@@ -8,11 +8,13 @@ import {
   getAnimeByGenre,
   getAnimeAdvancedSearch,
   getAnimeHomeBundle,
+  getSubIndoHomeBundle,
 } from '../api';
 import { buildAnimeUrl } from '../utils/seo';
 import Card from '../components/Card';
 import Loading from '../components/Loading';
 import SkeletonSection from '../components/SkeletonSection';
+import CustomSelect from '../components/CustomSelect';
 
 
 /* ── page-level state cache (persists across mounts for instant back-nav) ── */
@@ -81,6 +83,13 @@ export default function Home() {
   const [heroIdx, setHeroIdx] = useState(0);
   const [searchVal, setSearchVal] = useState('');
 
+  /* Sub Indo tab state */
+  const [selectedLang, setSelectedLang] = useState(() => {
+    return localStorage.getItem('soora_anime_lang') || 'all';
+  });
+  const [subIndoData, setSubIndoData] = useState(null); // { ongoing, popular, recent }
+  const [subIndoLoading, setSubIndoLoading] = useState(false);
+
   /* filters */
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterType, setFilterType] = useState('');
@@ -94,6 +103,34 @@ export default function Home() {
 
   const isFilterActive = filterType || filterSeason || filterYear;
 
+  // Persist anime language choice
+  useEffect(() => {
+    localStorage.setItem('soora_anime_lang', selectedLang);
+  }, [selectedLang]);
+
+  // Fetch Sub Indo data when tab is selected
+  useEffect(() => {
+    if (selectedLang !== 'id') return;
+    if (subIndoData) return; // already loaded
+
+    let cancelled = false;
+    const fetchSubIndo = async () => {
+      setSubIndoLoading(true);
+      try {
+        const bundle = await getSubIndoHomeBundle();
+        if (cancelled) return;
+        setSubIndoData(bundle);
+      } catch (err) {
+        console.warn('Sub Indo home fetch failed:', err);
+        if (!cancelled) setSubIndoData({ ongoing: [], popular: [], recent: [] });
+      } finally {
+        if (!cancelled) setSubIndoLoading(false);
+      }
+    };
+    fetchSubIndo();
+    return () => { cancelled = true; };
+  }, [selectedLang, subIndoData]);
+
   /* ── Initial load — try bundle first, fallback to individual calls ── */
   useEffect(() => {
     let cancelled = false;
@@ -101,11 +138,22 @@ export default function Home() {
     // If we have a page cache, skip the staggered render delays
     const hasCachedState = !!_loadPageCache();
 
+    // Filter out anime that can't be played (not yet aired, missing ID)
+    const filterPlayable = (items) => {
+      if (!Array.isArray(items)) return [];
+      return items.filter((item) => {
+        if (!item?.id) return false;
+        const status = (item.status || '').toLowerCase();
+        if (status.includes('not yet aired') || status.includes('upcoming') || status.includes('not_yet_aired')) return false;
+        return true;
+      });
+    };
+
     const applyBundleData = (d) => {
-      const newSpotlight = d.spotlight?.length > 0 ? d.spotlight : [];
-      const newRecent = d.recentEpisodes?.length > 0 ? d.recentEpisodes : [];
-      const newPopular = d.mostPopular?.length > 0 ? d.mostPopular : [];
-      const newAiring = d.topAiring?.length > 0 ? d.topAiring : [];
+      const newSpotlight = d.spotlight?.length > 0 ? filterPlayable(d.spotlight) : [];
+      const newRecent = d.recentEpisodes?.length > 0 ? filterPlayable(d.recentEpisodes) : [];
+      const newPopular = d.mostPopular?.length > 0 ? filterPlayable(d.mostPopular) : [];
+      const newAiring = d.topAiring?.length > 0 ? filterPlayable(d.topAiring) : [];
       const newGenres = d.genres && Object.keys(d.genres).length > 0 ? d.genres : {};
 
       if (newSpotlight.length) setSpotlight(newSpotlight);
@@ -199,9 +247,9 @@ export default function Home() {
       ]);
       if (cancelled) return;
 
-      const re = baseResults[0].status === 'fulfilled' ? baseResults[0].value.data?.results || baseResults[0].value.data || [] : [];
-      const mp = baseResults[1].status === 'fulfilled' ? baseResults[1].value.data?.results || baseResults[1].value.data || [] : [];
-      const ta = baseResults[2].status === 'fulfilled' ? baseResults[2].value.data?.results || baseResults[2].value.data || [] : [];
+      const re = baseResults[0].status === 'fulfilled' ? filterPlayable(baseResults[0].value.data?.results || baseResults[0].value.data || []) : [];
+      const mp = baseResults[1].status === 'fulfilled' ? filterPlayable(baseResults[1].value.data?.results || baseResults[1].value.data || []) : [];
+      const ta = baseResults[2].status === 'fulfilled' ? filterPlayable(baseResults[2].value.data?.results || baseResults[2].value.data || []) : [];
       setRecentEps(re);
       setMostPopular(mp);
       setTopAiring(ta);
@@ -382,8 +430,28 @@ export default function Home() {
           {/* Collapsible body */}
           <div className="af-body">
             <div className="af-body-inner">
-              {/* Type + Season side by side */}
+              {/* Language toggle + Type + Season side by side */}
               <div className="af-top">
+                <div className="af-group">
+                  <span className="af-label">Bahasa</span>
+                  <div className="af-pills">
+                    <button
+                      className={`af-pill ${selectedLang === 'all' ? 'active' : ''}`}
+                      onClick={() => setSelectedLang('all')}
+                    >
+                      🌐 Semua
+                    </button>
+                    <button
+                      className={`af-pill ${selectedLang === 'id' ? 'active' : ''}`}
+                      onClick={() => setSelectedLang('id')}
+                    >
+                      🇮🇩 Sub Indo
+                    </button>
+                  </div>
+                </div>
+                {selectedLang !== 'id' && (
+                  <>
+                <div className="af-divider" />
                 <div className="af-group">
                   <span className="af-label">Tipe</span>
                   <div className="af-pills">
@@ -413,9 +481,12 @@ export default function Home() {
                     ))}
                   </div>
                 </div>
+                  </>
+                )}
               </div>
 
-              {/* Year picker */}
+              {/* Year picker — only for all-languages mode */}
+              {selectedLang !== 'id' && (
               <div className="af-year-section">
                 <span className="af-label">Tahun</span>
                 <div className="af-year-track">
@@ -435,19 +506,16 @@ export default function Home() {
                     </button>
                   ))}
                   <div className="af-year-more">
-                    <select
+                    <CustomSelect
                       value={!filterYear || QUICK_YEARS.includes(Number(filterYear)) ? '' : filterYear}
-                      onChange={(e) => e.target.value && setFilterYear(e.target.value)}
-                      className="af-year-select"
-                    >
-                      <option value="">Lainnya</option>
-                      {ALL_YEARS.filter((y) => !QUICK_YEARS.includes(y)).map((y) => (
-                        <option key={y} value={String(y)}>{y}</option>
-                      ))}
-                    </select>
+                      onChange={(val) => val && setFilterYear(val)}
+                      options={[{ value: '', label: 'Lainnya' }, ...ALL_YEARS.filter((y) => !QUICK_YEARS.includes(y)).map((y) => ({ value: String(y), label: String(y) }))]}
+                      className="af-year-cs"
+                    />
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Active summary bar */}
               {isFilterActive && (
@@ -528,8 +596,47 @@ export default function Home() {
 
 
 
-      {/* ── Default Sections (when no filter active) ── */}
-      {!isFilterActive && (
+      {/* ── Sub Indo Content (when bahasa filter active) ── */}
+      {selectedLang === 'id' && !isFilterActive && (
+        <div className="subindo-content-area">
+          <div className="subindo-banner">
+            <span className="subindo-badge-lg">🇮🇩 Sub Indo</span>
+            <p>Anime dengan subtitle Indonesia dari Samehadaku — dijamin bisa diputar dengan Sub Indo</p>
+          </div>
+          {subIndoLoading ? (
+            <>
+              <SkeletonSection />
+              <SkeletonSection />
+            </>
+          ) : subIndoData ? (
+            <>
+              {subIndoData.ongoing?.length > 0 && (
+                <SubIndoSection title="Sedang Tayang" items={subIndoData.ongoing} navigate={navigate} />
+              )}
+              {subIndoData.recent?.length > 0 && (
+                <SubIndoSection title="Baru Update" items={subIndoData.recent} navigate={navigate} />
+              )}
+              {subIndoData.popular?.length > 0 && (
+                <SubIndoSection title="Populer" items={subIndoData.popular} navigate={navigate} />
+              )}
+              {!subIndoData.ongoing?.length && !subIndoData.recent?.length && !subIndoData.popular?.length && (
+                <div className="filter-empty">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="48" height="48">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                  </svg>
+                  <p>Tidak ada data Sub Indo tersedia saat ini</p>
+                  <button className="af-reset" onClick={() => setSelectedLang('all')}>
+                    Kembali ke Semua Anime
+                  </button>
+                </div>
+              )}
+            </>
+          ) : null}
+        </div>
+      )}
+
+      {/* ── Default Sections (when no filter active and not Sub Indo) ── */}
+      {!isFilterActive && selectedLang !== 'id' && (
         <>
           {/* Base sections — show skeleton while loading */}
           {sectionsReady ? (
@@ -674,5 +781,113 @@ function HeroMeta({ hero }) {
         <span className="hero-tag hero-tag-more">+{overflow}</span>
       )}
     </div>
+  );
+}
+
+/* ── SubIndoSection: displays Samehadaku anime cards in a horizontal scroll ── */
+function SubIndoSection({ title, items, navigate }) {
+  const scrollRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 10);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    checkScroll();
+    el.addEventListener('scroll', checkScroll, { passive: true });
+    window.addEventListener('resize', checkScroll);
+    return () => {
+      el.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('resize', checkScroll);
+    };
+  }, [checkScroll, items]);
+
+  const scroll = (dir) => {
+    if (!scrollRef.current) return;
+    const cardW = scrollRef.current.querySelector('.subindo-card')?.offsetWidth || 170;
+    scrollRef.current.scrollBy({ left: dir * cardW * 3, behavior: 'smooth' });
+  };
+
+  const handleCardClick = (item) => {
+    // Navigate directly to Watch page with Sub Indo mode + Samehadaku ID
+    // This skips the search step and plays directly from Samehadaku
+    const title = item.title || '';
+    const samehadakuId = item.animeId || '';
+    navigate(
+      `/watch/anime?title=${encodeURIComponent(title)}&subIndo=1&samehadakuId=${encodeURIComponent(samehadakuId)}&ep=1`
+    );
+  };
+
+  return (
+    <section className="home-section">
+      <div className="section-header">
+        <h2 className="section-title">
+          <span className="section-dot" style={{ background: '#ef4444' }} />
+          {title}
+          <span className="subindo-section-badge">🇮🇩</span>
+        </h2>
+        <div className="section-nav">
+          <button
+            onClick={() => scroll(-1)}
+            className={`scroll-btn ${!canScrollLeft ? 'disabled' : ''}`}
+            disabled={!canScrollLeft}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <button
+            onClick={() => scroll(1)}
+            className={`scroll-btn ${!canScrollRight ? 'disabled' : ''}`}
+            disabled={!canScrollRight}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </div>
+      <div className="card-row-wrapper">
+        {canScrollLeft && <div className="row-fade row-fade-left" />}
+        {canScrollRight && <div className="row-fade row-fade-right" />}
+        <div className="card-row" ref={scrollRef}>
+          {items.slice(0, 24).map((item, idx) => (
+            <div
+              key={item.animeId || idx}
+              className="subindo-card card"
+              onClick={() => handleCardClick(item)}
+              role="button"
+              tabIndex={0}
+            >
+              <div className="card-img-wrap">
+                <img
+                  src={item.poster || item.image || ''}
+                  alt={item.title || ''}
+                  loading="lazy"
+                  onError={(e) => { e.target.src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="170" height="240" viewBox="0 0 170 240"><rect fill="%231a1a2e" width="170" height="240"/><text x="85" y="120" text-anchor="middle" fill="%23666" font-family="system-ui" font-size="12">No Image</text></svg>')}`; }}
+                />
+                <div className="card-overlay">
+                  <div className="card-play-icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  </div>
+                </div>
+                <span className="subindo-card-badge">🇮🇩 Sub Indo</span>
+              </div>
+              <div className="card-info">
+                <h3 className="card-title">{item.title || 'Unknown'}</h3>
+                <div className="card-meta">
+                  {item.type && <span className="card-tag">{item.type}</span>}
+                  {item.score && <span className="card-tag card-tag-gold">★ {item.score}</span>}
+                  {item.status && <span className="card-tag">{item.status}</span>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }

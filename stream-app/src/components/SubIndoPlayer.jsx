@@ -26,7 +26,7 @@ import {
 // Preferred quality order (highest first)
 const QUALITY_PREF = ['720p', '480p', '360p'];
 
-export default function SubIndoPlayer({ animeTitle, japaneseTitle, episode = 1 }) {
+export default function SubIndoPlayer({ animeTitle, japaneseTitle, episode = 1, samehadakuId = null }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [embedUrl, setEmbedUrl] = useState(null);
@@ -62,8 +62,14 @@ export default function SubIndoPlayer({ animeTitle, japaneseTitle, episode = 1 }
       setActiveServerIdx(0);
 
       try {
-        // 1) Find the anime on Samehadaku
-        const match = await findSamehadakuAnime(animeTitle, japaneseTitle);
+        // 1) Find the anime on Samehadaku — use direct ID if provided
+        let match = null;
+        if (samehadakuId) {
+          // We already know the Samehadaku ID — skip search entirely
+          match = { animeId: samehadakuId };
+        } else {
+          match = await findSamehadakuAnime(animeTitle, japaneseTitle);
+        }
         if (!match) {
           setError(`"${animeTitle}" tidak ditemukan di Samehadaku`);
           setLoading(false);
@@ -158,7 +164,7 @@ export default function SubIndoPlayer({ animeTitle, japaneseTitle, episode = 1 }
     fetchSubIndo();
 
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [animeTitle, japaneseTitle, episode, startTimer]);
+  }, [animeTitle, japaneseTitle, episode, samehadakuId, startTimer]);
 
   // Switch to a specific server
   const switchServer = useCallback(async (idx) => {

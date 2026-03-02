@@ -1,45 +1,71 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 
 /**
  * AnimeEmbedPlayer — iframe-based fallback player for anime
  * Used when consumet HLS extractors fail (500 errors).
  * Accepts MAL ID and AniList ID to build embed URLs.
  *
- * Features:
- *  - 6 embed servers for maximum anime coverage
+ * Dedicated anime embed servers (NOT the same as Sooraflix movie embeds):
+ *  - Uses anime-specific endpoints (MAL ID or AniList ID routing)
+ *  - Servers optimized for anime content & subtitle availability
  *  - Auto-rotation: if a server doesn't load within LOAD_TIMEOUT, tries the next
  *  - Manual server switching always available
  */
 
+// Anime-dedicated embed servers — prioritized by reliability for anime content
 const EMBED_SERVERS = [
-  // ✅ Tested & confirmed working (Feb 2026)
+  // ── Anime-optimized embeds (MAL ID) ──
   {
-    name: 'VidSrc.icu',
-    buildUrl: (malId, ep) =>
+    name: '2Anime',
+    buildUrl: (malId, _alId, ep) =>
+      `https://2anime.xyz/embed/${malId}/${ep}`,
+    idType: 'mal',
+  },
+  {
+    name: 'AnimeEmbed',
+    buildUrl: (malId, _alId, ep) =>
+      `https://anime.autoembed.cc/embed/${malId}-episode-${ep}`,
+    idType: 'mal',
+  },
+  {
+    name: 'AniCrush',
+    buildUrl: (_malId, alId, ep) =>
+      alId ? `https://anicrush.to/watch/${alId}?ep=${ep}` : null,
+    idType: 'al',
+  },
+  {
+    name: 'VidSrc Anime',
+    buildUrl: (malId, _alId, ep) =>
       `https://vidsrc.icu/embed/anime/mal/${malId}/${ep}`,
+    idType: 'mal',
   },
   {
-    name: 'AutoEmbed',
-    buildUrl: (malId, ep) =>
+    name: 'EmbeAnime',
+    buildUrl: (malId, _alId, ep) =>
       `https://player.autoembed.cc/embed/anime/mal/${malId}/${ep}`,
+    idType: 'mal',
   },
   {
-    name: 'VidLink',
-    buildUrl: (malId, ep) =>
+    name: 'VidLink Anime',
+    buildUrl: (malId, _alId, ep) =>
       `https://vidlink.pro/anime/mal/${malId}/${ep}?primaryColor=7c5cfc&secondaryColor=7c5cfc&autoplay=true&iconColor=7c5cfc`,
-  },
-  {
-    name: 'VidSrc.su',
-    buildUrl: (malId, ep) =>
-      `https://vidsrc.su/embed/anime/mal/${malId}/${ep}`,
+    idType: 'mal',
   },
 ];
 
 // Seconds to wait before showing "try next server" prompt
-const LOAD_TIMEOUT = 12;
+const LOAD_TIMEOUT = 10;
 
-export default function AnimeEmbedPlayer({ malId, episode = 1 }) {
-  const availableServers = EMBED_SERVERS;
+export default function AnimeEmbedPlayer({ malId, alId, episode = 1 }) {
+  // Filter servers based on available IDs
+  const availableServers = useMemo(() =>
+    EMBED_SERVERS.filter((s) => {
+      if (s.idType === 'al' && !alId) return false;
+      if (s.idType === 'mal' && !malId) return false;
+      return true;
+    }),
+    [malId, alId]
+  );
 
   const [activeServer, setActiveServer] = useState(0);
   const [iframeKey, setIframeKey] = useState(0);
@@ -49,8 +75,8 @@ export default function AnimeEmbedPlayer({ malId, episode = 1 }) {
   const iframeRef = useRef(null);
 
   const server = availableServers[activeServer] || availableServers[0];
-  const url = server?.buildUrl(malId, episode);
-  const isAutoEmbed = server?.name === 'AutoEmbed';
+  const url = server?.buildUrl(malId, alId, episode);
+  const isAutoEmbed = server?.name === 'EmbeAnime' || server?.name === 'AnimeEmbed';
 
   // Start a countdown — if it fires, show "try next" hint
   const startTimer = useCallback(() => {
@@ -80,7 +106,7 @@ export default function AnimeEmbedPlayer({ malId, episode = 1 }) {
     return (
       <div className="anime-embed-container">
         <div className="embed-player-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <p style={{ color: 'var(--text-muted)' }}>No embed server available — missing MAL ID</p>
+          <p style={{ color: 'var(--text-muted)' }}>No embed server available — missing MAL/AniList ID</p>
         </div>
       </div>
     );

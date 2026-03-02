@@ -37,17 +37,27 @@ router.get('/home', async (_req: Request, res: Response) => {
         ...genrePromises,
       );
 
+      // Filter out anime that clearly can't be watched (not yet aired, no ID)
+      const NON_PLAYABLE_STATUSES = ['not yet aired', 'upcoming', 'not_yet_aired'];
+      const isPlayable = (item: any) => {
+        if (!item?.id) return false;
+        const status = (item.status || '').toLowerCase().trim();
+        if (NON_PLAYABLE_STATUSES.some((s) => status.includes(s))) return false;
+        return true;
+      };
+      const filterPlayable = (items: any[]) => items.filter(isPlayable);
+
       const genres: Record<string, any[]> = {};
       GENRE_SECTIONS.forEach((genre, i) => {
         const items = extractResults(genreResults[i]);
-        genres[genre] = items.slice(0, 24);
+        genres[genre] = filterPlayable(items).slice(0, 24);
       });
 
       return {
-        spotlight: extractResults(spotlight),
-        recentEpisodes: extractResults(recentEps),
-        mostPopular: extractResults(mostPopular),
-        topAiring: extractResults(topAiring),
+        spotlight: filterPlayable(extractResults(spotlight)),
+        recentEpisodes: filterPlayable(extractResults(recentEps)),
+        mostPopular: filterPlayable(extractResults(mostPopular)),
+        topAiring: filterPlayable(extractResults(topAiring)),
         genres,
       };
     }, CACHE_TTL.HOME_BUNDLE);

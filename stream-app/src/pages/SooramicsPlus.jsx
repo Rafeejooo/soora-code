@@ -5,6 +5,7 @@ import {
 } from '../komikplusApi';
 import { addToMyList, removeFromMyList, isInMyList, getMyList } from '../utils/mylist';
 import Loading from '../components/Loading';
+import CustomSelect from '../components/CustomSelect';
 import Landing from './Landing';
 
 /* ════════════════════════════════════════════════════════
@@ -756,9 +757,7 @@ export default function SooramicsPlus() {
                   </button>
                 )}
               </div>
-              <select className="kp-ml-sort" value={myListSort} onChange={(e) => setMyListSort(e.target.value)}>
-                {MYLIST_SORT.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+              <CustomSelect className="kp-ml-sort-cs" value={myListSort} onChange={setMyListSort} options={MYLIST_SORT} />
             </div>
           )}
         </div>

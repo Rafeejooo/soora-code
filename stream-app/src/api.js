@@ -918,6 +918,79 @@ const SAMEHADAKU_BASE = 'https://www.sankavollerei.com/anime/samehadaku';
 const samehadaku = axios.create({ baseURL: SAMEHADAKU_BASE, timeout: 15000 });
 
 /**
+ * Get Sub Indo anime home bundle for the Sub Indo tab.
+ * Tries Samehadaku listing endpoints (ongoing/popular/recent).
+ * Fallback: searches popular anime titles to build a curated list.
+ */
+export const getSubIndoHomeBundle = () =>
+  cachedGetSWR('subindo:home-bundle', async () => {
+    const results = { ongoing: [], popular: [], recent: [] };
+
+    // Try listing endpoints in parallel
+    const tryEndpoint = async (path) => {
+      try {
+        const res = await samehadaku.get(path);
+        const data = res.data?.data || res.data || {};
+        return data.animeList || (Array.isArray(data) ? data : []);
+      } catch { return []; }
+    };
+
+    const [ongoing, popular, recent] = await Promise.all([
+      tryEndpoint('/ongoing'),
+      tryEndpoint('/popular'),
+      tryEndpoint('/recent'),
+    ]);
+
+    results.ongoing = ongoing;
+    results.popular = popular;
+    results.recent = recent;
+
+    // If listing endpoints didn't return data, search popular titles
+    const totalItems = ongoing.length + popular.length + recent.length;
+    if (totalItems === 0) {
+      const popularSearches = [
+        'naruto', 'one piece', 'demon slayer', 'jujutsu kaisen',
+        'attack on titan', 'solo leveling', 'dragon ball', 'bleach',
+        'my hero academia', 'chainsaw man', 'spy x family', 'blue lock',
+        'sword art online', 'death note', 'tokyo revengers', 'boruto',
+      ];
+
+      const searchResults = await Promise.allSettled(
+        popularSearches.map((q) => searchSamehadaku(q))
+      );
+
+      const seen = new Set();
+      const allItems = [];
+      for (const result of searchResults) {
+        if (result.status === 'fulfilled') {
+          for (const item of (result.value?.animeList || [])) {
+            if (!seen.has(item.animeId)) {
+              seen.add(item.animeId);
+              allItems.push(item);
+            }
+          }
+        }
+      }
+      results.popular = allItems;
+    }
+
+    return results;
+  }, BUNDLE_CACHE_TTL);
+
+/**
+ * Check if an anime title exists on Samehadaku (has Sub Indo).
+ * Returns boolean. Used to show Sub Indo badge on cards.
+ */
+export const checkSubIndoAvailable = async (title) => {
+  try {
+    const result = await searchSamehadaku(title);
+    return (result.animeList || []).length > 0;
+  } catch {
+    return false;
+  }
+};
+
+/**
  * Search Samehadaku for Sub Indo anime by title.
  * Returns { animeList: [{ animeId, title, poster, type, score, ... }] }
  */
@@ -961,25 +1034,111 @@ export const getSamehadakuServerUrl = (serverId) =>
 
 /**
  * Find a Samehadaku anime matching the given title (fuzzy match).
- * Tries the title directly, then the Japanese title, then a normalized version.
- * Returns { animeId, episodeList } or null.
+ * Tries multiple strategies: full title, Japanese title, shortened titles,
+ * and first significant words — with normalization to avoid API 500 errors.
+ * Returns { animeId, title, ... } or null.
  */
 export const findSamehadakuAnime = async (title, japaneseTitle) =>
   cachedGet(`samehadaku:find:${title}`, async () => {
-    const queries = [title];
-    if (japaneseTitle && japaneseTitle !== title) queries.push(japaneseTitle);
+    // Words to strip from titles for cleaner searching
+    const NOISE_WORDS = /\b(the|a|an|of|in|on|at|to|for|and|or|no|wa|ga|wo|ni|de)\b/gi;
+    const SEASON_SUFFIX = /\s*(season\s*\d+|s\d+|part\s*\d+|cour\s*\d+|2nd|3rd|\d+th)\s*$/i;
 
-    for (const q of queries) {
+    // Normalize a title for Samehadaku search: remove special chars, collapse whitespace
+    const normalize = (t) =>
+      t.replace(/[^\w\s-]/g, ' ')  // remove special chars except hyphens
+        .replace(/\s+/g, ' ')       // collapse whitespace
+        .trim();
+
+    // Build search queries from most specific to least specific
+    const buildQueries = (t) => {
+      if (!t) return [];
+      const cleaned = normalize(t);
+      if (!cleaned) return [];
+
+      const queries = [cleaned];
+
+      // Without season suffix
+      const noSeason = cleaned.replace(SEASON_SUFFIX, '').trim();
+      if (noSeason && noSeason !== cleaned) queries.push(noSeason);
+
+      // First 3 significant words (good for long titles)
+      const words = cleaned.split(/\s+/).filter(w => w.length > 1);
+      if (words.length > 3) {
+        queries.push(words.slice(0, 3).join(' '));
+      }
+
+      // First 2 significant words
+      if (words.length > 2) {
+        queries.push(words.slice(0, 2).join(' '));
+      }
+
+      return queries;
+    };
+
+    // Fuzzy similarity score (simple Dice coefficient on bigrams)
+    const similarity = (a, b) => {
+      a = a.toLowerCase().replace(/[^a-z0-9]/g, '');
+      b = b.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (a === b) return 1;
+      if (a.length < 2 || b.length < 2) return 0;
+      const bigrams = (s) => { const bg = new Set(); for (let i = 0; i < s.length - 1; i++) bg.add(s.slice(i, i + 2)); return bg; };
+      const aBg = bigrams(a);
+      const bBg = bigrams(b);
+      let matches = 0;
+      for (const bg of aBg) if (bBg.has(bg)) matches++;
+      return (2 * matches) / (aBg.size + bBg.size);
+    };
+
+    // Collect all queries to try: primary title variants, then japanese title variants
+    const allQueries = [];
+    const titleQueries = buildQueries(title);
+    allQueries.push(...titleQueries);
+    if (japaneseTitle && japaneseTitle !== title) {
+      allQueries.push(...buildQueries(japaneseTitle));
+    }
+
+    // Deduplicate
+    const seen = new Set();
+    const uniqueQueries = allQueries.filter(q => {
+      const key = q.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    // Try each query, collect all candidates
+    let bestMatch = null;
+    let bestScore = 0;
+    const refTitle = (title || '').toLowerCase();
+
+    for (const q of uniqueQueries) {
       try {
         const result = await searchSamehadaku(q);
         const list = result.animeList || [];
-        if (list.length > 0) {
-          // Return best match (first result)
-          return list[0];
+        for (const item of list) {
+          const itemTitle = (item.title || '').toLowerCase();
+          // Score based on similarity to original title
+          const score = Math.max(
+            similarity(refTitle, itemTitle),
+            japaneseTitle ? similarity(japaneseTitle.toLowerCase(), itemTitle) : 0,
+          );
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = item;
+          }
+          // Perfect or near-perfect match — return immediately
+          if (score > 0.8) return bestMatch;
         }
-      } catch { /* try next query */ }
+        // If we got results and have a reasonable match, stop searching
+        if (bestMatch && bestScore > 0.4) return bestMatch;
+      } catch {
+        // Samehadaku returns 500 for some queries — just try next
+        continue;
+      }
     }
-    return null;
+
+    return bestMatch; // may be null if nothing matched
   });
 
 export { normalizeMangaTitle };

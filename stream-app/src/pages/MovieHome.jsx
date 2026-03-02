@@ -19,6 +19,7 @@ import { buildMovieUrl } from '../utils/seo';
 import Card from '../components/Card';
 import Loading from '../components/Loading';
 import SkeletonSection from '../components/SkeletonSection';
+import CustomSelect from '../components/CustomSelect';
 
 
 /* ── filter options ── */
@@ -710,16 +711,12 @@ export default function MovieHome() {
                     </button>
                   ))}
                   <div className="af-year-more">
-                    <select
+                    <CustomSelect
                       value={!filterYear || QUICK_YEARS.includes(Number(filterYear)) ? '' : filterYear}
-                      onChange={(e) => e.target.value && setFilterYear(e.target.value)}
-                      className="af-year-select"
-                    >
-                      <option value="">Lainnya</option>
-                      {ALL_YEARS.filter((y) => !QUICK_YEARS.includes(y)).map((y) => (
-                        <option key={y} value={String(y)}>{y}</option>
-                      ))}
-                    </select>
+                      onChange={(val) => val && setFilterYear(val)}
+                      options={[{ value: '', label: 'Lainnya' }, ...ALL_YEARS.filter((y) => !QUICK_YEARS.includes(y)).map((y) => ({ value: String(y), label: String(y) }))]}
+                      className="af-year-cs"
+                    />
                   </div>
                 </div>
               </div>

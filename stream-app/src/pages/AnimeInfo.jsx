@@ -137,17 +137,47 @@ export default function AnimeInfo() {
               <div className="description" dangerouslySetInnerHTML={{ __html: info.description }} />
             )}
 
-            {episodes.length > 0 && (
-              <button
-                className="btn-primary"
-                onClick={() => navigate(
-                  `/watch/anime?episodeId=${encodeURIComponent(episodes[0].id)}&title=${encodeURIComponent(title)}&ep=${episodes[0].number || 1}&animeId=${encodeURIComponent(id)}`
-                )}
-                style={{ marginTop: '1rem' }}
-              >
-                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                Watch Now
-              </button>
+            {episodes.length > 0 ? (
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+                <button
+                  className="btn-primary"
+                  onClick={() => navigate(
+                    `/watch/anime?episodeId=${encodeURIComponent(episodes[0].id)}&title=${encodeURIComponent(title)}&ep=${episodes[0].number || 1}&animeId=${encodeURIComponent(id)}`
+                  )}
+                >
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  Watch Now
+                </button>
+                <button
+                  className="btn-glass"
+                  onClick={() => navigate(
+                    `/watch/anime?episodeId=${encodeURIComponent(episodes[0].id)}&title=${encodeURIComponent(title)}&ep=${episodes[0].number || 1}&animeId=${encodeURIComponent(id)}&subIndo=1`
+                  )}
+                  title="Tonton dengan subtitle Indonesia dari Samehadaku"
+                >
+                  🇮🇩 Sub Indo
+                </button>
+              </div>
+            ) : (
+              <div style={{ marginTop: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', borderRadius: '10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', marginBottom: '0.75rem' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" width="18" height="18">
+                    <path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  </svg>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    No episodes available from streaming providers yet. Try Sub Indo as an alternative.
+                  </span>
+                </div>
+                <button
+                  className="btn-glass"
+                  onClick={() => navigate(
+                    `/watch/anime?title=${encodeURIComponent(title)}&animeId=${encodeURIComponent(id)}&subIndo=1`
+                  )}
+                  title="Coba cari versi Sub Indo dari Samehadaku"
+                >
+                  🇮🇩 Try Sub Indo
+                </button>
+              </div>
             )}
           </div>
         </div>
