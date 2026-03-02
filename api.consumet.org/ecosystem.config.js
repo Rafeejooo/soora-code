@@ -1,8 +1,8 @@
 module.exports = {
   apps: [{
-    name: 'consumet-api',
+    name: 'soora-api',
     script: 'dist/main.js',
-    cwd: process.env.HOME + '/api.consumet.org',
+    cwd: process.env.HOME + '/soora-code/api.consumet.org',
     interpreter: process.env.HOME + '/.bun/bin/bun',
     cron_restart: '0 0 * * *',
     env: {
