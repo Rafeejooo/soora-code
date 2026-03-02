@@ -151,51 +151,14 @@ const _normalizeForDedup = (title) => {
 
 export const searchAnime = (query, page = 1) =>
   cachedGet(`search:anime:${query}:${page}`, async () => {
-    const results = await Promise.allSettled([
-      api.get(`/anime/animekai/${encodeURIComponent(query)}`, { params: { page } }),
-      api.get(`/anime/hianime/${encodeURIComponent(query)}`, { params: { page } }),
-      api.get(`/anime/animepahe/${encodeURIComponent(query)}`),
-    ]);
-
-    const ankaiRes = results[0].status === 'fulfilled' ? results[0].value : null;
-    const hiRes = results[1].status === 'fulfilled' ? results[1].value : null;
-    const paheRes = results[2].status === 'fulfilled' ? results[2].value : null;
-
-    // Merge: start with AnimeKai, then add unique titles from HiAnime & AnimePahe
-    // Use aggressive normalization to catch "Naruto" vs "Naruto (Dub)" vs "NARUTO" etc.
-    const ankaiItems = ankaiRes?.data?.results || [];
-    const merged = [...ankaiItems];
-    const seenNorm = new Set(ankaiItems.map(i => _normalizeForDedup(i.title)));
-    // Also track original titles for display
-    const seenTitles = new Set(ankaiItems.map(i => (i.title || '').toLowerCase().trim()));
-
-    const addUnique = (items, provider) => {
-      for (const item of items) {
-        const norm = _normalizeForDedup(item.title);
-        const exact = (item.title || '').toLowerCase().trim();
-        if (norm && !seenNorm.has(norm) && !seenTitles.has(exact)) {
-          seenNorm.add(norm);
-          seenTitles.add(exact);
-          merged.push({ ...item, _provider: provider });
-        }
-      }
-    };
-
-    addUnique(hiRes?.data?.results || [], 'hianime');
-    addUnique(paheRes?.data?.results || [], 'animepahe');
-
-    return {
-      data: {
-        results: merged,
-        currentPage: ankaiRes?.data?.currentPage || 1,
-        hasNextPage: ankaiRes?.data?.hasNextPage || false,
-      },
-    };
+    // Backend handles multi-provider search (AnimeKai + HiAnime + AnimePahe) with server-side dedup
+    const res = await api.get('/anime/search', { params: { q: query, page } });
+    return res;
   });
 
 export const getAnimeInfo = (id) =>
   cachedGet(`anime:info:${id}`, () =>
-    api.get('/anime/animekai/info', { params: { id } })
+    api.get(`/anime/info/${encodeURIComponent(id)}`)
   );
 
 // HiAnime info — used for malID/alID (embed fallback) and richer metadata
@@ -205,40 +168,19 @@ export const getHiAnimeInfo = (id) =>
   );
 
 /**
- * Fetch MAL ID and AniList ID for an anime by trying multiple sources.
- * 1) HiAnime info (by slug)
- * 2) HiAnime search-by-title → info
- * 3) Jikan v4 API (MAL, free, no key)
- * Returns { malId, alId } — either or both may be null.
+ * Fetch MAL ID and AniList ID for an anime.
+ * Uses the orchestrated /anime/info/:id endpoint which already merges
+ * AnimeKai + HiAnime data and includes malId/alId.
  */
 export const fetchAnimeIds = async (animeId, animeTitle) =>
   cachedGet(`anime:ids:${animeId}`, async () => {
-    let malId = null;
-    let alId = null;
-
-    // 1) Direct HiAnime info using same slug
     try {
-      const res = await api.get('/anime/hianime/info', { params: { id: animeId } });
-      if (res.data?.malID) malId = res.data.malID;
-      if (res.data?.alID) alId = res.data.alID;
-      if (malId || alId) return { malId, alId };
+      const res = await api.get(`/anime/info/${encodeURIComponent(animeId)}`);
+      const data = res.data || {};
+      if (data.malId || data.alId) return { malId: data.malId, alId: data.alId };
     } catch { /* continue */ }
 
-    // 2) Search HiAnime by title, then fetch info of best match
-    if (animeTitle) {
-      try {
-        const searchRes = await api.get(`/anime/hianime/${encodeURIComponent(animeTitle)}`);
-        const hit = searchRes.data?.results?.[0];
-        if (hit?.id) {
-          const infoRes = await api.get('/anime/hianime/info', { params: { id: hit.id } });
-          if (infoRes.data?.malID) malId = infoRes.data.malID;
-          if (infoRes.data?.alID) alId = infoRes.data.alID;
-          if (malId || alId) return { malId, alId };
-        }
-      } catch { /* continue */ }
-    }
-
-    // 3) Jikan v4 API (MAL free API) — last resort
+    // Fallback: Jikan v4 API
     if (animeTitle) {
       try {
         const jikanRes = await axios.get('https://api.jikan.moe/v4/anime', {
@@ -246,12 +188,11 @@ export const fetchAnimeIds = async (animeId, animeTitle) =>
           timeout: 8000,
         });
         const jikanHit = jikanRes.data?.data?.[0];
-        if (jikanHit?.mal_id) malId = jikanHit.mal_id;
-        if (malId) return { malId, alId: null };
+        if (jikanHit?.mal_id) return { malId: jikanHit.mal_id, alId: null };
       } catch { /* give up */ }
     }
 
-    return { malId, alId };
+    return { malId: null, alId: null };
   });
 
 // AnimePahe info
@@ -262,71 +203,14 @@ export const getAnimePaheInfo = (id) =>
 
 // Get available servers for an episode
 export const getAnimeServers = (episodeId) =>
-  api.get(`/anime/animekai/servers/${encodeURIComponent(episodeId)}`);
+  api.get(`/anime/servers/${encodeURIComponent(episodeId)}`);
 
-// Watch with auto-fallback: AnimeKai → HiAnime → AnimePahe
+// Watch with auto-fallback — backend handles AnimeKai → HiAnime → AnimePahe chain server-side
 export const watchAnimeEpisode = async (episodeId, server, category, epNumber) => {
-  // 1) Try AnimeKai
-  try {
-    const res = await api.get(`/anime/animekai/watch/${encodeURIComponent(episodeId)}`, {
-      params: { server, category },
-    });
-    if (res.data?.sources?.length > 0) return res;
-  } catch { /* continue to fallback */ }
-
-  // Extract slug and episode number for fallback providers
-  // Prefer explicitly passed epNumber (from URL params), then try to parse from ID, then default to 1
-  const slugMatch = episodeId.match(/^(.+?)(?:\$|$)/);
-  const epMatch = episodeId.match(/\$ep=(\d+)/);
-  const epNum = epNumber ? parseInt(epNumber) : (epMatch ? parseInt(epMatch[1]) : 1);
-  const slug = slugMatch ? slugMatch[1] : '';
-  // Better normalization: strip trailing provider suffix (e.g. "-dub", "-sub", locale codes)
-  // and convert hyphens to spaces for search
-  const searchQuery = slug
-    .replace(/-(dub|sub|raw|eng|jpn)$/i, '')
-    .replace(/-\d+$/, '') // trailing numeric ID from some providers
-    .replace(/-\w{2,5}$/, '')
-    .replace(/-/g, ' ')
-    .trim();
-
-  console.info('[watchAnimeEpisode] Fallback search query:', searchQuery, '| ep:', epNum);
-
-  // 2) Try HiAnime
-  try {
-    const searchRes = await api.get(`/anime/hianime/${encodeURIComponent(searchQuery)}`);
-    const results = searchRes.data?.results || [];
-    if (results.length > 0) {
-      const infoRes = await api.get('/anime/hianime/info', { params: { id: results[0].id } });
-      const eps = infoRes.data?.episodes || [];
-      const targetEp = eps.find(e => e.number === epNum) || eps[epNum - 1] || eps[0];
-      if (targetEp) {
-        const watchRes = await api.get(`/anime/hianime/watch/${encodeURIComponent(targetEp.id)}`);
-        if (watchRes.data?.sources?.length > 0) {
-          watchRes.data._fallback = 'hianime';
-          return watchRes;
-        }
-      }
-    }
-  } catch { /* continue to fallback */ }
-
-  // 3) Try AnimePahe
-  try {
-    const searchRes = await api.get(`/anime/animepahe/${encodeURIComponent(searchQuery)}`);
-    const results = searchRes.data?.results || [];
-    if (results.length > 0) {
-      const infoRes = await api.get(`/anime/animepahe/info/${encodeURIComponent(results[0].id)}`);
-      const eps = infoRes.data?.episodes || [];
-      const targetEp = eps.find(e => e.number === epNum) || eps[epNum - 1] || eps[0];
-      if (targetEp) {
-        const watchRes = await api.get('/anime/animepahe/watch', { params: { episodeId: targetEp.id } });
-        if (watchRes.data?.sources?.length > 0) {
-          watchRes.data._fallback = 'animepahe';
-          return watchRes;
-        }
-      }
-    }
-  } catch { /* final fallback failed */ }
-
+  const res = await api.get(`/anime/watch/${encodeURIComponent(episodeId)}`, {
+    params: { server, category, epNumber },
+  });
+  if (res.data?.sources?.length > 0) return res;
   throw new Error('Stream unavailable on all providers');
 };
 
@@ -343,10 +227,11 @@ export const watchAnimeEpisodeByProvider = async (episodeId, provider = 'animeka
 };
 
 // ========== ANIME HOME BUNDLE ==========
-// Single request fetches ALL homepage data, cached with SWR for instant loads
+// Single request fetches ALL homepage data via orchestrated backend endpoint.
+// Backend merges spotlight + recentEps + mostPopular + topAiring + 12 genre sections in 1 call.
 export const getAnimeHomeBundle = () =>
   cachedGetSWR('anime:home-bundle', async () => {
-    const res = await api.get('/anime/home-bundle');
+    const res = await api.get('/anime/home');
     return res;
   }, BUNDLE_CACHE_TTL);
 
@@ -400,14 +285,10 @@ export const getAnimeTopAiring = (page = 1) =>
 
 // ========== ANIME BROWSE: Genre, Type, Season, Advanced Search ==========
 
-// Browse anime by genre (HiAnime primary, AnimeKai fallback)
+// Browse anime by genre (backend handles provider fallback)
 export const getAnimeByGenre = (genre, page = 1) =>
   cachedGet(`anime:genre:${genre}:${page}`, async () => {
-    try {
-      const res = await api.get(`/anime/hianime/genre/${encodeURIComponent(genre)}`, { params: { page } });
-      if (res.data?.results?.length > 0 || res.data?.length > 0) return res;
-    } catch { /* fallback */ }
-    return api.get(`/anime/animekai/genre/${encodeURIComponent(genre)}`, { params: { page } });
+    return api.get(`/anime/genre/${encodeURIComponent(genre)}`, { params: { page } });
   });
 
 // Browse anime by type (movie, tv, ova, ona, special)
@@ -644,89 +525,24 @@ const _searchMovieProvider = async (provider, title, year, type) => {
   return scored[0] || results[0];
 };
 
-// Get streaming sources for a movie
+// Get streaming sources for a movie — backend handles multi-provider fallback
 export const getMovieStreamingSources = async (title, tmdbId, year) =>
   cachedGet(`stream:movie:${tmdbId}`, async () => {
-    const providers = ['goku', 'flixhq'];
-
-    for (const provider of providers) {
-      try {
-        // 1) Search for the movie
-        const match = await _searchMovieProvider(provider, title, year, 'movie');
-        if (!match) continue;
-
-        // 2) Get info (which includes the episodeId for movies)
-        const infoRes = await api.get(`/movies/${provider}/info`, { params: { id: match.id } });
-        const info = infoRes.data;
-        const episode = info.episodes?.[0] || info.episodes;
-
-        if (!episode?.id) continue;
-
-        // 3) Get streaming sources
-        const watchRes = await api.get(`/movies/${provider}/watch`, {
-          params: { episodeId: episode.id, mediaId: match.id },
-        });
-
-        if (watchRes.data?.sources?.length > 0) {
-          return {
-            data: {
-              ...watchRes.data,
-              _provider: provider,
-              _mediaTitle: info.title || title,
-            },
-          };
-        }
-      } catch {
-        continue; // try next provider
-      }
-    }
-
-    throw new Error('No streaming sources found');
+    const res = await api.get('/movies/stream', {
+      params: { title, tmdbId, year, type: 'movie' },
+    });
+    if (res.data?.error) throw new Error(res.data.error);
+    return { data: res.data };
   });
 
-// Get streaming sources for a TV episode
+// Get streaming sources for a TV episode — backend handles multi-provider fallback
 export const getTVStreamingSources = async (title, tmdbId, season, episode, year) =>
   cachedGet(`stream:tv:${tmdbId}:s${season}e${episode}`, async () => {
-    const providers = ['goku', 'flixhq'];
-
-    for (const provider of providers) {
-      try {
-        // 1) Search for the TV show
-        const match = await _searchMovieProvider(provider, title, year, 'tv');
-        if (!match) continue;
-
-        // 2) Get info (includes all episodes with season/number)
-        const infoRes = await api.get(`/movies/${provider}/info`, { params: { id: match.id } });
-        const info = infoRes.data;
-        const episodes = info.episodes || [];
-
-        // 3) Find the matching episode by season + episode number
-        const targetEp = episodes.find(
-          (ep) => ep.season === season && ep.number === episode
-        );
-        if (!targetEp) continue;
-
-        // 4) Get streaming sources
-        const watchRes = await api.get(`/movies/${provider}/watch`, {
-          params: { episodeId: targetEp.id, mediaId: match.id },
-        });
-
-        if (watchRes.data?.sources?.length > 0) {
-          return {
-            data: {
-              ...watchRes.data,
-              _provider: provider,
-              _mediaTitle: info.title || title,
-              _episodeTitle: targetEp.title,
-            },
-          };
-        }
-      } catch {
-        continue; // try next provider
-      }
-    }
-
-    throw new Error('No streaming sources found for this episode');
+    const res = await api.get('/movies/stream', {
+      params: { title, tmdbId, year, type: 'tv', season, episode },
+    });
+    if (res.data?.error) throw new Error(res.data.error);
+    return { data: res.data };
   });
 
 // ========== GOKU INFO & DIRECT STREAMING ==========
@@ -779,10 +595,28 @@ const normalizeGoku = (item) => ({
 });
 
 // ========== MOVIE HOME BUNDLE ==========
+// Backend orchestrates TMDB + Goku + LK21 in one call, with genre sections.
 export const getMovieHomeBundle = () =>
   cachedGetSWR('movies:home-bundle', async () => {
-    const res = await api.get('/movies/home-bundle');
-    return res;
+    const res = await api.get('/movies/home');
+    // Map backend response to the format MovieHome.jsx expects
+    const d = res.data || {};
+    return {
+      data: {
+        trendingMovies: d.gokuTrendingMovies || [],
+        trendingTV: d.gokuTrendingTV || [],
+        recentMovies: d.gokuRecentMovies || [],
+        recentTV: d.gokuRecentTV || [],
+        // Extra data from backend (available for future use)
+        tmdbTrending: d.trending || [],
+        tmdbPopularMovies: d.popularMovies || [],
+        tmdbPopularTV: d.popularTV || [],
+        lk21Popular: d.lk21Popular || [],
+        lk21Recent: d.lk21Recent || [],
+        lk21Series: d.lk21Series || [],
+        genres: d.genres || {},
+      },
+    };
   }, BUNDLE_CACHE_TTL);
 
 export const getGokuTrendingMovies = () =>
@@ -951,34 +785,23 @@ export const isManhwa = (item) => {
 // ========== MANGA HOME BUNDLE ==========
 export const getMangaHomeBundle = (lang = 'en') =>
   cachedGetSWR(`manga:home-bundle:${lang}`, async () => {
-    const res = await api.get('/manga/home-bundle', { params: { lang } });
+    const res = await api.get('/manga/home', { params: { lang } });
     return res;
   }, BUNDLE_CACHE_TTL);
 
 export const searchManga = (query, page = 1) =>
   cachedGet(`manga:search:${query}:${page}`, async () => {
-    try {
-      const res = await api.get(`/manga/mangapill/${encodeURIComponent(query)}`);
-      return res;
-    } catch {
-      return api.get(`/manga/mangahere/${encodeURIComponent(query)}`, { params: { page } });
-    }
+    return api.get('/manga/search', { params: { q: query, provider: 'mangapill', page } });
   }, MANGA_CACHE_TTL);
 
 export const getMangaInfo = (id, provider = 'mangapill') =>
   cachedGet(`manga:info:${provider}:${id}`, () => {
-    if (provider === 'mangahere') {
-      return api.get('/manga/mangahere/info', { params: { id } });
-    }
-    return api.get('/manga/mangapill/info', { params: { id } });
+    return api.get(`/manga/info/${encodeURIComponent(id)}`, { params: { provider } });
   }, MANGA_CACHE_TTL);
 
 export const getMangaChapterPages = (chapterId, provider = 'mangapill') =>
   cachedGet(`manga:read:${provider}:${chapterId}`, () => {
-    if (provider === 'mangahere') {
-      return api.get('/manga/mangahere/read', { params: { chapterId } });
-    }
-    return api.get('/manga/mangapill/read', { params: { chapterId } });
+    return api.get(`/manga/read/${encodeURIComponent(chapterId)}`, { params: { provider } });
   }, MANGA_CACHE_TTL);
 
 // MangaPill doesn't have latestmanga/bygenre, use search with popular terms
@@ -1051,22 +874,22 @@ export const getMangaDexLanguages = (id) =>
 // ========== KOMIKU (Indonesian manga — komiku.org) ==========
 export const searchKomiku = (query) =>
   cachedGet(`komiku:search:${query}`, async () => {
-    return api.get(`/manga/komiku/${encodeURIComponent(query)}`);
+    return api.get('/manga/search', { params: { q: query, provider: 'komiku' } });
   }, MANGA_CACHE_TTL);
 
 export const getKomikuInfo = (id) =>
   cachedGet(`komiku:info:${id}`, async () => {
-    return api.get(`/manga/komiku/info`, { params: { id } });
+    return api.get(`/manga/komiku/info/${encodeURIComponent(id)}`);
   }, MANGA_CACHE_TTL);
 
 export const getKomikuChapterPages = (chapterId) =>
   cachedGet(`komiku:read:${chapterId}`, async () => {
-    return api.get(`/manga/komiku/read`, { params: { chapterId } });
+    return api.get(`/manga/komiku/read/${encodeURIComponent(chapterId)}`);
   }, MANGA_CACHE_TTL);
 
 export const getKomikuTrending = () =>
   cachedGet(`komiku:trending`, async () => {
-    return api.get(`/manga/komiku/trending`);
+    return api.get('/manga/komiku/trending');
   }, MANGA_CACHE_TTL);
 
 // ========== SAMEHADAKU / Sub Indo (via Sankavollerei API) ==========

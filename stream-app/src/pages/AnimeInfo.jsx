@@ -20,7 +20,6 @@ export default function AnimeInfo() {
       setLoading(true);
       setError(null);
       try {
-        // Try AnimeKai first, fallback to HiAnime if empty
         const [ankaiResult, hiResult] = await Promise.allSettled([
           getAnimeInfo(id),
           getHiAnimeInfo(id),

@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  consumet:
+    build:
+      context: ../api.consumet.org
+      dockerfile: Dockerfile
+    container_name: consumet-api
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=PROD
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  soora-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: soora-backend
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - CONSUMET_URL=http://consumet:3000
+      - TMDB_KEY=${TMDB_KEY:-13e53ff644a8bd4ba37b3e1044ad24f3}
+      - CORS_ORIGIN=${CORS_ORIGIN:-https://soora.fun}
+      - NODE_ENV=production
+    depends_on:
+      consumet:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Optional: Nginx reverse proxy for SSL
+  # nginx:
+  #   image: nginx:alpine
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/conf.d/default.conf
+  #     - /etc/letsencrypt:/etc/letsencrypt
+  #   depends_on:
+  #     - soora-backend
+  #   restart: unless-stopped
