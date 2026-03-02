@@ -21,41 +21,31 @@ const GENRE_SECTIONS = [
 router.get('/home', async (_req: Request, res: Response) => {
   try {
     const data = await cachedSWR('anime:home', async () => {
-      // Phase 1: Core sections (4 calls in parallel)
-      const [spotlight, recentEps, mostPopular, topAiring] = await parallel(
-        consumet.animeSpotlight('animekai').catch(() => consumet.animeSpotlight('hianime')),
-        consumet.animeRecentEpisodes(1, 'animekai')
-          .then((d) => (extractResults(d).length > 0 ? d : null))
-          .catch(() => null),
-        consumet.animeMostPopular(1),
-        consumet.animeTopAiring(1),
-      );
-
-      // Fallback for recent episodes
-      let recentData = recentEps;
-      if (!recentData || extractResults(recentData).length === 0) {
-        try {
-          recentData = await consumet.passthrough('/anime/hianime/recently-updated', { page: 1 });
-        } catch { recentData = null; }
-      }
-
-      // Phase 2: Genre sections (12 calls in parallel — localhost so very fast)
+      // Run ALL calls in parallel (core + genres) — no sequential phases
       const genrePromises = GENRE_SECTIONS.map((genre) =>
         consumet.animeByGenre(genre, 1, 'hianime')
           .catch(() => consumet.animeByGenre(genre, 1, 'animekai').catch(() => null))
       );
-      const genreResults = await Promise.allSettled(genrePromises);
+
+      const [spotlight, recentEps, mostPopular, topAiring, ...genreResults] = await parallel(
+        consumet.animeSpotlight('animekai').catch(() => consumet.animeSpotlight('hianime')),
+        consumet.animeRecentEpisodes(1, 'animekai')
+          .then((d) => (extractResults(d).length > 0 ? d : null))
+          .catch(() => consumet.passthrough('/anime/hianime/recently-updated', { page: 1 }).catch(() => null)),
+        consumet.animeMostPopular(1),
+        consumet.animeTopAiring(1),
+        ...genrePromises,
+      );
 
       const genres: Record<string, any[]> = {};
       GENRE_SECTIONS.forEach((genre, i) => {
-        const result = genreResults[i];
-        const items = result.status === 'fulfilled' ? extractResults(result.value) : [];
-        genres[genre] = items.slice(0, 24); // limit to 24 per genre
+        const items = extractResults(genreResults[i]);
+        genres[genre] = items.slice(0, 24);
       });
 
       return {
         spotlight: extractResults(spotlight),
-        recentEpisodes: extractResults(recentData),
+        recentEpisodes: extractResults(recentEps),
         mostPopular: extractResults(mostPopular),
         topAiring: extractResults(topAiring),
         genres,

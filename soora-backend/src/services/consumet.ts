@@ -7,7 +7,7 @@ import { config } from '../config';
  */
 const client: AxiosInstance = axios.create({
   baseURL: config.consumetUrl,
-  timeout: 25000,
+  timeout: 10000,
 });
 
 // ========== ANIME ==========

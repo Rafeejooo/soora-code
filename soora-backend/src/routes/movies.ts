@@ -47,11 +47,12 @@ router.get('/home', async (_req: Request, res: Response) => {
         consumet.lk21LatestSeries(1).catch(() => null),
       );
 
-      // Phase 2: Genre sections (10 calls in parallel via TMDB discover)
-      const genrePromises = MOVIE_GENRE_SECTIONS.map((g) =>
-        tmdb.discoverByGenre(g.id, 1, 'movie').catch(() => null)
+      // Genre sections (run in parallel alongside Phase 1 via Promise.allSettled)
+      const genreResults = await Promise.allSettled(
+        MOVIE_GENRE_SECTIONS.map((g) =>
+          tmdb.discoverByGenre(g.id, 1, 'movie').catch(() => null)
+        )
       );
-      const genreResults = await Promise.allSettled(genrePromises);
 
       const genres: Record<string, any> = {};
       MOVIE_GENRE_SECTIONS.forEach((g, i) => {
