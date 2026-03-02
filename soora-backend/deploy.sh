@@ -9,7 +9,7 @@ echo "=========================================="
 echo "  Soora Backend - VPS Deploy"
 echo "=========================================="
 
-REPO_DIR="$HOME/soora-code"
+REPO_DIR="$HOME/api.consumet.org"
 BACKEND_DIR="$REPO_DIR/soora-backend"
 
 # 1) Pull latest code
