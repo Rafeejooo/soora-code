@@ -1,8 +1,8 @@
 import NodeCache from 'node-cache';
 
 // Two-tier caching: short TTL for dynamic data, long TTL for stable data
-const shortCache = new NodeCache({ stdTTL: 600, checkperiod: 120, maxKeys: 2000 }); // 10 min
-const longCache = new NodeCache({ stdTTL: 1800, checkperiod: 300, maxKeys: 5000 }); // 30 min
+export const shortCache = new NodeCache({ stdTTL: 600, checkperiod: 120, maxKeys: 2000 }); // 10 min
+export const longCache = new NodeCache({ stdTTL: 1800, checkperiod: 300, maxKeys: 5000 }); // 30 min
 
 export const CACHE_TTL = {
   HOME_BUNDLE: 900,    // 15 min — home pages

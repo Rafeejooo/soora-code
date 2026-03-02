@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import * as consumet from '../services/consumet';
-import { cached, cachedSWR, CACHE_TTL } from '../services/cache';
+import { cached, cachedSWR, CACHE_TTL, shortCache } from '../services/cache';
 import { parallel, deduplicateAnime, extractResults } from '../utils/normalize';
 
 const qs = (v: any): string => String(v ?? '');
@@ -146,6 +146,7 @@ router.get('/search', async (req: Request, res: Response) => {
 /**
  * GET /anime/watch/:episodeId?server=&category=&epNumber=
  * Fallback chain: AnimeKai → HiAnime → AnimePahe (all server-side).
+ * Does NOT cache empty/failed results.
  */
 router.get('/watch/:episodeId', async (req: Request, res: Response) => {
   try {
@@ -153,64 +154,62 @@ router.get('/watch/:episodeId', async (req: Request, res: Response) => {
     const server = qs(req.query.server);
     const category = qs(req.query.category);
     const epNumber = qs(req.query.epNumber);
+    const cacheKey = `anime:watch:${episodeId}:${server}:${category}`;
 
-    const data = await cached(`anime:watch:${episodeId}:${server}:${category}`, async () => {
-      // 1) Try AnimeKai
-      try {
-        const result = await consumet.animeWatch(episodeId, 'animekai', { ...(server && { server }), ...(category && { category }) });
-        if (result?.sources?.length > 0) return result;
-      } catch { /* continue */ }
+    // Check cache first — only return cached data if it has valid sources
+    const cachedData = shortCache.get<any>(cacheKey);
+    if (cachedData?.sources?.length > 0) {
+      return res.json(cachedData);
+    }
 
-      // Extract slug and ep number for fallback
-      const slugMatch = episodeId.match(/^(.+?)(?:\$|$)/);
-      const epMatch = episodeId.match(/\$ep=(\d+)/);
-      const epNum = epNumber ? parseInt(String(epNumber)) : (epMatch ? parseInt(epMatch[1]) : 1);
-      const slug = slugMatch ? slugMatch[1] : '';
-      const searchQuery = slug
-        .replace(/-(dub|sub|raw|eng|jpn)$/i, '')
-        .replace(/-\d+$/, '')
-        .replace(/-\w{2,5}$/, '')
-        .replace(/-/g, ' ')
-        .trim();
+    // 1) Try AnimeKai directly (fastest path)
+    try {
+      const result = await consumet.animeWatch(episodeId, 'animekai', { ...(server && { server }), ...(category && { category }) });
+      if (result?.sources?.length > 0) {
+        shortCache.set(cacheKey, result, CACHE_TTL.STREAM);
+        return res.json(result);
+      }
+    } catch { /* continue */ }
 
-      // 2) Try HiAnime
-      try {
-        const searchRes = await consumet.animeSearch(searchQuery, 1, 'hianime');
-        const results = extractResults(searchRes);
-        if (results.length > 0) {
-          const infoRes = await consumet.animeInfo(results[0].id, 'hianime');
-          const eps = infoRes?.episodes || [];
-          const targetEp = eps.find((e: any) => e.number === epNum) || eps[epNum - 1] || eps[0];
-          if (targetEp) {
-            const watchRes = await consumet.animeWatch(targetEp.id, 'hianime');
-            if (watchRes?.sources?.length > 0) {
-              return { ...watchRes, _fallback: 'hianime' };
-            }
-          }
-        }
-      } catch { /* continue */ }
+    // Extract slug and ep number for fallback providers
+    const slugMatch = episodeId.match(/^(.+?)(?:\$|$)/);
+    const epMatch = episodeId.match(/\$ep=(\d+)/);
+    const epNum = epNumber ? parseInt(String(epNumber)) : (epMatch ? parseInt(epMatch[1]) : 1);
+    const slug = slugMatch ? slugMatch[1] : '';
+    const searchQuery = slug
+      .replace(/-(dub|sub|raw|eng|jpn)$/i, '')
+      .replace(/-\d+$/, '')
+      .replace(/-\w{2,5}$/, '')
+      .replace(/-/g, ' ')
+      .trim();
 
-      // 3) Try AnimePahe
-      try {
-        const searchRes = await consumet.animeSearch(searchQuery, 1, 'animepahe');
-        const results = extractResults(searchRes);
-        if (results.length > 0) {
-          const infoRes = await consumet.animeInfo(results[0].id, 'animepahe');
-          const eps = infoRes?.episodes || [];
-          const targetEp = eps.find((e: any) => e.number === epNum) || eps[epNum - 1] || eps[0];
-          if (targetEp) {
-            const watchRes = await consumet.animeWatch(targetEp.id, 'animepahe');
-            if (watchRes?.sources?.length > 0) {
-              return { ...watchRes, _fallback: 'animepahe' };
-            }
-          }
-        }
-      } catch { /* final fallback failed */ }
+    // 2) Try HiAnime + AnimePahe in PARALLEL (not sequential — saves ~10s)
+    const tryProvider = async (provider: string): Promise<any> => {
+      const searchRes = await consumet.animeSearch(searchQuery, 1, provider);
+      const results = extractResults(searchRes);
+      if (results.length === 0) return null;
+      const infoRes = await consumet.animeInfo(results[0].id, provider);
+      const eps = infoRes?.episodes || [];
+      const targetEp = eps.find((e: any) => e.number === epNum) || eps[epNum - 1] || eps[0];
+      if (!targetEp) return null;
+      const watchRes = await consumet.animeWatch(targetEp.id, provider);
+      if (watchRes?.sources?.length > 0) return { ...watchRes, _fallback: provider };
+      return null;
+    };
 
-      return { error: 'Stream unavailable on all providers', sources: [] };
-    }, CACHE_TTL.STREAM);
+    const [hiResult, paheResult] = await parallel(
+      tryProvider('hianime').catch(() => null),
+      tryProvider('animepahe').catch(() => null),
+    );
 
-    res.json(data);
+    const fallbackResult = hiResult || paheResult;
+    if (fallbackResult) {
+      shortCache.set(cacheKey, fallbackResult, CACHE_TTL.STREAM);
+      return res.json(fallbackResult);
+    }
+
+    // All providers failed — do NOT cache this
+    res.json({ error: 'All providers failed', sources: [] });
   } catch (err: any) {
     console.error('[anime/watch]', err.message);
     res.status(500).json({ error: 'Failed to get stream' });

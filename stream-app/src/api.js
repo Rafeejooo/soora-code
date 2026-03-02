@@ -207,10 +207,30 @@ export const getAnimeServers = (episodeId) =>
 
 // Watch with auto-fallback — backend handles AnimeKai → HiAnime → AnimePahe chain server-side
 export const watchAnimeEpisode = async (episodeId, server, category, epNumber) => {
-  const res = await api.get(`/anime/watch/${encodeURIComponent(episodeId)}`, {
-    params: { server, category, epNumber },
-  });
-  if (res.data?.sources?.length > 0) return res;
+  // 1) Try orchestrated backend route (multi-provider fallback server-side)
+  try {
+    const res = await api.get(`/anime/watch/${encodeURIComponent(episodeId)}`, {
+      params: { server, category, epNumber },
+    });
+    if (res.data?.sources?.length > 0) return res;
+  } catch { /* continue to direct fallback */ }
+
+  // 2) Fallback: try direct AnimeKai route (passthrough to Consumet)
+  try {
+    const res = await api.get(`/anime/animekai/watch/${encodeURIComponent(episodeId)}`, {
+      params: { ...(server && { server }), ...(category && { category }) },
+    });
+    if (res.data?.sources?.length > 0) return res;
+  } catch { /* continue */ }
+
+  // 3) Fallback: try direct HiAnime route
+  try {
+    const res = await api.get(`/anime/hianime/watch/${encodeURIComponent(episodeId)}`, {
+      params: { ...(server && { server }), ...(category && { category }) },
+    });
+    if (res.data?.sources?.length > 0) return res;
+  } catch { /* final fallback failed */ }
+
   throw new Error('Stream unavailable on all providers');
 };
 
