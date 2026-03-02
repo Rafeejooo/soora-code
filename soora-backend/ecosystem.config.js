@@ -8,7 +8,7 @@ module.exports = {
       PORT: 4000,
       CONSUMET_URL: 'http://localhost:8000',
       TMDB_KEY: '13e53ff644a8bd4ba37b3e1044ad24f3',
-      CORS_ORIGIN: 'https://soora.fun',
+      CORS_ORIGIN: 'https://soora.fun,https://stream.soora.fun',
       NODE_ENV: 'production',
     },
     autorestart: true,

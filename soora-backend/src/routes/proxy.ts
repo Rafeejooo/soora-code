@@ -48,10 +48,16 @@ router.get('/', async (req: Request, res: Response) => {
       let text = body.toString('utf-8');
       const base = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
 
+      // Use the `base` query param for proxy prefix (sent by VideoPlayer).
+      // This ensures m3u8 internal URLs resolve correctly:
+      //   - Via Vercel: base=/api/proxy → /api/proxy?url=...
+      //   - Via stream.soora.fun: base=https://stream.soora.fun/proxy → full URL
+      const proxyBase = String(req.query.base || '/proxy');
+
       // Rewrite KEY/MAP URIs
       text = text.replace(/URI="([^"]+)"/g, (_match: string, uri: string) => {
         const abs = uri.startsWith('http') ? uri : new URL(uri, base).href;
-        return `URI="/proxy?url=${encodeURIComponent(abs)}"`;
+        return `URI="${proxyBase}?url=${encodeURIComponent(abs)}"`;
       });
 
       // Rewrite segment/playlist lines
@@ -61,7 +67,7 @@ router.get('/', async (req: Request, res: Response) => {
           const trimmed = line.trim();
           if (!trimmed || trimmed.startsWith('#')) return line;
           const abs = trimmed.startsWith('http') ? trimmed : new URL(trimmed, base).href;
-          return `/proxy?url=${encodeURIComponent(abs)}`;
+          return `${proxyBase}?url=${encodeURIComponent(abs)}`;
         })
         .join('\n');
 

@@ -56,8 +56,8 @@ const VideoPlayer = forwardRef(function VideoPlayer(
       // If VITE_STREAM_URL is set (e.g. https://stream.soora.fun), use it directly
       // Otherwise fall back to /api/proxy (proxied via Vercel rewrite)
       const base = streamBase ? `${streamBase}/proxy` : '/api/proxy';
-      const baseParam = streamBase ? `&base=${encodeURIComponent(base)}` : '';
-      return `${base}?url=${encodeURIComponent(url)}${referer ? `&referer=${encodeURIComponent(referer)}` : ''}${baseParam}`;
+      // Always send base param so proxy knows how to rewrite m3u8 internal URLs
+      return `${base}?url=${encodeURIComponent(url)}&base=${encodeURIComponent(base)}${referer ? `&referer=${encodeURIComponent(referer)}` : ''}`;
     },
     [referer]
   );

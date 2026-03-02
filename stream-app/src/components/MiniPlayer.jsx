@@ -24,8 +24,8 @@ export default function MiniPlayer() {
       const ref = miniPlayer?.referer || '';
       const streamBase = import.meta.env.VITE_STREAM_URL;
       const base = streamBase ? `${streamBase}/proxy` : '/api/proxy';
-      const baseParam = streamBase ? `&base=${encodeURIComponent(base)}` : '';
-      return `${base}?url=${encodeURIComponent(url)}${ref ? `&referer=${encodeURIComponent(ref)}` : ''}${baseParam}`;
+      // Always send base param so proxy knows how to rewrite m3u8 internal URLs
+      return `${base}?url=${encodeURIComponent(url)}&base=${encodeURIComponent(base)}${ref ? `&referer=${encodeURIComponent(ref)}` : ''}`;
     },
     [miniPlayer?.referer]
   );
