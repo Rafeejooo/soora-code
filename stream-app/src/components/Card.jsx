@@ -56,8 +56,8 @@ export default function Card({ item, type = 'anime' }) {
   const calcPopupStyle = useCallback(() => {
     if (!cardRef.current) return null;
     const rect = cardRef.current.getBoundingClientRect();
-    const popupW = 270;
-    const popupH = 260;
+    const popupW = 320;
+    const popupH = 360; // taller to accommodate preview area
     const gap = 10;
 
     // Horizontal: center on card, clamp to viewport
