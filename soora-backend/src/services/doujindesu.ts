@@ -1,6 +1,7 @@
 import axios from 'axios';
-import { load as cheerioLoad } from 'cheerio';
-import type { Element } from 'domhandler';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const cheerio = require('cheerio');
+const cheerioLoad = cheerio.load as (html: string) => any;
 
 /**
  * Doujindesu scraper service.
@@ -62,7 +63,7 @@ export async function doujindesuLatest(page = 1): Promise<DoujindesuItem[]> {
     const $ = cheerioLoad(res.data);
     const items: DoujindesuItem[] = [];
 
-    $('.entries article, .listupd .bs, .entry, .manga-list .item, .latest .manga-item').each((_: number, el: Element) => {
+    $('.entries article, .listupd .bs, .entry, .manga-list .item, .latest .manga-item').each((_: number, el: any) => {
       const $el = $(el);
       const $a = $el.find('a').first();
       const href = $a.attr('href') || '';
@@ -79,7 +80,7 @@ export async function doujindesuLatest(page = 1): Promise<DoujindesuItem[]> {
 
     // Fallback: try more generic selectors
     if (items.length === 0) {
-      $('a[href*="/manga/"]').each((_: number, el: Element) => {
+      $('a[href*="/manga/"]').each((_: number, el: any) => {
         const $a = $(el);
         const href = $a.attr('href') || '';
         const img = $a.find('img').first().attr('src') || '';
@@ -111,7 +112,7 @@ export async function doujindesuSearch(query: string, page = 1): Promise<Doujind
     const items: DoujindesuItem[] = [];
 
     // Search results layout
-    $('.entries article, .listupd .bs, .entry, .search-item, .manga-list .item').each((_: number, el: Element) => {
+    $('.entries article, .listupd .bs, .entry, .search-item, .manga-list .item').each((_: number, el: any) => {
       const $el = $(el);
       const $a = $el.find('a').first();
       const href = $a.attr('href') || '';
@@ -129,7 +130,7 @@ export async function doujindesuSearch(query: string, page = 1): Promise<Doujind
 
     // Fallback generic
     if (items.length === 0) {
-      $('a[href*="/manga/"]').each((_: number, el: Element) => {
+      $('a[href*="/manga/"]').each((_: number, el: any) => {
         const $a = $(el);
         const href = $a.attr('href') || '';
         const img = $a.find('img').first().attr('src') || '';
@@ -172,7 +173,7 @@ export async function doujindesuDetail(mangaId: string): Promise<DoujindesuDetai
     // Tags & Genres
     const tags: string[] = [];
     const genres: string[] = [];
-    $('.mgen a, .genre-info a, .seriestugenre a, .tag-links a, .tags a').each((_: number, el: Element) => {
+    $('.mgen a, .genre-info a, .seriestugenre a, .tag-links a, .tags a').each((_: number, el: any) => {
       const text = $(el).text().trim();
       if (text) {
         const href = $(el).attr('href') || '';
@@ -187,7 +188,7 @@ export async function doujindesuDetail(mangaId: string): Promise<DoujindesuDetai
     // If no distinction, put all in tags
     if (genres.length === 0) {
       tags.length = 0;
-      $('.mgen a, .genre-info a, .seriestugenre a, .tag-links a, .tags a').each((_: number, el: Element) => {
+      $('.mgen a, .genre-info a, .seriestugenre a, .tag-links a, .tags a').each((_: number, el: any) => {
         const text = $(el).text().trim();
         if (text) tags.push(text);
       });
@@ -195,7 +196,7 @@ export async function doujindesuDetail(mangaId: string): Promise<DoujindesuDetai
 
     // Chapters
     const chapters: DoujindesuDetail['chapters'] = [];
-    $('.eplister li a, .chapter-list a, #chapter_list a, .chapters li a, .bixbox ul li a').each((_: number, el: Element) => {
+    $('.eplister li a, .chapter-list a, #chapter_list a, .chapters li a, .bixbox ul li a').each((_: number, el: any) => {
       const $a = $(el);
       const href = $a.attr('href') || '';
       const chTitle = $a.find('.chapternum, .chapter-title, .lch').text().trim() ||
@@ -240,7 +241,7 @@ export async function doujindesuRead(chapterId: string): Promise<DoujindesuPage[
 
     // Try multiple selectors for chapter images
     // Pattern 1: Standard reader
-    $('#readerarea img, .reader-area img, .chapter-content img, .reading-content img, #content img').each((i: number, el: Element) => {
+    $('#readerarea img, .reader-area img, .chapter-content img, .reading-content img, #content img').each((i: number, el: any) => {
       const src = $(el).attr('src') || $(el).attr('data-src') || $(el).attr('data-lazy-src') || '';
       if (src && !src.includes('icon') && !src.includes('logo') && !src.includes('banner') && !src.includes('avatar')) {
         pages.push({ img: src.trim(), page: pages.length + 1 });
@@ -249,7 +250,7 @@ export async function doujindesuRead(chapterId: string): Promise<DoujindesuPage[
 
     // Pattern 2: JSON in script tag (some doujin sites embed images in JS)
     if (pages.length === 0) {
-      const scripts = $('script').toArray().map((s: Element) => $(s).html() || '');
+      const scripts = $('script').toArray().map((s: any) => $(s).html() || '');
       for (const script of scripts) {
         // Look for image arrays
         const imgMatch = script.match(/images\s*[:=]\s*(\[[\s\S]*?\])/);
@@ -319,7 +320,7 @@ export async function doujindesuGenres(): Promise<{ name: string; slug: string; 
     const seen = new Set<string>();
 
     // Try sidebar/menu genre links
-    $('a[href*="/genre/"], a[href*="/genres/"], .genre-list a, .sidebar .widget a[href*="genre"]').each((_: number, el: Element) => {
+    $('a[href*="/genre/"], a[href*="/genres/"], .genre-list a, .sidebar .widget a[href*="genre"]').each((_: number, el: any) => {
       const href = $(el).attr('href') || '';
       const name = $(el).text().trim();
       if (!href || !name || name.length > 40) return;
@@ -336,7 +337,7 @@ export async function doujindesuGenres(): Promise<{ name: string; slug: string; 
       try {
         const genrePage = await client.get('/genre/');
         const $g = cheerioLoad(genrePage.data);
-        $g('a[href*="/genre/"]').each((_: number, el: Element) => {
+        $g('a[href*="/genre/"]').each((_: number, el: any) => {
           const href = $g(el).attr('href') || '';
           const name = $g(el).text().trim();
           if (!href || !name || name.length > 40) return;
@@ -366,7 +367,7 @@ export async function doujindesuByGenre(genreSlug: string, page = 1): Promise<Do
     const $ = cheerioLoad(res.data);
     const items: DoujindesuItem[] = [];
 
-    $('.entries article, .listupd .bs, .entry, .manga-list .item, .latest .manga-item').each((_: number, el: Element) => {
+    $('.entries article, .listupd .bs, .entry, .manga-list .item, .latest .manga-item').each((_: number, el: any) => {
       const $el = $(el);
       const $a = $el.find('a').first();
       const href = $a.attr('href') || '';
@@ -385,7 +386,7 @@ export async function doujindesuByGenre(genreSlug: string, page = 1): Promise<Do
 
     // Fallback
     if (items.length === 0) {
-      $('a[href*="/manga/"]').each((_: number, el: Element) => {
+      $('a[href*="/manga/"]').each((_: number, el: any) => {
         const $a = $(el);
         const href = $a.attr('href') || '';
         const img = $a.find('img').first().attr('src') || '';
