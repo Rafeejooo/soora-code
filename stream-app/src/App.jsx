@@ -1,26 +1,34 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import MiniPlayer from './components/MiniPlayer';
 import { MiniPlayerProvider } from './context/MiniPlayerContext';
 import { AuthProvider } from './context/AuthContext';
 import { LegacyAnimeRedirect, LegacyMovieRedirect, LegacyMangaRedirect } from './components/LegacyRedirect';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Landing from './pages/Landing';
-import Home from './pages/Home';
-import MovieHome from './pages/MovieHome';
-import MangaHome from './pages/MangaHome';
-import MangaInfo from './pages/MangaInfo';
-import MangaReader from './pages/MangaReader';
-import MangaDownloads from './pages/MangaDownloads';
-import Search from './pages/Search';
-import AnimeInfo from './pages/AnimeInfo';
-import MovieInfo from './pages/MovieInfo';
-import Watch from './pages/Watch';
-import MyList from './pages/MyList';
-import SooramicsPlus from './pages/SooramicsPlus';
 import { usePWAMobileOptimizations } from './hooks/usePWAMobile';
 import './App.css';
+
+/* ── Route-level code splitting: each page loads its own JS chunk on demand ── */
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const Landing = lazy(() => import('./pages/Landing'));
+const Home = lazy(() => import('./pages/Home'));
+const MovieHome = lazy(() => import('./pages/MovieHome'));
+const MangaHome = lazy(() => import('./pages/MangaHome'));
+const MangaInfo = lazy(() => import('./pages/MangaInfo'));
+const MangaReader = lazy(() => import('./pages/MangaReader'));
+const MangaDownloads = lazy(() => import('./pages/MangaDownloads'));
+const Search = lazy(() => import('./pages/Search'));
+const AnimeInfo = lazy(() => import('./pages/AnimeInfo'));
+const MovieInfo = lazy(() => import('./pages/MovieInfo'));
+const Watch = lazy(() => import('./pages/Watch'));
+const MyList = lazy(() => import('./pages/MyList'));
+const SooramicsPlus = lazy(() => import('./pages/SooramicsPlus'));
+
+/* Minimal route-transition fallback (no spinner — skeleton in each page handles UX) */
+function RouteFallback() {
+  return <div className="route-loading" />;
+}
 
 function AppLayout() {
   const location = useLocation();
@@ -46,6 +54,7 @@ function AppLayout() {
   return (
     <MiniPlayerProvider>
       {!isLanding && !isAuthPage && !isMangaReader && !isSooramicsPlus && <Navbar section={section} />}
+      <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
@@ -87,6 +96,7 @@ function AppLayout() {
         <Route path="/movie/info" element={<LegacyMovieRedirect />} />
         <Route path="/series/info" element={<LegacyMovieRedirect />} />
       </Routes>
+      </Suspense>
       {!isLanding && !isAuthPage && !isMangaReader && !isSooramicsPlus && <MiniPlayer />}
     </MiniPlayerProvider>
   );

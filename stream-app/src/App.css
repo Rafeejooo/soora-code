@@ -7734,6 +7734,12 @@ a:hover {
   color: #ff6b9d;
 }
 
+/* ── Route-level lazy loading fallback ── */
+.route-loading {
+  min-height: 100vh;
+  background: var(--bg, #0a0a0f);
+}
+
 /* ===== MISC ===== */
 .back-btn {
   display: inline-flex;

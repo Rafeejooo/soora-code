@@ -6,7 +6,7 @@ const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TMDB_KEY = import.meta.env.VITE_TMDB_API_KEY || '';
 const TMDB_IMG = 'https://image.tmdb.org/t/p';
 
-const api = axios.create({ baseURL: API_BASE, timeout: 30000 });
+const api = axios.create({ baseURL: API_BASE, timeout: 12000 });
 const tmdb = axios.create({
   baseURL: TMDB_BASE,
   timeout: 15000,

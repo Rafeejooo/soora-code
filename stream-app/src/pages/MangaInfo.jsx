@@ -6,7 +6,57 @@ import {
 } from '../api';
 import { useSEO, buildMangaSchema, buildMangaUrl, detectMangaProvider } from '../utils/seo';
 import { downloadChapter, isChapterDownloaded, getDownloadedChapters, deleteChapter } from '../utils/mangaDB';
-import Loading from '../components/Loading';
+
+
+/* ===== Skeleton Loader for MangaInfo ===== */
+function MangaInfoSkeleton() {
+  return (
+    <div className="mangainfo-page sooramics-page">
+      <div className="mangainfo-backdrop">
+        <div className="skel-shimmer" style={{ width: '100%', height: '100%' }} />
+        <div className="mangainfo-backdrop-overlay" />
+      </div>
+      <div className="mangainfo-header">
+        <div className="mangainfo-cover">
+          <div className="skel-shimmer skel-poster" />
+        </div>
+        <div className="mangainfo-meta" style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.8rem' }}>
+            <div className="skel-shimmer skel-badge" style={{ width: '70px' }} />
+            <div className="skel-shimmer skel-badge" style={{ width: '80px' }} />
+          </div>
+          <div className="skel-shimmer skel-title" />
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.8rem', flexWrap: 'wrap' }}>
+            {[90, 70, 100].map((w, i) => (
+              <div key={i} className="skel-shimmer skel-badge" style={{ width: `${w}px` }} />
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
+            {[55, 65, 50, 45].map((w, i) => (
+              <div key={i} className="skel-shimmer skel-genre" style={{ width: `${w}px` }} />
+            ))}
+          </div>
+          <div style={{ marginTop: '0.8rem' }}>
+            {[100, 95, 85].map((w, i) => (
+              <div key={i} className="skel-shimmer skel-text" style={{ width: `${w}%` }} />
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+            <div className="skel-shimmer skel-btn" />
+            <div className="skel-shimmer skel-btn-sm" />
+          </div>
+        </div>
+      </div>
+      {/* Skeleton chapter list */}
+      <div style={{ padding: '0 clamp(1rem,4vw,3rem)', marginTop: '2rem' }}>
+        <div className="skel-shimmer" style={{ width: '140px', height: '22px', borderRadius: '6px', marginBottom: '1rem' }} />
+        {Array.from({ length: 8 }, (_, i) => (
+          <div key={i} className="skel-shimmer" style={{ height: '48px', borderRadius: '8px', marginBottom: '8px' }} />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // Build cover image URL from manga ID when API info doesn't provide one
 const buildCoverUrl = (id) => {
@@ -116,15 +166,22 @@ export default function MangaInfo() {
     fetchInfo();
   }, [id, provider, selectedLang]);
 
-  // Check which chapters are already downloaded
+  // Check which chapters are already downloaded (parallel batch)
   useEffect(() => {
     if (!info?.chapters?.length) return;
     (async () => {
-      const set = new Set();
-      for (const ch of info.chapters) {
-        if (await isChapterDownloaded(ch.id)) set.add(ch.id);
+      try {
+        const results = await Promise.allSettled(
+          info.chapters.map(ch => isChapterDownloaded(ch.id).then(ok => ok ? ch.id : null))
+        );
+        const dlSet = new Set();
+        for (const r of results) {
+          if (r.status === 'fulfilled' && r.value) dlSet.add(r.value);
+        }
+        setDownloadedSet(dlSet);
+      } catch {
+        // Ignore download check errors
       }
-      setDownloadedSet(set);
     })();
   }, [info]);
 
@@ -200,7 +257,7 @@ export default function MangaInfo() {
   } : {});
 
   if (!id) return <div className="error-msg">No manga ID provided</div>;
-  if (loading) return <Loading text="Loading manga info..." theme="sooramics" />;
+  if (loading) return <MangaInfoSkeleton />;
   if (error) return (
     <div className="mangainfo-error-page">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="56" height="56">

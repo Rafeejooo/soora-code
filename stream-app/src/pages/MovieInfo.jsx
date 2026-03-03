@@ -13,10 +13,61 @@ import {
 } from '../api';
 import { useSEO, buildMovieSchema, buildMovieUrl, detectMovieProvider } from '../utils/seo';
 import Card from '../components/Card';
-import Loading from '../components/Loading';
 
 // Detect if an id is a Goku ID (contains "watch-") vs numeric TMDB ID
 const isGokuId = (id) => id && (id.includes('watch-') || id.includes('/'));
+
+/* ===== Skeleton Loader for MovieInfo ===== */
+function MovieInfoSkeleton() {
+  return (
+    <div className="info-page">
+      <div className="info-backdrop">
+        <div className="skel-shimmer" style={{ width: '100%', height: '100%' }} />
+      </div>
+      <div className="info-content" style={{ position: 'relative', zIndex: 10 }}>
+        <div className="info-header">
+          <div className="info-poster">
+            <div className="skel-shimmer skel-poster" />
+          </div>
+          <div className="info-details" style={{ flex: 1, minWidth: 0 }}>
+            <div className="skel-shimmer skel-title" />
+            <div className="skel-shimmer skel-subtitle" />
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.8rem', flexWrap: 'wrap' }}>
+              {[70, 55, 65, 50].map((w, i) => (
+                <div key={i} className="skel-shimmer skel-badge" style={{ width: `${w}px` }} />
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+              {[55, 65, 50, 60].map((w, i) => (
+                <div key={i} className="skel-shimmer skel-genre" style={{ width: `${w}px` }} />
+              ))}
+            </div>
+            <div style={{ marginTop: '0.8rem' }}>
+              {[100, 95, 90, 70].map((w, i) => (
+                <div key={i} className="skel-shimmer skel-text" style={{ width: `${w}%` }} />
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+              <div className="skel-shimmer skel-btn" />
+            </div>
+          </div>
+        </div>
+        {/* Skeleton cast row */}
+        <div style={{ marginTop: '2rem' }}>
+          <div className="skel-shimmer" style={{ width: '80px', height: '22px', borderRadius: '6px', marginBottom: '1rem' }} />
+          <div style={{ display: 'flex', gap: '12px', overflow: 'hidden' }}>
+            {Array.from({ length: 6 }, (_, i) => (
+              <div key={i} style={{ flex: '0 0 80px', textAlign: 'center' }}>
+                <div className="skel-shimmer" style={{ width: '64px', height: '64px', borderRadius: '50%', margin: '0 auto 8px' }} />
+                <div className="skel-shimmer" style={{ width: '60px', height: '10px', borderRadius: '4px', margin: '0 auto' }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Enlarge Goku thumbnail (250x400 → 600x900)
 const gokuLargeImg = (url) => url ? url.replace(/\/resize\/\d+x\d+\//, '/resize/600x900/') : url;
@@ -49,26 +100,28 @@ export default function MovieInfo({ mediaType: routeMediaType }) {
             ? await getLK21SeriesInfo(id)
             : await getLK21Info(id);
           setInfo(res.data);
+          setLoading(false); // show content immediately, enrich in background
 
-          // Enrich with TMDB data (cast images, recommendations, similar, backdrop)
+          // Enrich with TMDB data in background (non-blocking)
           if (hasTMDBKey() && res.data?.title) {
-            try {
-              const tmdbRes = await findTMDBDetailsByTitle(res.data.title, type);
-              if (tmdbRes.data) setTmdbData(tmdbRes.data);
-            } catch { /* TMDB enrichment is optional */ }
+            findTMDBDetailsByTitle(res.data.title, type)
+              .then(tmdbRes => { if (tmdbRes.data) setTmdbData(tmdbRes.data); })
+              .catch(() => {});
           }
+          return; // skip finally
         } else if (isGokuId(id)) {
           setSource('goku');
           const res = await getGokuInfo(id);
           setInfo(res.data);
+          setLoading(false); // show content immediately, enrich in background
 
-          // Enrich with TMDB data (cast images, recommendations, similar, backdrop)
+          // Enrich with TMDB data in background (non-blocking)
           if (hasTMDBKey() && res.data?.title) {
-            try {
-              const tmdbRes = await findTMDBDetailsByTitle(res.data.title, type);
-              if (tmdbRes.data) setTmdbData(tmdbRes.data);
-            } catch { /* TMDB enrichment is optional */ }
+            findTMDBDetailsByTitle(res.data.title, type)
+              .then(tmdbRes => { if (tmdbRes.data) setTmdbData(tmdbRes.data); })
+              .catch(() => {});
           }
+          return; // skip finally
         } else if (hasTMDBKey()) {
           setSource('tmdb');
           const res =
@@ -126,7 +179,7 @@ export default function MovieInfo({ mediaType: routeMediaType }) {
   } : {});
 
   if (!id) return <div className="error-msg">No movie ID provided</div>;
-  if (loading) return <Loading text="Loading..." theme="sooraflix" />;
+  if (loading) return <MovieInfoSkeleton />;
   if (error) return <div className="error-msg">{error}</div>;
   if (!info) return <div className="error-msg">No data found</div>;
 
@@ -332,6 +385,7 @@ export default function MovieInfo({ mediaType: routeMediaType }) {
                         : `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect fill="%231a1a2e" width="80" height="80" rx="40"/><text x="40" y="45" text-anchor="middle" fill="%23666" font-family="system-ui" font-size="24">' + (c.name?.[0] || '?') + '</text></svg>')}`
                     }
                     alt={c.name}
+                    loading="lazy"
                     onError={(e) => {
                       e.target.src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect fill="%231a1a2e" width="80" height="80" rx="40"/><text x="40" y="45" text-anchor="middle" fill="%23666" font-family="system-ui" font-size="24">' + (c.name?.[0] || '?') + '</text></svg>')}`;
                     }}

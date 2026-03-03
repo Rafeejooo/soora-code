@@ -2,6 +2,20 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
+  build: {
+    target: 'es2020',
+    cssCodeSplit: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-hls': ['hls.js'],
+          'vendor-player': ['react-player'],
+          'vendor-http': ['axios'],
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     // Manga image proxy — CDN requires Referer: https://mangapill.com/
