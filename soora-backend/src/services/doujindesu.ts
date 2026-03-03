@@ -8,7 +8,7 @@ import { load as cheerioLoad } from 'cheerio';
  * Built as a lightweight replacement for @xct007/frieren-scraper's doujindesu module.
  */
 
-const BASE_URL = 'https://doujindesu.tv';
+const BASE_URL = process.env.DOUJINDESU_URL || 'https://doujindesu.dev';
 const CDN_URL = 'https://cdn.doujindesu.dev';
 
 const client = axios.create({
