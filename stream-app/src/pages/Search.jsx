@@ -214,15 +214,7 @@ export default function Search({ searchType }) {
         const movieLang = localStorage.getItem('soora_movie_lang') || 'en';
         if (movieLang === 'id') {
           res = await searchLK21(q);
-          if (res.data?.results) {
-            res.data.results = res.data.results.map(item => ({
-              ...item,
-              provider: 'lk21',
-              lk21Id: item._id || item.id,
-              image: item.posterImg || item.image || '',
-              mediaType: item.type === 'series' ? 'tv' : 'movie',
-            }));
-          }
+          // searchLK21 already returns normalized items with provider, lk21Id, image, mediaType
         } else {
           res = await searchGoku(q);
         }

@@ -3,6 +3,11 @@ import {
   getHomePage, searchBooks, getBookDetail, getTaggedBooks, getRelatedBooks,
   getBookCover, getBookThumb, getPageUrl, getPageThumbUrl, komikImgProxy,
 } from '../komikplusApi';
+import {
+  getDoujindesuLatest, searchDoujindesu, getDoujindesuDetail,
+  getDoujindesuChapterPages, doujindesuImgProxy,
+  getDoujindesuGenres, getDoujindesuByGenre,
+} from '../api';
 import { addToMyList, removeFromMyList, isInMyList, getMyList } from '../utils/mylist';
 import Loading from '../components/Loading';
 import CustomSelect from '../components/CustomSelect';
@@ -63,6 +68,43 @@ const SORT_OPTIONS = [
   { value: 'popular', label: 'Popular' },
   { value: 'popular-today', label: 'Popular Today' },
   { value: 'popular-week', label: 'Popular Week' },
+];
+
+/** Doujindesu genre list (hardcoded fallback + dynamic fetch) */
+const DJ_GENRES = [
+  { name: 'Action', slug: 'action' },
+  { name: 'Adult', slug: 'adult' },
+  { name: 'Adventure', slug: 'adventure' },
+  { name: 'Big Oppai', slug: 'big-oppai' },
+  { name: 'Comedy', slug: 'comedy' },
+  { name: 'Drama', slug: 'drama' },
+  { name: 'Ecchi', slug: 'ecchi' },
+  { name: 'Fantasy', slug: 'fantasy' },
+  { name: 'Gender Bender', slug: 'gender-bender' },
+  { name: 'Harem', slug: 'harem' },
+  { name: 'Horror', slug: 'horror' },
+  { name: 'Lolicon', slug: 'lolicon' },
+  { name: 'Martial Arts', slug: 'martial-arts' },
+  { name: 'Mature', slug: 'mature' },
+  { name: 'Mecha', slug: 'mecha' },
+  { name: 'Mystery', slug: 'mystery' },
+  { name: 'NTR', slug: 'ntr' },
+  { name: 'Parody', slug: 'parody' },
+  { name: 'Psychological', slug: 'psychological' },
+  { name: 'Romance', slug: 'romance' },
+  { name: 'School Life', slug: 'school-life' },
+  { name: 'Sci-Fi', slug: 'sci-fi' },
+  { name: 'Seinen', slug: 'seinen' },
+  { name: 'Shotacon', slug: 'shotacon' },
+  { name: 'Shoujo', slug: 'shoujo' },
+  { name: 'Shounen', slug: 'shounen' },
+  { name: 'Slice of Life', slug: 'slice-of-life' },
+  { name: 'Sports', slug: 'sports' },
+  { name: 'Supernatural', slug: 'supernatural' },
+  { name: 'Tentacle', slug: 'tentacle' },
+  { name: 'Tragedy', slug: 'tragedy' },
+  { name: 'Vanilla', slug: 'vanilla' },
+  { name: 'Yuri', slug: 'yuri' },
 ];
 
 const MYLIST_SORT = [
@@ -247,6 +289,52 @@ export default function SooramicsPlus() {
   const isFilterActive = browseLang || browseType || browseGenres.length > 0;
   const isHomeFilterActive = homeFilterLang || homeFilterType || homeFilterGenres.length > 0;
 
+  // ── Content mode toggle: nhentai (original) vs doujindesu ──
+  const [contentMode, setContentMode] = useState('nhentai'); // 'nhentai' | 'doujindesu'
+
+  // ── Doujindesu: Home / Latest ──
+  const [djLatest, setDjLatest] = useState([]);
+  const [djLatestLoading, setDjLatestLoading] = useState(false);
+  const [djLatestPage, setDjLatestPage] = useState(1);
+  const [djLatestHasNext, setDjLatestHasNext] = useState(false);
+
+  // ── Doujindesu: Browse / Search ──
+  const [djBrowseItems, setDjBrowseItems] = useState([]);
+  const [djBrowseLoading, setDjBrowseLoading] = useState(false);
+  const [djBrowsePage, setDjBrowsePage] = useState(1);
+  const [djBrowseHasNext, setDjBrowseHasNext] = useState(false);
+  const [djSearchVal, setDjSearchVal] = useState('');
+  const [djSearchMode, setDjSearchMode] = useState(false);
+  const [djSearchQuery, setDjSearchQuery] = useState('');
+
+  // ── Doujindesu: Detail ──
+  const [djDetail, setDjDetail] = useState(null);
+  const [djDetailLoading, setDjDetailLoading] = useState(false);
+
+  // ── Doujindesu: Reader (chapter-based) ──
+  const [djChapterPages, setDjChapterPages] = useState([]);
+  const [djChapterLoading, setDjChapterLoading] = useState(false);
+  const [djCurrentChapter, setDjCurrentChapter] = useState(null); // { id, title, idx }
+
+  // ── Doujindesu: Genre Filter ──
+  const [djGenres, setDjGenres] = useState(DJ_GENRES);
+  const [djFilterOpen, setDjFilterOpen] = useState(false);
+  const [djFilterGenre, setDjFilterGenre] = useState(''); // genre slug
+  const [djGenreSearch, setDjGenreSearch] = useState('');
+  const [djGenreResults, setDjGenreResults] = useState([]);
+  const [djGenreLoading, setDjGenreLoading] = useState(false);
+  const [djGenrePage, setDjGenrePage] = useState(1);
+  const [djGenreHasNext, setDjGenreHasNext] = useState(false);
+  // Home genre filter
+  const [djHomeFilterOpen, setDjHomeFilterOpen] = useState(false);
+  const [djHomeFilterGenre, setDjHomeFilterGenre] = useState('');
+  const [djHomeGenreSearch, setDjHomeGenreSearch] = useState('');
+  const [djHomeGenreResults, setDjHomeGenreResults] = useState(null);
+  const [djHomeGenreLoading, setDjHomeGenreLoading] = useState(false);
+
+  const isDjFilterActive = !!djFilterGenre;
+  const isDjHomeFilterActive = !!djHomeFilterGenre;
+
   /* ── helper: navigate to view ── */
   const goView = useCallback((next) => {
     setView((cur) => { setPrevView(cur); return next; });
@@ -340,7 +428,7 @@ export default function SooramicsPlus() {
      MY LIST: Sync from localStorage
      ═══════════════════════════════════ */
   const loadMyList = useCallback(() => {
-    setMyListItems(getMyList().filter((i) => i.listType === 'komikplus'));
+    setMyListItems(getMyList().filter((i) => i.listType === 'komikplus' || i.listType === 'doujindesu'));
   }, []);
 
   // Load my list on mount (for badge count) + when viewing
@@ -482,8 +570,9 @@ export default function SooramicsPlus() {
 
   const handleMyListRemove = (e, item) => {
     e.stopPropagation();
+    const lt = item.listType || 'komikplus';
     setRemoving(`kp-${item.id}`);
-    setTimeout(() => { removeFromMyList(item.id, 'komikplus'); setRemoving(null); }, 300);
+    setTimeout(() => { removeFromMyList(item.id, lt); setRemoving(null); }, 300);
   };
 
   // MyList display items (filtered + sorted)
@@ -497,10 +586,230 @@ export default function SooramicsPlus() {
     return list;
   })();
 
+  /* ═══════════════════════════════════
+     DOUJINDESU: Fetch Latest (Home)
+     ═══════════════════════════════════ */
+  const loadDjLatest = useCallback(async (page = 1) => {
+    setDjLatestLoading(true);
+    try {
+      const res = await getDoujindesuLatest(page);
+      const data = res?.data || res;
+      setDjLatest(data.results || []);
+      setDjLatestHasNext(!!data.hasNextPage);
+      setDjLatestPage(page);
+    } catch (e) { console.error('DJ latest:', e); }
+    finally { setDjLatestLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    if (contentMode !== 'doujindesu' || view !== 'home' || djLatest.length > 0) return;
+    loadDjLatest(1);
+  }, [contentMode, view, djLatest.length, loadDjLatest]);
+
+  /* ═══════════════════════════════════
+     DOUJINDESU: Browse / Search
+     ═══════════════════════════════════ */
+  const loadDjBrowse = useCallback(async (page = 1, query = '') => {
+    setDjBrowseLoading(true);
+    try {
+      const res = query
+        ? await searchDoujindesu(query, page)
+        : await getDoujindesuLatest(page);
+      const data = res?.data || res;
+      setDjBrowseItems(data.results || []);
+      setDjBrowseHasNext(!!data.hasNextPage);
+      setDjBrowsePage(page);
+    } catch (e) { console.error('DJ browse:', e); }
+    finally { setDjBrowseLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    if (contentMode !== 'doujindesu' || view !== 'browse' || djSearchMode) return;
+    if (djFilterGenre) return; // genre filter handles its own loading
+    loadDjBrowse(1);
+  }, [contentMode, view, djSearchMode, loadDjBrowse, djFilterGenre]);
+
+  /* ═══════════════════════════════════
+     DOUJINDESU: Fetch genres (once)
+     ═══════════════════════════════════ */
+  useEffect(() => {
+    if (contentMode !== 'doujindesu') return;
+    getDoujindesuGenres().then((res) => {
+      const data = res?.data || res;
+      if (Array.isArray(data) && data.length > 0) setDjGenres(data);
+    }).catch(() => { /* keep fallback */ });
+  }, [contentMode]);
+
+  /* ═══════════════════════════════════
+     DOUJINDESU: Browse genre filter effect
+     ═══════════════════════════════════ */
+  const loadDjGenre = useCallback(async (slug, page = 1) => {
+    setDjGenreLoading(true);
+    try {
+      const res = await getDoujindesuByGenre(slug, page);
+      const data = res?.data || res;
+      const items = Array.isArray(data) ? data : (data.results || []);
+      setDjGenreResults(items);
+      setDjGenreHasNext(items.length >= 15);
+      setDjGenrePage(page);
+    } catch { setDjGenreResults([]); }
+    finally { setDjGenreLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    if (contentMode !== 'doujindesu' || view !== 'browse' || !djFilterGenre) return;
+    loadDjGenre(djFilterGenre, 1);
+  }, [contentMode, view, djFilterGenre, loadDjGenre]);
+
+  /* ═══════════════════════════════════
+     DOUJINDESU: Home genre filter effect
+     ═══════════════════════════════════ */
+  useEffect(() => {
+    if (contentMode !== 'doujindesu' || !isDjHomeFilterActive) {
+      setDjHomeGenreResults(null);
+      return;
+    }
+    const fetchGenre = async () => {
+      setDjHomeGenreLoading(true);
+      try {
+        const res = await getDoujindesuByGenre(djHomeFilterGenre, 1);
+        const data = res?.data || res;
+        setDjHomeGenreResults(Array.isArray(data) ? data : (data.results || []));
+      } catch { setDjHomeGenreResults([]); }
+      setDjHomeGenreLoading(false);
+    };
+    fetchGenre();
+  }, [contentMode, djHomeFilterGenre, isDjHomeFilterActive]);
+
+  /* ── Doujindesu: Search handler ── */
+  const handleDjSearch = (e) => {
+    e.preventDefault();
+    const q = djSearchVal.trim();
+    if (!q) { clearDjSearch(); return; }
+    setDjSearchMode(true);
+    setDjSearchQuery(q);
+    if (view !== 'browse') goView('browse');
+    loadDjBrowse(1, q);
+  };
+  const clearDjSearch = () => {
+    setDjSearchMode(false); setDjSearchVal(''); setDjSearchQuery('');
+    loadDjBrowse(1);
+  };
+  const clearDjFilter = () => { setDjFilterGenre(''); setDjGenreSearch(''); setDjGenreResults([]); };
+  const clearDjHomeFilter = () => { setDjHomeFilterGenre(''); setDjHomeGenreSearch(''); };
+
+  /* ── Doujindesu: Open detail ── */
+  const openDjDetail = async (mangaId) => {
+    setDjDetailLoading(true);
+    setDjDetail(null);
+    setDjChapterPages([]);
+    goView('detail');
+    try {
+      const res = await getDoujindesuDetail(mangaId);
+      const data = res?.data || res;
+      setDjDetail(data);
+    } catch (e) { console.error('DJ detail:', e); }
+    finally { setDjDetailLoading(false); }
+  };
+
+  const closeDjDetail = () => {
+    setDjDetail(null); setDjChapterPages([]);
+    setView(prevView === 'detail' || prevView === 'reader' ? 'home' : prevView);
+  };
+
+  /* ── Doujindesu: Open reader (chapter) ── */
+  const openDjReader = async (chapter, chapterIdx) => {
+    setDjChapterLoading(true);
+    setDjCurrentChapter({ id: chapter.id, title: chapter.title, idx: chapterIdx });
+    setReaderPage(0);
+    goView('reader');
+    setShowControls(true);
+    setScrollSpeed(0);
+    setImgErrors({});
+    try {
+      const res = await getDoujindesuChapterPages(chapter.id);
+      const data = res?.data || res;
+      setDjChapterPages(data.pages || []);
+    } catch (e) { console.error('DJ read:', e); }
+    finally { setDjChapterLoading(false); }
+  };
+
+  const closeDjReader = () => {
+    setDjChapterPages([]);
+    setView('detail');
+    setScrollSpeed(0);
+    setImgErrors({});
+  };
+
+  /* ── Doujindesu: Navigate chapters ── */
+  const djChapters = djDetail?.chapters || [];
+  const djHasPrevChapter = djCurrentChapter && djCurrentChapter.idx < djChapters.length - 1;
+  const djHasNextChapter = djCurrentChapter && djCurrentChapter.idx > 0;
+
+  const djGoChapter = async (dir) => {
+    if (!djCurrentChapter || !djDetail) return;
+    const newIdx = djCurrentChapter.idx + (dir === 'next' ? -1 : 1);
+    if (newIdx < 0 || newIdx >= djChapters.length) return;
+    const ch = djChapters[newIdx];
+    await openDjReader(ch, newIdx);
+  };
+
+  /* ── Doujindesu: My list toggle ── */
+  const toggleDjMyListItem = () => {
+    if (!djDetail) return;
+    const id = String(djDetail.id);
+    if (isInMyList(id, 'doujindesu')) {
+      removeFromMyList(id, 'doujindesu');
+    } else {
+      addToMyList({
+        id, title: djDetail.title || 'Untitled',
+        image: doujindesuImgProxy(djDetail.thumbnail), type: 'doujin', listType: 'doujindesu',
+        rating: djDetail.score || null, releaseDate: '',
+      });
+    }
+    loadMyList();
+  };
+
+  /* ── Doujindesu: Reader page navigation ── */
+  const djTotalReaderPages = djChapterPages.length;
+  const djGoNext = () => { if (readerPage < djTotalReaderPages - 1) setReaderPage((p) => p + 1); };
+  const djGoPrev = () => { if (readerPage > 0) setReaderPage((p) => p - 1); };
+
+  const handleDjReaderTap = (e) => {
+    if (e.target.closest('.mangareader-topbar') || e.target.closest('.mangareader-bottombar')) return;
+    if (readMode === 'page') {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const third = rect.width / 3;
+      if (x < third) djGoPrev(); else if (x > third * 2) djGoNext(); else setShowControls((v) => !v);
+      return;
+    }
+    setShowControls((v) => !v);
+  };
+
+  const handleDjReaderImgError = (e, idx) => {
+    setImgErrors((prev) => ({ ...prev, [idx]: true }));
+  };
+
   /* ═══════════════════════════════════════════════════════════
      SEARCH BAR (shared between Home and Browse)
      ═══════════════════════════════════════════════════════════ */
-  const SearchBar = (
+  const SearchBar = contentMode === 'doujindesu' ? (
+    <div className="home-search">
+      <form onSubmit={handleDjSearch} className="home-search-form">
+        <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+        </svg>
+        <input value={djSearchVal} onChange={(e) => setDjSearchVal(e.target.value)} placeholder="Search doujindesu..." />
+      </form>
+      {djSearchMode && (
+        <div className="kp-search-active">
+          Results for &ldquo;<strong>{djSearchQuery}</strong>&rdquo; &bull;{' '}
+          <button onClick={clearDjSearch} className="kp-link">Clear</button>
+        </div>
+      )}
+    </div>
+  ) : (
     <div className="home-search">
       <form onSubmit={handleSearch} className="home-search-form">
         <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -528,6 +837,19 @@ export default function SooramicsPlus() {
         </button>
         <span className="kp-brand">soor<span className="kp-accent">amics+</span></span>
       </div>
+
+      {/* Mode Toggle */}
+      <div className="kp-mode-toggle">
+        <button
+          className={`kp-mode-btn ${contentMode === 'nhentai' ? 'active' : ''}`}
+          onClick={() => { setContentMode('nhentai'); goView('home'); }}
+        >NH</button>
+        <button
+          className={`kp-mode-btn ${contentMode === 'doujindesu' ? 'active' : ''}`}
+          onClick={() => { setContentMode('doujindesu'); goView('home'); }}
+        >DJ</button>
+      </div>
+
       <div className="kp-nav-tabs">
         {[
           { key: 'home', label: 'Home', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg> },
@@ -556,7 +878,118 @@ export default function SooramicsPlus() {
   }
 
   /* ═══════════════════════════════════════════════════════════
-     VIEW: READER
+     VIEW: READER (DOUJINDESU)
+     ═══════════════════════════════════════════════════════════ */
+  if (view === 'reader' && contentMode === 'doujindesu') {
+    const bookTitle = djDetail?.title || 'Doujindesu';
+    const chTitle = djCurrentChapter?.title || '';
+
+    if (djChapterLoading) {
+      return <div className="home-page sooramicsplus-page"><Loading text="Loading chapter..." /></div>;
+    }
+
+    return (
+      <div className={`mangareader-page ${readMode === 'page' ? 'mangareader-page-mode' : ''}`} ref={readerRef}>
+        {/* Top bar */}
+        <div className={`mangareader-topbar ${showControls ? 'visible' : ''}`}>
+          <button className="mangareader-back" onClick={closeDjReader}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+          </button>
+          <div className="mangareader-title-area">
+            <span className="mangareader-manga-title">{bookTitle}</span>
+            <span className="mangareader-ch-title">{chTitle}</span>
+          </div>
+          {readMode === 'vertical' && (
+            <button className={`mangareader-autoscroll-btn ${scrollSpeed > 0 ? 'active' : ''}`} onClick={() => setScrollSpeed((s) => (s + 1) % 4)} title={`Auto Scroll: ${SPEED_LABELS[scrollSpeed]}`}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18"><path d="M12 5v14M5 12l7 7 7-7" /></svg>
+              {scrollSpeed > 0 && <span className="mangareader-speed-badge">{scrollSpeed}x</span>}
+            </button>
+          )}
+          <div className="mangareader-mode-toggle">
+            <button className={readMode === 'vertical' ? 'active' : ''} onClick={() => setReadMode('vertical')} title="Vertical Scroll">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18"><rect x="4" y="2" width="16" height="20" rx="2" /><path d="M8 6h8M8 10h8M8 14h8" /></svg>
+            </button>
+            <button className={readMode === 'page' ? 'active' : ''} onClick={() => { setReadMode('page'); setScrollSpeed(0); }} title="Page by Page">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18"><rect x="2" y="3" width="8" height="18" rx="1" /><rect x="14" y="3" width="8" height="18" rx="1" /></svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="mangareader-content" onClick={handleDjReaderTap}>
+          {readMode === 'vertical' ? (
+            <div className="mangareader-vertical">
+              {djChapterPages.map((pg, i) => (
+                <div key={i} className="mangareader-img-wrap" ref={(el) => (pageRefs.current[i] = el)} data-page={i}>
+                  {imgErrors[i] ? (
+                    <div className="mangareader-img-error">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="32" height="32"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 9l6 6M15 9l-6 6" /></svg>
+                      <span>Failed to load page {i + 1}</span>
+                    </div>
+                  ) : (
+                    <img src={doujindesuImgProxy(pg.img)} alt={`Page ${i + 1}`} loading="lazy" referrerPolicy="no-referrer" onError={(e) => handleDjReaderImgError(e, i)} />
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mangareader-single">
+              {djChapterPages[readerPage] && (imgErrors[readerPage] ? (
+                <div className="mangareader-img-error">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="32" height="32"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 9l6 6M15 9l-6 6" /></svg>
+                  <span>Failed to load page {readerPage + 1}</span>
+                </div>
+              ) : (
+                <img src={doujindesuImgProxy(djChapterPages[readerPage].img)} alt={`Page ${readerPage + 1}`} referrerPolicy="no-referrer" onError={(e) => handleDjReaderImgError(e, readerPage)} />
+              ))}
+              <div className="mangareader-tap-zones"><div className="tap-zone tap-prev" /><div className="tap-zone tap-menu" /><div className="tap-zone tap-next" /></div>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom bar */}
+        <div className={`mangareader-bottombar ${showControls ? 'visible' : ''}`}>
+          <div className="mangareader-nav">
+            <button className="mangareader-nav-btn" disabled={readerPage <= 0} onClick={djGoPrev}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="M15 18l-6-6 6-6" /></svg> Prev
+            </button>
+            <span className="mangareader-page-indicator">{readerPage + 1} / {djChapterPages.length}</span>
+            <button className="mangareader-nav-btn" disabled={readerPage >= djChapterPages.length - 1} onClick={djGoNext}>
+              Next <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="M9 18l6-6-6-6" /></svg>
+            </button>
+          </div>
+          {readMode === 'page' && (
+            <input type="range" className="mangareader-slider" min="0" max={Math.max(djChapterPages.length - 1, 0)} value={readerPage} onChange={(e) => setReaderPage(parseInt(e.target.value, 10))} />
+          )}
+          {readMode === 'vertical' && scrollSpeed > 0 && (
+            <div className="mangareader-autoscroll-bar">
+              <span className="mangareader-as-label">Auto Scroll</span>
+              <div className="mangareader-as-speeds">
+                {[1, 2, 3].map((s) => (
+                  <button key={s} className={`mangareader-as-speed ${scrollSpeed === s ? 'active' : ''}`} onClick={() => setScrollSpeed(s)}>{SPEED_LABELS[s]}</button>
+                ))}
+              </div>
+              <button className="mangareader-as-stop" onClick={() => setScrollSpeed(0)}>
+                <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+              </button>
+            </div>
+          )}
+          {/* Chapter navigation */}
+          <div className="mangareader-chapter-nav" style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 16px', gap: 8 }}>
+            <button className="mangareader-nav-btn" disabled={!djHasPrevChapter} onClick={() => djGoChapter('prev')} style={{ fontSize: 12 }}>
+              ← Prev Chapter
+            </button>
+            <button className="mangareader-nav-btn" disabled={!djHasNextChapter} onClick={() => djGoChapter('next')} style={{ fontSize: 12 }}>
+              Next Chapter →
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     VIEW: READER (nhentai — original)
      ═══════════════════════════════════════════════════════════ */
   if (view === 'reader' && detailBook) {
     const pages = detailBook.images?.pages || [];
@@ -654,7 +1087,92 @@ export default function SooramicsPlus() {
   }
 
   /* ═══════════════════════════════════════════════════════════
-     VIEW: DETAIL
+     VIEW: DETAIL (DOUJINDESU)
+     ═══════════════════════════════════════════════════════════ */
+  if (view === 'detail' && contentMode === 'doujindesu') {
+    const inList = djDetail ? isInMyList(String(djDetail.id), 'doujindesu') : false;
+
+    return (
+      <div className="home-page sooramicsplus-page">
+        {NavBar}
+
+        {djDetailLoading ? (
+          <Loading text="Loading detail..." />
+        ) : djDetail ? (
+          <div className="kp-detail">
+            {/* Top section */}
+            <div className="kp-detail-top">
+              <div className="kp-detail-cover">
+                <img src={doujindesuImgProxy(djDetail.thumbnail)} alt="Cover" referrerPolicy="no-referrer" onError={(e) => { e.target.style.opacity = '0.15'; }} />
+              </div>
+              <div className="kp-detail-info">
+                <h1 className="kp-detail-title">{djDetail.title || 'Untitled'}</h1>
+                {djDetail.alternativeTitle && <p className="kp-detail-subtitle">{djDetail.alternativeTitle}</p>}
+                <div className="kp-detail-tags">
+                  {(djDetail.genres || []).map((g) => (
+                    <span key={g} className="kp-tag">{g}</span>
+                  ))}
+                  {(djDetail.tags || []).map((t) => (
+                    <span key={t} className="kp-tag" style={{ opacity: 0.7 }}>{t}</span>
+                  ))}
+                </div>
+                <div className="kp-detail-meta">
+                  {djDetail.status && <span>📖 {djDetail.status}</span>}
+                  {djDetail.type && <span>📁 {djDetail.type}</span>}
+                  {djDetail.author && <span>✍️ {djDetail.author}</span>}
+                  {djDetail.score && <span>⭐ {djDetail.score}</span>}
+                  <span>📑 {djDetail.chapters?.length || 0} chapter{djDetail.chapters?.length !== 1 ? 's' : ''}</span>
+                </div>
+                {djDetail.synopsis && (
+                  <p className="kp-detail-subtitle" style={{ marginTop: 8, fontSize: 13, lineHeight: 1.5, opacity: 0.8 }}>{djDetail.synopsis}</p>
+                )}
+                <div className="kp-detail-actions">
+                  {djDetail.chapters?.length > 0 && (
+                    <button className="btn-play sooramicsplus-btn-play" onClick={() => openDjReader(djDetail.chapters[djDetail.chapters.length - 1], djDetail.chapters.length - 1)}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18"><path d="M4 19.5A2.5 2.5 0 016.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" /></svg>
+                      Read Ch.1
+                    </button>
+                  )}
+                  <button className={`btn-glass kp-mylist-btn ${inList ? 'in-list' : ''}`} onClick={toggleDjMyListItem}>
+                    {inList ? (
+                      <><svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" /></svg> Saved</>
+                    ) : (
+                      <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" /></svg> Save</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Chapters list */}
+            {djDetail.chapters?.length > 0 && (
+              <section className="kp-pages-section">
+                <h2 className="section-title">Chapters ({djDetail.chapters.length})</h2>
+                <div className="kp-chapters-list" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {djDetail.chapters.map((ch, idx) => (
+                    <button
+                      key={ch.id}
+                      className="btn-glass"
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', textAlign: 'left', fontSize: 13 }}
+                      onClick={() => openDjReader(ch, idx)}
+                    >
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ch.title || `Chapter ${idx + 1}`}</span>
+                      {ch.date && <span style={{ opacity: 0.5, fontSize: 11, marginLeft: 8, flexShrink: 0 }}>{ch.date}</span>}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        ) : (
+          <div className="empty-state"><p>Manga not found.</p><button className="btn-glass" onClick={closeDjDetail}>Go Back</button></div>
+        )}
+      </div>
+    );
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     VIEW: DETAIL (nhentai — original)
      ═══════════════════════════════════════════════════════════ */
   if (view === 'detail') {
     const inList = detailBook ? isInMyList(String(detailBook.id), 'komikplus') : false;
@@ -767,10 +1285,12 @@ export default function SooramicsPlus() {
           <div className="kp-grid" style={{ paddingTop: 8 }}>
             {myListDisplay.map((item) => {
               const isRemoving = removing === `kp-${item.id}`;
+              const isDj = item.listType === 'doujindesu';
               return (
-                <div key={item.id} className={`kp-card ${isRemoving ? 'kp-card-removing' : ''}`} onClick={() => openDetail(item.id)}>
+                <div key={`${item.listType}-${item.id}`} className={`kp-card ${isRemoving ? 'kp-card-removing' : ''}`} onClick={() => isDj ? openDjDetail(item.id) : openDetail(item.id)}>
                   <div className="kp-card-img-wrap">
                     <img src={item.image} alt={item.title || ''} loading="lazy" referrerPolicy="no-referrer" onError={handleImgFallback} />
+                    {isDj && <span className="kp-card-badge" style={{ position: 'absolute', top: 4, left: 4, background: '#a78bfa', color: '#fff', fontSize: 9, padding: '1px 5px', borderRadius: 4 }}>DJ</span>}
                     <button className="kp-card-remove-btn" onClick={(e) => handleMyListRemove(e, item)} title="Remove">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="12" height="12"><path d="M18 6 6 18M6 6l12 12" /></svg>
                     </button>
@@ -809,7 +1329,136 @@ export default function SooramicsPlus() {
   }
 
   /* ═══════════════════════════════════════════════════════════
-     VIEW: BROWSE
+     VIEW: BROWSE (DOUJINDESU)
+     ═══════════════════════════════════════════════════════════ */
+  if (view === 'browse' && contentMode === 'doujindesu') {
+    const displayItems = isDjFilterActive ? djGenreResults : djBrowseItems;
+    const isLoading = isDjFilterActive ? djGenreLoading : djBrowseLoading;
+    const genreLabel = isDjFilterActive ? djGenres.find(g => g.slug === djFilterGenre)?.name : '';
+    const filteredDjGenres = djGenreSearch
+      ? djGenres.filter(g => g.name.toLowerCase().includes(djGenreSearch.toLowerCase()))
+      : djGenres;
+
+    return (
+      <div className="home-page sooramicsplus-page">
+        {NavBar}
+        {SearchBar}
+
+        {/* Genre Filter Panel */}
+        <div className="af-panel">
+          <div className={`af-card ${djFilterOpen ? 'open' : ''}`}>
+            <button className="af-header" onClick={() => setDjFilterOpen((v) => !v)}>
+              <div className="af-header-left">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" /></svg>
+                <span>Genre</span>
+                {isDjFilterActive && !djFilterOpen && <span className="af-header-count">1</span>}
+              </div>
+              <svg className="af-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="m6 9 6 6 6-6" /></svg>
+            </button>
+            <div className="af-body">
+              <div className="af-body-inner">
+                <div className="af-genre-section">
+                  <span className="af-label">Genre {isDjFilterActive && <span className="af-tag-count">(1)</span>}</span>
+                  <div className="af-tag-search-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
+                    <input className="af-tag-search" value={djGenreSearch} onChange={(e) => setDjGenreSearch(e.target.value)} placeholder="Search genres..." />
+                    {djGenreSearch && (
+                      <button className="af-tag-search-clear" onClick={() => setDjGenreSearch('')}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                      </button>
+                    )}
+                  </div>
+                  <div className="af-pills af-pills-scroll">
+                    {filteredDjGenres.map((g) => (
+                      <button
+                        key={g.slug}
+                        className={`af-pill ${djFilterGenre === g.slug ? 'active' : ''}`}
+                        onClick={() => { setDjFilterGenre(djFilterGenre === g.slug ? '' : g.slug); setDjSearchMode(false); }}
+                      >{g.name}</button>
+                    ))}
+                    {filteredDjGenres.length === 0 && (
+                      <span className="af-more-hint">No genres found for &ldquo;{djGenreSearch}&rdquo;</span>
+                    )}
+                  </div>
+                </div>
+                {isDjFilterActive && (
+                  <div className="af-active-bar">
+                    <div className="af-chips">
+                      <span className="af-chip">
+                        {genreLabel}
+                        <button onClick={clearDjFilter} aria-label="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="11" height="11"><path d="M18 6 6 18M6 6l12 12" /></svg></button>
+                      </span>
+                    </div>
+                    <button className="af-reset" onClick={clearDjFilter}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
+                      Reset
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Results */}
+        {isLoading ? (
+          <div className="filter-loading"><div className="filter-spinner" /><span>Loading...</span></div>
+        ) : displayItems.length === 0 ? (
+          <div className="filter-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="48" height="48"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /><path d="M8 11h6" strokeLinecap="round" /></svg>
+            <p>No results found{isDjFilterActive ? ` for genre "${genreLabel}"` : ''}.</p>
+            {isDjFilterActive && <button className="af-reset" onClick={clearDjFilter}>Reset Filter</button>}
+          </div>
+        ) : (
+          <>
+            {isDjFilterActive && (
+              <div className="filter-results-area" style={{ paddingBottom: 0, marginBottom: '0.5rem' }}>
+                <div className="filter-results-header">
+                  <h2>Genre: {genreLabel}</h2>
+                  <span className="filter-summary-tag">{displayItems.length} results</span>
+                </div>
+              </div>
+            )}
+            <div className="kp-grid">
+              {displayItems.map((item) => (
+                <div key={item.id} className="kp-card" onClick={() => openDjDetail(item.id)}>
+                  <div className="kp-card-img-wrap">
+                    <img src={doujindesuImgProxy(item.thumbnail)} alt={item.title || ''} loading="lazy" referrerPolicy="no-referrer" onError={(e) => { e.target.style.opacity = '0.15'; }} />
+                    {item.type && <span className="kp-card-badge" style={{ position: 'absolute', top: 4, left: 4, background: '#a78bfa', color: '#fff', fontSize: 9, padding: '1px 5px', borderRadius: 4 }}>{item.type}</span>}
+                  </div>
+                  <div className="kp-card-body">
+                    <div className="kp-card-title">{item.title || 'Untitled'}</div>
+                    <div className="kp-card-meta">
+                      {item.score && `⭐ ${item.score}`}
+                      {item.chapter && ` • ${item.chapter}`}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="kp-pagination">
+              {isDjFilterActive ? (
+                <>
+                  <button className="btn-glass" disabled={djGenrePage <= 1} onClick={() => loadDjGenre(djFilterGenre, djGenrePage - 1)}>← Prev</button>
+                  <span className="kp-page-info">Page {djGenrePage}</span>
+                  <button className="btn-glass" disabled={!djGenreHasNext} onClick={() => loadDjGenre(djFilterGenre, djGenrePage + 1)}>Next →</button>
+                </>
+              ) : (
+                <>
+                  <button className="btn-glass" disabled={djBrowsePage <= 1} onClick={() => { const q = djSearchMode ? djSearchQuery : ''; loadDjBrowse(djBrowsePage - 1, q); }}>← Prev</button>
+                  <span className="kp-page-info">Page {djBrowsePage}</span>
+                  <button className="btn-glass" disabled={!djBrowseHasNext} onClick={() => { const q = djSearchMode ? djSearchQuery : ''; loadDjBrowse(djBrowsePage + 1, q); }}>Next →</button>
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     VIEW: BROWSE (nhentai — original)
      ═══════════════════════════════════════════════════════════ */
   if (view === 'browse') {
     return (
@@ -976,7 +1625,189 @@ export default function SooramicsPlus() {
   }
 
   /* ═══════════════════════════════════════════════════════════
-     VIEW: HOME (default)
+     VIEW: HOME (DOUJINDESU)
+     ═══════════════════════════════════════════════════════════ */
+  if (contentMode === 'doujindesu' && (view === 'home' || (!['browse', 'mylist', 'detail', 'reader', 'landing'].includes(view)))) {
+    if (djLatestLoading && djLatest.length === 0) {
+      return <div className="home-page sooramicsplus-page">{NavBar}<Loading text="Loading doujindesu..." /></div>;
+    }
+
+    return (
+      <div className="home-page sooramicsplus-page">
+        {NavBar}
+
+        {/* Hero area — doujindesu branding */}
+        {djLatest.length > 0 && (
+          <div className="hero-banner sooramicsplus-hero" style={{ minHeight: 180 }}>
+            <div className="hero-bg">
+              <img src={doujindesuImgProxy(djLatest[0].thumbnail)} alt="" referrerPolicy="no-referrer" onError={(e) => { e.target.style.opacity = '0.1'; }} />
+            </div>
+            <div className="hero-content">
+              <div className="hero-top-row">
+                <div className="hero-badge sooramicsplus-badge" style={{ background: '#a78bfa' }}>doujindesu</div>
+              </div>
+              <h1 className="hero-title">{djLatest[0].title || 'Latest'}</h1>
+              <div className="hero-actions">
+                <button className="btn-play sooramicsplus-btn-play" onClick={() => openDjDetail(djLatest[0].id)}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18"><path d="M4 19.5A2.5 2.5 0 016.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" /></svg>
+                  Open
+                </button>
+                <button className="btn-glass" onClick={() => openDjDetail(djLatest[0].id)}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
+                  Details
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {SearchBar}
+
+        {/* Genre Filter Panel */}
+        <div className="af-panel">
+          <div className={`af-card ${djHomeFilterOpen ? 'open' : ''}`}>
+            <button className="af-header" onClick={() => setDjHomeFilterOpen((v) => !v)}>
+              <div className="af-header-left">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" /></svg>
+                <span>Genre</span>
+                {isDjHomeFilterActive && !djHomeFilterOpen && <span className="af-header-count">1</span>}
+              </div>
+              <svg className="af-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="m6 9 6 6 6-6" /></svg>
+            </button>
+            <div className="af-body">
+              <div className="af-body-inner">
+                <div className="af-genre-section">
+                  <span className="af-label">Genre {isDjHomeFilterActive && <span className="af-tag-count">(1)</span>}</span>
+                  <div className="af-tag-search-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
+                    <input className="af-tag-search" value={djHomeGenreSearch} onChange={(e) => setDjHomeGenreSearch(e.target.value)} placeholder="Search genres..." />
+                    {djHomeGenreSearch && (
+                      <button className="af-tag-search-clear" onClick={() => setDjHomeGenreSearch('')}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                      </button>
+                    )}
+                  </div>
+                  <div className="af-pills af-pills-scroll">
+                    {(djHomeGenreSearch
+                      ? djGenres.filter(g => g.name.toLowerCase().includes(djHomeGenreSearch.toLowerCase()))
+                      : djGenres
+                    ).map((g) => (
+                      <button
+                        key={g.slug}
+                        className={`af-pill ${djHomeFilterGenre === g.slug ? 'active' : ''}`}
+                        onClick={() => setDjHomeFilterGenre(djHomeFilterGenre === g.slug ? '' : g.slug)}
+                      >{g.name}</button>
+                    ))}
+                    {djHomeGenreSearch && djGenres.filter(g => g.name.toLowerCase().includes(djHomeGenreSearch.toLowerCase())).length === 0 && (
+                      <span className="af-more-hint">No genres found for &ldquo;{djHomeGenreSearch}&rdquo;</span>
+                    )}
+                  </div>
+                </div>
+                {isDjHomeFilterActive && (
+                  <div className="af-active-bar">
+                    <div className="af-chips">
+                      <span className="af-chip">
+                        {djGenres.find(g => g.slug === djHomeFilterGenre)?.name || djHomeFilterGenre}
+                        <button onClick={clearDjHomeFilter} aria-label="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="11" height="11"><path d="M18 6 6 18M6 6l12 12" /></svg></button>
+                      </span>
+                    </div>
+                    <button className="af-reset" onClick={clearDjHomeFilter}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
+                      Reset
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Genre Filter Results ── */}
+        {isDjHomeFilterActive && (
+          <div className="filter-results-area">
+            <div className="filter-results-header">
+              <h2>Genre: {djGenres.find(g => g.slug === djHomeFilterGenre)?.name || djHomeFilterGenre}</h2>
+            </div>
+            {djHomeGenreLoading ? (
+              <div className="filter-loading"><div className="filter-spinner" /><span>Loading...</span></div>
+            ) : djHomeGenreResults && djHomeGenreResults.length > 0 ? (
+              <div className="kp-grid" style={{ paddingTop: 0 }}>
+                {djHomeGenreResults.slice(0, 30).map((item) => (
+                  <div key={item.id} className="kp-card" onClick={() => openDjDetail(item.id)}>
+                    <div className="kp-card-img-wrap">
+                      <img src={doujindesuImgProxy(item.thumbnail)} alt={item.title || ''} loading="lazy" referrerPolicy="no-referrer" onError={(e) => { e.target.style.opacity = '0.15'; }} />
+                    </div>
+                    <div className="kp-card-body">
+                      <div className="kp-card-title">{item.title || 'Untitled'}</div>
+                      <div className="kp-card-meta">
+                        {item.score && `⭐ ${item.score}`}
+                        {item.chapter && ` • ${item.chapter}`}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : djHomeGenreResults !== null ? (
+              <div className="filter-empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="48" height="48"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /><path d="M8 11h6" strokeLinecap="round" /></svg>
+                <p>Tidak ada hasil untuk genre ini</p>
+                <button className="af-reset" onClick={clearDjHomeFilter}>Reset Filter</button>
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        {/* Latest grid */}
+        {!isDjHomeFilterActive && djLatest.length > 0 && (
+          <>
+            <section className="home-section">
+              <div className="section-header">
+                <h2 className="section-title">
+                  <span className="section-dot" style={{ background: '#a78bfa' }} />
+                  Latest
+                </h2>
+              </div>
+            </section>
+            <div className="kp-grid">
+              {djLatest.map((item) => (
+                <div key={item.id} className="kp-card" onClick={() => openDjDetail(item.id)}>
+                  <div className="kp-card-img-wrap">
+                    <img
+                      src={doujindesuImgProxy(item.thumbnail)}
+                      alt={item.title || ''}
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => { e.target.style.opacity = '0.15'; }}
+                    />
+                    {item.type && <span style={{ position: 'absolute', top: 4, left: 4, background: '#a78bfa', color: '#fff', fontSize: 9, padding: '1px 5px', borderRadius: 4 }}>{item.type}</span>}
+                  </div>
+                  <div className="kp-card-body">
+                    <div className="kp-card-title">{item.title || 'Untitled'}</div>
+                    <div className="kp-card-meta">
+                      {item.score && `⭐ ${item.score}`}
+                      {item.chapter && ` • ${item.chapter}`}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="kp-pagination">
+              <button className="btn-glass" disabled={djLatestPage <= 1} onClick={() => loadDjLatest(djLatestPage - 1)}>← Prev</button>
+              <span className="kp-page-info">Page {djLatestPage}</span>
+              <button className="btn-glass" disabled={!djLatestHasNext} onClick={() => loadDjLatest(djLatestPage + 1)}>Next →</button>
+            </div>
+          </>
+        )}
+
+        {!isDjHomeFilterActive && djLatest.length === 0 && !djLatestLoading && (
+          <div className="empty-state"><p>No data available. Try refreshing.</p></div>
+        )}
+      </div>
+    );
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     VIEW: HOME (nhentai — original / default)
      ═══════════════════════════════════════════════════════════ */
   if (homeLoading && homeRecent.length === 0) return (
     <div className="home-page sooramicsplus-page">{NavBar}<Loading text="Loading sooramics+..." /></div>

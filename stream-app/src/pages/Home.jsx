@@ -16,6 +16,8 @@ import Loading from '../components/Loading';
 import SkeletonSection from '../components/SkeletonSection';
 import CustomSelect from '../components/CustomSelect';
 
+const APP_VERSION = 'v3.2.0';
+const BUILD_DATE = '2025-06-18';
 
 /* ── page-level state cache (persists across mounts for instant back-nav) ── */
 const _pageCache = { ts: 0, data: null };
@@ -681,6 +683,15 @@ export default function Home() {
           <p>No data available. Make sure the Consumet API is running on <code>localhost:3000</code></p>
         </div>
       )}
+
+      {/* Version Footer */}
+      <footer className="app-version-footer">
+        <span className="version-tag">{APP_VERSION}</span>
+        <span className="version-sep">•</span>
+        <span className="version-date">{BUILD_DATE}</span>
+        <span className="version-sep">•</span>
+        <span className="version-label">Soora Stream</span>
+      </footer>
     </div>
   );
 }

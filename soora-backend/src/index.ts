@@ -9,6 +9,7 @@ import { clearCache, getCacheStats } from './services/cache';
 import animeRoutes from './routes/anime';
 import movieRoutes from './routes/movies';
 import mangaRoutes from './routes/manga';
+import doujindesuRoutes from './routes/doujindesu';
 import proxyRoutes from './routes/proxy';
 
 const app = express();
@@ -64,6 +65,7 @@ app.post('/cache/clear', (_req, res) => {
 app.use('/anime', animeRoutes);
 app.use('/movies', movieRoutes);
 app.use('/manga', mangaRoutes);
+app.use('/doujindesu', doujindesuRoutes);
 
 // ========== PROXY ROUTES ==========
 app.use('/proxy', proxyRoutes);

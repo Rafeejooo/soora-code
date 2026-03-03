@@ -723,7 +723,13 @@ export const getLK21PopularSeries = (page = 1) =>
 
 export const searchLK21 = async (query) => {
   const res = await api.get(`/movies/lk21/search/${encodeURIComponent(query)}`);
-  const items = (res.data?.results || []).map(normalizeLK21);
+  // Backend now returns already-normalized items via dedicated route (with home-bundle fallback)
+  const raw = res.data?.results || [];
+  const items = raw.map((item) => {
+    // Items may already be normalized (from backend) or raw (from passthrough)
+    if (item.provider === 'lk21' && item.lk21Id) return item; // already normalized
+    return normalizeLK21(item);
+  });
   return { data: { results: items } };
 };
 
@@ -1142,5 +1148,60 @@ export const findSamehadakuAnime = async (title, japaneseTitle) =>
   });
 
 export { normalizeMangaTitle };
+
+// ========== DOUJINDESU ==========
+const DOUJINDESU_CACHE_TTL = 15 * 60 * 1000; // 15 min
+
+/** Proxy doujindesu images through backend */
+export const doujindesuImgProxy = (url) => {
+  if (!url) return '';
+  // doujindesu CDN images need Referer header — proxy through backend
+  if (url.includes('doujindesu')) {
+    return `${API_BASE}/doujindesu/img?url=${encodeURIComponent(url)}`;
+  }
+  return url;
+};
+
+/** Get latest doujin */
+export const getDoujindesuLatest = (page = 1) =>
+  cachedGet(`doujindesu:latest:${page}`, async () => {
+    const res = await api.get('/doujindesu/latest', { params: { page } });
+    return res;
+  }, DOUJINDESU_CACHE_TTL);
+
+/** Search doujin */
+export const searchDoujindesu = (query, page = 1) =>
+  cachedGet(`doujindesu:search:${query}:${page}`, async () => {
+    const res = await api.get('/doujindesu/search', { params: { q: query, page } });
+    return res;
+  }, DOUJINDESU_CACHE_TTL);
+
+/** Get doujin detail (chapters, tags, synopsis) */
+export const getDoujindesuDetail = (id) =>
+  cachedGet(`doujindesu:detail:${id}`, async () => {
+    const res = await api.get(`/doujindesu/detail/${encodeURIComponent(id)}`);
+    return res;
+  }, DOUJINDESU_CACHE_TTL);
+
+/** Get chapter pages */
+export const getDoujindesuChapterPages = (chapterId) =>
+  cachedGet(`doujindesu:read:${chapterId}`, async () => {
+    const res = await api.get(`/doujindesu/read/${encodeURIComponent(chapterId)}`);
+    return res;
+  }, DOUJINDESU_CACHE_TTL);
+
+/** Get available genres */
+export const getDoujindesuGenres = () =>
+  cachedGet('doujindesu:genres', async () => {
+    const res = await api.get('/doujindesu/genres');
+    return res;
+  }, DOUJINDESU_CACHE_TTL * 4);
+
+/** Browse by genre */
+export const getDoujindesuByGenre = (slug, page = 1) =>
+  cachedGet(`doujindesu:genre:${slug}:${page}`, async () => {
+    const res = await api.get(`/doujindesu/genre/${encodeURIComponent(slug)}`, { params: { page } });
+    return res;
+  }, DOUJINDESU_CACHE_TTL);
 
 export default api;

@@ -355,6 +355,85 @@ router.get('/lk21/series/streams/:id', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /movies/lk21/search/:query
+ * LK21 search with home-bundle fallback.
+ * The upstream Consumet LK21 search is often blocked by Cloudflare,
+ * so we fall back to fetching the home bundle and filtering client-side.
+ */
+router.get('/lk21/search/:query', async (req: Request, res: Response) => {
+  try {
+    const query = qs(req.params.query);
+    if (!query) return res.status(400).json({ error: 'Missing query' });
+    const page = parseInt(qs(req.query.page) || '1');
+
+    const data = await cached(`lk21:search:${query}:${page}`, async () => {
+      // 1) Try upstream Consumet search first
+      try {
+        const upstream = await consumet.lk21Search(query);
+        const results = extractResults(upstream);
+        if (results.length > 0) {
+          return { results: results.map(normalizeLK21), totalPages: upstream?.totalPages || 1 };
+        }
+      } catch { /* Consumet search failed, fall through */ }
+
+      // 2) Fallback: fetch home bundle and filter by title match
+      try {
+        const bundle = await consumet.passthrough('/movies/lk21/home-bundle', {});
+        const allItems: any[] = [];
+        const seen = new Set<string>();
+
+        const addItems = (arr: any[]) => {
+          if (!Array.isArray(arr)) return;
+          for (const item of arr) {
+            const id = item._id || item.id;
+            if (id && !seen.has(id)) {
+              seen.add(id);
+              allItems.push(item);
+            }
+          }
+        };
+
+        addItems(bundle?.popularMovies);
+        addItems(bundle?.recentMovies);
+        addItems(bundle?.topRatedMovies);
+        addItems(bundle?.latestSeries);
+        addItems(bundle?.popularSeries);
+
+        // Fuzzy title matching
+        const queryLower = query.toLowerCase();
+        const queryWords = queryLower.split(/\s+/).filter(Boolean);
+
+        const scored = allItems.map((item) => {
+          const title = (item.title || '').toLowerCase();
+          let score = 0;
+          if (title === queryLower) score += 100;
+          else if (title.includes(queryLower)) score += 50;
+          else {
+            const matchedWords = queryWords.filter((w) => title.includes(w));
+            score += matchedWords.length * 15;
+          }
+          return { item, score };
+        });
+
+        const matched = scored
+          .filter((s) => s.score > 0)
+          .sort((a, b) => b.score - a.score)
+          .map((s) => normalizeLK21(s.item));
+
+        return { results: matched, totalPages: 1 };
+      } catch { /* home bundle fallback also failed */ }
+
+      return { results: [], totalPages: 0 };
+    }, CACHE_TTL.SEARCH);
+
+    res.json(data);
+  } catch (err: any) {
+    console.error('[movies/lk21/search]', err.message);
+    res.status(500).json({ error: 'LK21 search failed' });
+  }
+});
+
 // ========== CATCH-ALL: Forward unmatched /movies/* to Consumet ==========
 router.all('/*', async (req: Request, res: Response) => {
   try {
