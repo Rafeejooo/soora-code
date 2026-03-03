@@ -1,7 +1,6 @@
 import axios from 'axios';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const cheerio = require('cheerio');
-const cheerioLoad = cheerio.load as (html: string) => any;
+// @ts-ignore — cheerio types may not be installed on all environments
+import { load as cheerioLoad } from 'cheerio';
 
 /**
  * Doujindesu scraper service.
