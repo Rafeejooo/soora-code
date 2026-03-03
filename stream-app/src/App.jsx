@@ -30,7 +30,7 @@ function AppLayout() {
 
   const isLanding = location.pathname === '/';
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-  const isSooramicsPlus = location.pathname.startsWith('/2');
+  const isSooramicsPlus = location.pathname === '/33';
 
   // Detect which "app" we're in based on path
   const isMovieSection = location.pathname.startsWith('/movies') || location.pathname.startsWith('/movie/') || location.pathname.startsWith('/series/') || location.pathname.startsWith('/watch/movie');
