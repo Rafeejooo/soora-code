@@ -13,8 +13,7 @@ import {
 } from '../api';
 import { buildMangaUrl } from '../utils/seo';
 import Card from '../components/Card';
-
-import Loading from '../components/Loading';
+import SkeletonHero from '../components/SkeletonHero';
 import SkeletonSection from '../components/SkeletonSection';
 
 /* ── Section configs per language ── */
@@ -273,7 +272,14 @@ export default function MangaHome() {
     setFilterGenre('');
   };
 
-  if (!heroReady) return <Loading text="Loading manga..." theme="sooramics" />;
+  if (!heroReady) return (
+    <div className="home-page sooramics-page">
+      <SkeletonHero theme="sooramics" />
+      <SkeletonSection />
+      <SkeletonSection />
+      <SkeletonSection />
+    </div>
+  );
 
   const hero = heroItems[heroIdx];
 

@@ -17,7 +17,7 @@ import {
 } from '../api';
 import { buildMovieUrl } from '../utils/seo';
 import Card from '../components/Card';
-import Loading from '../components/Loading';
+import SkeletonHero from '../components/SkeletonHero';
 import SkeletonSection from '../components/SkeletonSection';
 import CustomSelect from '../components/CustomSelect';
 
@@ -517,7 +517,14 @@ export default function MovieHome() {
     setFilterSort('popularity.desc');
   };
 
-  if (!heroReady) return <Loading text="Loading..." theme="sooraflix" />;
+  if (!heroReady) return (
+    <div className="home-page sooraflix-page">
+      <SkeletonHero theme="sooraflix" />
+      <SkeletonSection />
+      <SkeletonSection />
+      <SkeletonSection />
+    </div>
+  );
 
   const hero = trendingMovies[heroIdx];
   const gokuHeroImg = (url) => url ? url.replace(/\/resize\/\d+x\d+\//, '/resize/1200x800/') : url;

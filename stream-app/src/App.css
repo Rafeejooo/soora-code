@@ -3787,6 +3787,131 @@ a:hover {
   100% { opacity: 0.3; }
 }
 
+/* ── SkeletonHero (Netflix-style hero placeholder) ── */
+.skeleton-hero {
+  position: relative;
+  width: 100%;
+  height: 70vh;
+  min-height: 420px;
+  max-height: 680px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+.skeleton-hero-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.04) 100%);
+}
+.skeleton-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, var(--bg, #0a0a0f) 0%, transparent 60%);
+  pointer-events: none;
+}
+.skeleton-hero-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  padding: 3rem clamp(1.5rem, 4vw, 4rem);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.skeleton-hero-badge {
+  width: 80px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.08);
+}
+.skeleton-hero-title {
+  width: clamp(200px, 50%, 420px);
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.08);
+}
+.skeleton-hero-desc {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.skeleton-hero-line {
+  height: 12px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.06);
+}
+.skeleton-hero-meta {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.skeleton-hero-tag {
+  width: 72px;
+  height: 22px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.06);
+}
+.skeleton-hero-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+.skeleton-hero-btn {
+  width: 140px;
+  height: 42px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.1);
+}
+.skeleton-hero-btn-secondary {
+  width: 110px;
+  background: rgba(255,255,255,0.06);
+}
+.skeleton-hero-dots {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.skeleton-hero-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+}
+
+/* Theme variants */
+.skeleton-hero-sooraflix .skeleton-hero-btn:first-child {
+  background: rgba(255, 107, 157, 0.18);
+}
+.skeleton-hero-sooramics .skeleton-hero-btn:first-child {
+  background: rgba(0, 212, 170, 0.18);
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .skeleton-hero {
+    height: 55vh;
+    min-height: 320px;
+    max-height: 480px;
+  }
+  .skeleton-hero-content {
+    padding: 2rem 1.2rem;
+    gap: 8px;
+  }
+  .skeleton-hero-title {
+    height: 26px;
+  }
+  .skeleton-hero-btn {
+    width: 110px;
+    height: 36px;
+  }
+  .skeleton-hero-btn-secondary {
+    width: 90px;
+  }
+}
+
 /* Fade-in animation for sections that load progressively */
 .section-fade-in {
   animation: sectionFadeIn 0.4s ease-out;
