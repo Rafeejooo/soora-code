@@ -12,7 +12,7 @@ import {
 } from '../api';
 import { buildAnimeUrl } from '../utils/seo';
 import Card from '../components/Card';
-import Loading from '../components/Loading';
+import SkeletonHero from '../components/SkeletonHero';
 import SkeletonSection from '../components/SkeletonSection';
 import CustomSelect from '../components/CustomSelect';
 
@@ -340,7 +340,14 @@ export default function Home() {
     setFilterYear('');
   };
 
-  if (!heroReady) return <Loading text="Loading..." />;
+  if (!heroReady) return (
+    <div className="home-page">
+      <SkeletonHero />
+      <SkeletonSection />
+      <SkeletonSection />
+      <SkeletonSection />
+    </div>
+  );
 
   const hero = spotlight[heroIdx];
 
