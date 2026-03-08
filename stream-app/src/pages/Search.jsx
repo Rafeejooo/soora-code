@@ -19,7 +19,7 @@ import {
   getPopularManga,
 } from '../api';
 import Card from '../components/Card';
-import Loading from '../components/Loading';
+import SkeletonSearchGrid from '../components/SkeletonSearchGrid';
 
 const ANIME_GENRES = [
   'Action', 'Adventure', 'Comedy', 'Drama', 'Fantasy', 'Horror',
@@ -408,8 +408,8 @@ export default function Search({ searchType }) {
       )}
 
       <div className="browse-body">
-        {/* Loading */}
-        {loading && <Loading text="Searching..." theme={type === 'manga' ? 'sooramics' : type === 'movie' ? 'sooraflix' : ''} />}
+        {/* Loading – skeleton card grid to match the results layout */}
+        {loading && <SkeletonSearchGrid count={12} accentColor={theme.accent} />}
 
         {/* Error */}
         {error && <div className="browse-error">{error}</div>}
@@ -474,7 +474,7 @@ export default function Search({ searchType }) {
         )}
 
         {discoverLoading && !hasQuery && !hasGenre && !loading && (
-          <Loading text={`Loading ${type === 'movie' ? 'trending' : type === 'manga' ? 'popular' : 'trending'}...`} theme={type === 'manga' ? 'sooramics' : type === 'movie' ? 'sooraflix' : ''} />
+          <SkeletonSearchGrid count={18} accentColor={theme.accent} />
         )}
       </div>
     </div>

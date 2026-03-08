@@ -3921,6 +3921,29 @@ a:hover {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ── SkeletonSearchGrid (browse/search card grid placeholder) ── */
+.skeleton-search {
+  pointer-events: none;
+  animation: sectionFadeIn 0.35s ease-out;
+}
+.skeleton-search-card {
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.03);
+}
+.skeleton-search-card-img {
+  width: 100%;
+  aspect-ratio: 3/4;
+  background: rgba(255,255,255,0.06);
+  border-radius: 12px 12px 0 0;
+}
+.skeleton-search-card-info {
+  padding: 10px 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 /* Bottom actions */
 /* ===== GRID (for search results) ===== */
 .card-grid {
