@@ -141,8 +141,15 @@ export default function MangaHome() {
         const d = res.data || res;
         if (cancelled) return false;
 
+        // Validate that bundle actually has data
+        const hasHero = d.heroItems?.length > 0;
+        const hasSections = d.sections && Object.keys(d.sections).length > 0 &&
+          Object.values(d.sections).some((s) => s?.length > 0);
+
+        if (!hasHero && !hasSections) return false; // trigger individual fallback
+
         // Hero first — instant perceived load
-        if (d.heroItems?.length > 0) {
+        if (hasHero) {
           setHeroItems(d.heroItems);
         }
         setHeroReady(true);

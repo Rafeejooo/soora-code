@@ -9,38 +9,70 @@ const router = Router();
 
 /**
  * GET /manga/home?lang=en
- * Orchestrated manga home: MangaPill popular + Komiku trending.
+ * Orchestrated manga home — returns heroItems + sections matching frontend layout.
  */
 router.get('/home', async (req: Request, res: Response) => {
   try {
     const lang = String(req.query.lang || 'en');
 
-    const data = await cachedSWR(`manga:home:${lang}`, async () => {
-      // Popular manga via search (MangaPill doesn't have a trending endpoint)
-      const popularQueries = ['one piece', 'naruto', 'demon slayer', 'jujutsu kaisen', 'solo leveling', 'attack on titan'];
-      const randomQueries = popularQueries.sort(() => Math.random() - 0.5).slice(0, 3);
-
-      const [komikuTrend, ...searchResults] = await parallel(
-        consumet.komikuTrending().catch(() => null),
-        ...randomQueries.map((q) => consumet.mangaSearch(q, 'mangapill').catch(() => null)),
-      );
-
-      // Deduplicate popular results
-      const allPopular: any[] = [];
-      const seen = new Set<string>();
-      for (const result of searchResults) {
-        for (const item of extractResults(result)) {
-          if (!seen.has(item.id)) {
-            seen.add(item.id);
-            allPopular.push(item);
+    const data = await cachedSWR(`manga:home:v2:${lang}`, async () => {
+      // Section configs matching frontend POPULAR_QUERIES / KOMIKU_QUERIES
+      const SECTION_QUERIES: Record<string, string[]> = lang === 'id'
+        ? {
+            Trending: ['solo leveling', 'one piece', 'jujutsu kaisen'],
+            Action: ['demon slayer', 'naruto', 'chainsaw man'],
+            Romance: ['horimiya', 'kaguya sama', 'spy x family'],
+            Fantasy: ['mushoku tensei', 'overlord', 'shield hero'],
           }
-        }
+        : {
+            Trending: ['solo leveling', 'one piece', 'jujutsu kaisen'],
+            Action: ['demon slayer', 'attack on titan', 'chainsaw man'],
+            Romance: ['horimiya', 'kaguya sama', 'my dress up darling'],
+            Fantasy: ['mushoku tensei', 'shield hero', 'overlord'],
+          };
+
+      const isKomiku = lang === 'id';
+      const searchFn = isKomiku
+        ? (q: string) => consumet.komikuSearch(q).catch(() => null)
+        : (q: string) => consumet.mangaSearch(q, 'mangapill').catch(() => null);
+
+      // Fire ALL queries in parallel (12 total)
+      const allEntries: { label: string; query: string }[] = [];
+      for (const [label, queries] of Object.entries(SECTION_QUERIES)) {
+        for (const q of queries) allEntries.push({ label, query: q });
       }
 
-      return {
-        popular: allPopular,
-        komikuTrending: extractResults(komikuTrend),
-      };
+      const allResults = await parallel(...allEntries.map((e) => searchFn(e.query)));
+
+      // Group results by section label
+      const sections: Record<string, any[]> = {};
+      const seen = new Set<string>();
+      let idx = 0;
+
+      for (const [label, queries] of Object.entries(SECTION_QUERIES)) {
+        const items: any[] = [];
+        for (const _q of queries) {
+          const result = allResults[idx];
+          for (const item of extractResults(result)) {
+            if (!seen.has(item.id)) {
+              seen.add(item.id);
+              items.push(isKomiku ? { ...item, provider: 'komiku' } : item);
+            }
+          }
+          idx++;
+        }
+        sections[label] = items;
+      }
+
+      // Build hero from Trending (skip novels)
+      const heroItems = (sections['Trending'] || [])
+        .filter((i: any) => {
+          const t = (i.title || '').toLowerCase();
+          return !t.includes('novel') && !t.includes('light novel');
+        })
+        .slice(0, 6);
+
+      return { heroItems, sections };
     }, CACHE_TTL.HOME_BUNDLE);
 
     res.json(data);
