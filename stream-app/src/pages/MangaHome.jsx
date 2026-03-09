@@ -13,6 +13,7 @@ import {
 } from '../api';
 import { buildMangaUrl } from '../utils/seo';
 import Card from '../components/Card';
+import Top10Section from '../components/Top10Section';
 import SkeletonHero from '../components/SkeletonHero';
 import SkeletonSection from '../components/SkeletonSection';
 
@@ -511,6 +512,15 @@ export default function MangaHome() {
       {/* ── Default Sections (when no filter active) ── */}
       {!isFilterActive && (
         <>
+          {/* Top 10 Manga */}
+          {loadedSections.has('Trending') && sections['Trending']?.length > 0 && (
+            <Top10Section
+              title="Manga Saat Ini"
+              items={sections['Trending']}
+              type="manga"
+            />
+          )}
+
           {(selectedLang === 'id' ? KOMIKU_QUERIES : POPULAR_QUERIES).map((sec) => (
             loadedSections.has(sec.label) ? (
               sections[sec.label]?.length > 0 && (

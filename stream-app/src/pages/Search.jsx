@@ -213,8 +213,63 @@ export default function Search({ searchType }) {
       if (type === 'movie') {
         const movieLang = localStorage.getItem('soora_movie_lang') || 'en';
         if (movieLang === 'id') {
-          res = await searchLK21(q);
-          // searchLK21 already returns normalized items with provider, lk21Id, image, mediaType
+          // Try backend LK21 search first
+          res = await searchLK21(q).catch(() => ({ data: { results: [] } }));
+
+          // Fallback: client-side filter from home bundle if backend returned empty
+          if (!res.data?.results?.length) {
+            try {
+              const bundleRes = await getLK21HomeBundle();
+              const d = bundleRes.data || bundleRes;
+              const allItems = [];
+              const seen = new Set();
+              const addItems = (arr) => {
+                (arr || []).forEach((item) => {
+                  const id = item._id || item.id;
+                  if (id && !seen.has(id)) {
+                    seen.add(id);
+                    allItems.push({
+                      id,
+                      lk21Id: id,
+                      title: item.title || 'Unknown',
+                      image: item.posterImg || item.image || '',
+                      type: item.type === 'series' ? 'TV Series' : 'Movie',
+                      mediaType: item.type === 'series' ? 'tv' : 'movie',
+                      rating: item.rating || '',
+                      qualityResolution: item.qualityResolution || '',
+                      genres: item.genres || [],
+                      provider: 'lk21',
+                    });
+                  }
+                });
+              };
+              addItems(d.popularMovies);
+              addItems(d.recentMovies);
+              addItems(d.topRatedMovies);
+              addItems(d.latestSeries);
+              addItems(d.popularSeries);
+
+              // Fuzzy title matching
+              const qLower = q.toLowerCase();
+              const qWords = qLower.split(/\s+/).filter(Boolean);
+              const scored = allItems.map((item) => {
+                const title = (item.title || '').toLowerCase();
+                let score = 0;
+                if (title === qLower) score += 100;
+                else if (title.includes(qLower)) score += 50;
+                else {
+                  const matched = qWords.filter((w) => title.includes(w));
+                  score += matched.length * 15;
+                }
+                return { item, score };
+              });
+              const matched = scored
+                .filter((s) => s.score > 0)
+                .sort((a, b) => b.score - a.score)
+                .map((s) => s.item);
+              res = { data: { results: matched } };
+            } catch { /* bundle fallback also failed */ }
+          }
         } else {
           res = await searchGoku(q);
         }
@@ -246,16 +301,70 @@ export default function Search({ searchType }) {
 
     try {
       if (type === 'movie') {
-        const [movieRes, tvRes] = await Promise.all([
-          discoverByGenre(genreId, 1, 'movie'),
-          discoverByGenre(genreId, 1, 'tv'),
-        ]);
-        setResults([
-          ...(movieRes.data.results || []),
-          ...(tvRes.data.results || []),
-        ].sort((a, b) => (b.rating || 0) - (a.rating || 0)));
-        const g = tmdbGenres.find((x) => String(x.id) === String(genreId));
-        setGenreLabel(g ? g.name : '');
+        const movieLang = localStorage.getItem('soora_movie_lang') || 'en';
+        if (movieLang === 'id') {
+          // Indonesia mode: search LK21 by genre name
+          const genreName = typeof genreId === 'string' && isNaN(genreId)
+            ? genreId
+            : (tmdbGenres.find((x) => String(x.id) === String(genreId))?.name || genreId);
+          setGenreLabel(genreName);
+          const res = await searchLK21(genreName).catch(() => ({ data: { results: [] } }));
+          let items = res.data?.results || [];
+
+          // Fallback: filter from home bundle by genre
+          if (!items.length) {
+            try {
+              const bundleRes = await getLK21HomeBundle();
+              const d = bundleRes.data || bundleRes;
+              const allItems = [];
+              const seen = new Set();
+              const addItems = (arr) => {
+                (arr || []).forEach((item) => {
+                  const id = item._id || item.id;
+                  if (id && !seen.has(id)) {
+                    seen.add(id);
+                    allItems.push({
+                      id,
+                      lk21Id: id,
+                      title: item.title || 'Unknown',
+                      image: item.posterImg || item.image || '',
+                      type: item.type === 'series' ? 'TV Series' : 'Movie',
+                      mediaType: item.type === 'series' ? 'tv' : 'movie',
+                      rating: item.rating || '',
+                      genres: item.genres || [],
+                      provider: 'lk21',
+                    });
+                  }
+                });
+              };
+              addItems(d.popularMovies);
+              addItems(d.recentMovies);
+              addItems(d.topRatedMovies);
+              addItems(d.latestSeries);
+              addItems(d.popularSeries);
+
+              // Filter by genre match
+              const gLower = (typeof genreName === 'string' ? genreName : '').toLowerCase();
+              items = allItems.filter((item) =>
+                (item.genres || []).some((g) => (g || '').toLowerCase().includes(gLower))
+              );
+              // If genre filter gave nothing, show all items
+              if (!items.length) items = allItems;
+            } catch { /* bundle fallback also failed */ }
+          }
+          setResults(items);
+        } else {
+          const [movieRes, tvRes] = await Promise.all([
+            discoverByGenre(genreId, 1, 'movie'),
+            discoverByGenre(genreId, 1, 'tv'),
+          ]);
+          setResults([
+            ...(movieRes.data.results || []),
+            ...(tvRes.data.results || []),
+          ].sort((a, b) => (b.rating || 0) - (a.rating || 0)));
+          const g = tmdbGenres.find((x) => String(x.id) === String(genreId));
+          setGenreLabel(g ? g.name : '');
+        }
       } else if (type === 'manga') {
         setGenreLabel(genreId);
         const mangaLang = localStorage.getItem('soora_manga_lang') || 'en';

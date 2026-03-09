@@ -3252,6 +3252,115 @@ a:hover {
   scroll-snap-align: start;
 }
 
+/* ===== TOP 10 SECTION ===== */
+.top10-section {
+  margin-bottom: 2.5rem;
+}
+.top10-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 0.2em 0.55em;
+  border-radius: 6px;
+  margin-right: 0.6rem;
+  vertical-align: middle;
+  -webkit-text-fill-color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+.top10-row {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 0.5rem 4% 1.8rem;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.top10-row::-webkit-scrollbar {
+  display: none;
+}
+.top10-item {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  position: relative;
+  scroll-snap-align: start;
+}
+.top10-item .card {
+  flex: 0 0 150px;
+  margin-left: 30px;
+}
+.top10-rank {
+  position: absolute;
+  left: -8px;
+  bottom: 2px;
+  font-size: 6.5rem;
+  font-weight: 900;
+  line-height: 0.8;
+  color: transparent;
+  -webkit-text-stroke: 2.5px rgba(255,255,255,0.35);
+  text-shadow: 0 0 40px rgba(124, 92, 252, 0.15);
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  letter-spacing: -0.06em;
+  transition: all 0.3s ease;
+}
+.top10-item:hover .top10-rank {
+  -webkit-text-stroke: 2.5px var(--accent);
+  text-shadow: 0 0 60px var(--accent-glow);
+  transform: scale(1.05);
+}
+/* Double-digit rank (10) needs less space */
+.top10-rank[data-rank="10"] {
+  font-size: 5.5rem;
+  left: -16px;
+}
+
+/* SooraFlix accent for Top 10 */
+.sooraflix-page .top10-badge {
+  background: linear-gradient(135deg, #ff6b9d, #ee5a24);
+}
+.sooraflix-page .top10-item:hover .top10-rank {
+  -webkit-text-stroke: 2.5px #ff6b9d;
+  text-shadow: 0 0 60px rgba(255, 107, 157, 0.3);
+}
+
+/* SooraMics accent for Top 10 */
+.sooramics-page .top10-badge {
+  background: linear-gradient(135deg, #00d4aa, #00b894);
+}
+.sooramics-page .top10-item:hover .top10-rank {
+  -webkit-text-stroke: 2.5px #00d4aa;
+  text-shadow: 0 0 60px rgba(0, 212, 170, 0.3);
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .top10-item .card {
+    flex: 0 0 130px;
+    margin-left: 24px;
+  }
+  .top10-rank {
+    font-size: 5rem;
+    -webkit-text-stroke: 2px rgba(255,255,255,0.3);
+    left: -4px;
+  }
+  .top10-rank[data-rank="10"] {
+    font-size: 4rem;
+    left: -10px;
+  }
+}
+
 /* ===== CARD ===== */
 .card {
   background: var(--bg-card);

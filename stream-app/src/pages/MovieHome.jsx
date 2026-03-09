@@ -17,6 +17,7 @@ import {
 } from '../api';
 import { buildMovieUrl } from '../utils/seo';
 import Card from '../components/Card';
+import Top10Section from '../components/Top10Section';
 import SkeletonHero from '../components/SkeletonHero';
 import SkeletonSection from '../components/SkeletonSection';
 import CustomSelect from '../components/CustomSelect';
@@ -819,6 +820,15 @@ export default function MovieHome() {
       {/* ── Default Sections (when no filter active) ── */}
       {!isFilterActive && (
         <>
+          {/* Top 10 section */}
+          {sectionsReady && trendingMovies.length > 0 && (
+            <Top10Section
+              title={selectedLang === 'id' ? 'Film & Series Saat Ini' : 'Movies & Series Right Now'}
+              items={trendingMovies}
+              type="movie"
+            />
+          )}
+
           {/* Base sections — show skeleton while loading */}
           {sectionsReady ? (
             <>

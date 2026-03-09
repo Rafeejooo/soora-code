@@ -12,6 +12,7 @@ import {
 } from '../api';
 import { buildAnimeUrl } from '../utils/seo';
 import Card from '../components/Card';
+import Top10Section from '../components/Top10Section';
 import SkeletonHero from '../components/SkeletonHero';
 import SkeletonSection from '../components/SkeletonSection';
 import CustomSelect from '../components/CustomSelect';
@@ -619,6 +620,14 @@ export default function Home() {
             </>
           ) : subIndoData ? (
             <>
+              {/* Top 10 Sub Indo */}
+              {subIndoData.popular?.length > 0 && (
+                <Top10Section
+                  title="Anime Indonesia Saat Ini"
+                  items={subIndoData.popular}
+                  type="anime"
+                />
+              )}
               {subIndoData.ongoing?.length > 0 && (
                 <SubIndoSection title="Sedang Tayang" items={subIndoData.ongoing} navigate={navigate} />
               )}
@@ -647,6 +656,15 @@ export default function Home() {
       {/* ── Default Sections (when no filter active and not Sub Indo) ── */}
       {!isFilterActive && selectedLang !== 'id' && (
         <>
+          {/* Top 10 Anime global */}
+          {sectionsReady && topAiring.length > 0 && (
+            <Top10Section
+              title="Anime Saat Ini"
+              items={topAiring}
+              type="anime"
+            />
+          )}
+
           {/* Base sections — show skeleton while loading */}
           {sectionsReady ? (
             <>
