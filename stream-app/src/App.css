@@ -3155,12 +3155,60 @@ a:hover {
   margin-bottom: 2rem;
   position: relative;
 }
+
+/* ── Scroll-reveal: sections animate in when visible ── */
+.home-section {
+  opacity: 0;
+  transform: translateY(28px);
+  animation: sectionReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-play-state: paused;
+}
+.home-section.is-visible {
+  animation-play-state: running;
+}
+/* Fallback: if IntersectionObserver not used, show immediately after brief delay */
+.home-section:not(.is-visible) {
+  animation: sectionRevealFallback 0.5s 0.15s ease-out forwards;
+}
+@keyframes sectionReveal {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes sectionRevealFallback {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Ambient glow behind section header ── */
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 4%;
   margin-bottom: 0.9rem;
+  position: relative;
+}
+.section-header::before {
+  content: '';
+  position: absolute;
+  left: 4%;
+  top: 50%;
+  width: 120px;
+  height: 30px;
+  background: var(--accent);
+  opacity: 0.06;
+  filter: blur(25px);
+  border-radius: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.sooraflix-page .section-header::before {
+  background: #ff6b9d;
+  opacity: 0.08;
+}
+.sooramics-page .section-header::before {
+  background: #00d4aa;
+  opacity: 0.08;
 }
 .section-title {
   font-size: 1.3rem;
@@ -3252,6 +3300,40 @@ a:hover {
   scroll-snap-align: start;
 }
 
+/* ── Staggered card entrance animation ── */
+.card-row .card {
+  opacity: 0;
+  animation: cardSlideIn 0.45s ease-out forwards;
+}
+.card-row .card:nth-child(1)  { animation-delay: 0s; }
+.card-row .card:nth-child(2)  { animation-delay: 0.04s; }
+.card-row .card:nth-child(3)  { animation-delay: 0.08s; }
+.card-row .card:nth-child(4)  { animation-delay: 0.12s; }
+.card-row .card:nth-child(5)  { animation-delay: 0.16s; }
+.card-row .card:nth-child(6)  { animation-delay: 0.2s; }
+.card-row .card:nth-child(7)  { animation-delay: 0.24s; }
+.card-row .card:nth-child(8)  { animation-delay: 0.28s; }
+.card-row .card:nth-child(n+9) { animation-delay: 0.32s; }
+@keyframes cardSlideIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Top 10 row also gets staggered entrance */
+.top10-row .top10-item {
+  opacity: 0;
+  animation: cardSlideIn 0.45s ease-out forwards;
+}
+.top10-row .top10-item:nth-child(1)  { animation-delay: 0s; }
+.top10-row .top10-item:nth-child(2)  { animation-delay: 0.05s; }
+.top10-row .top10-item:nth-child(3)  { animation-delay: 0.1s; }
+.top10-row .top10-item:nth-child(4)  { animation-delay: 0.15s; }
+.top10-row .top10-item:nth-child(5)  { animation-delay: 0.2s; }
+.top10-row .top10-item:nth-child(6)  { animation-delay: 0.25s; }
+.top10-row .top10-item:nth-child(7)  { animation-delay: 0.3s; }
+.top10-row .top10-item:nth-child(8)  { animation-delay: 0.35s; }
+.top10-row .top10-item:nth-child(n+9) { animation-delay: 0.4s; }
+
 /* ===== TOP 10 SECTION ===== */
 .top10-section {
   margin-bottom: 2.5rem;
@@ -3274,7 +3356,7 @@ a:hover {
 }
 .top10-row {
   display: flex;
-  gap: 0.4rem;
+  gap: 0.5rem;
   overflow-x: auto;
   overflow-y: visible;
   padding: 0.5rem 4% 1.8rem;
@@ -3293,37 +3375,37 @@ a:hover {
   align-items: flex-end;
   position: relative;
   scroll-snap-align: start;
+  padding-left: 48px;
 }
 .top10-item .card {
-  flex: 0 0 150px;
-  margin-left: 30px;
+  flex: 0 0 185px;
 }
 .top10-rank {
   position: absolute;
-  left: -8px;
-  bottom: 2px;
-  font-size: 6.5rem;
+  left: 0;
+  bottom: 0;
+  font-size: 8rem;
   font-weight: 900;
-  line-height: 0.8;
+  line-height: 0.78;
   color: transparent;
-  -webkit-text-stroke: 2.5px rgba(255,255,255,0.35);
-  text-shadow: 0 0 40px rgba(124, 92, 252, 0.15);
+  -webkit-text-stroke: 3px rgba(255,255,255,0.25);
   z-index: 1;
   pointer-events: none;
   user-select: none;
   font-family: 'Inter', 'Segoe UI', sans-serif;
   letter-spacing: -0.06em;
-  transition: all 0.3s ease;
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 0 20px rgba(124, 92, 252, 0.08));
 }
 .top10-item:hover .top10-rank {
-  -webkit-text-stroke: 2.5px var(--accent);
-  text-shadow: 0 0 60px var(--accent-glow);
-  transform: scale(1.05);
+  -webkit-text-stroke: 3px var(--accent);
+  filter: drop-shadow(0 0 30px var(--accent-glow));
+  transform: scale(1.08) translateY(-4px);
 }
-/* Double-digit rank (10) needs less space */
+/* Double-digit rank (10) */
 .top10-rank[data-rank="10"] {
-  font-size: 5.5rem;
-  left: -16px;
+  font-size: 6rem;
+  left: -6px;
 }
 
 /* SooraFlix accent for Top 10 */
@@ -3331,8 +3413,8 @@ a:hover {
   background: linear-gradient(135deg, #ff6b9d, #ee5a24);
 }
 .sooraflix-page .top10-item:hover .top10-rank {
-  -webkit-text-stroke: 2.5px #ff6b9d;
-  text-shadow: 0 0 60px rgba(255, 107, 157, 0.3);
+  -webkit-text-stroke: 3px #ff6b9d;
+  filter: drop-shadow(0 0 30px rgba(255, 107, 157, 0.3));
 }
 
 /* SooraMics accent for Top 10 */
@@ -3340,24 +3422,25 @@ a:hover {
   background: linear-gradient(135deg, #00d4aa, #00b894);
 }
 .sooramics-page .top10-item:hover .top10-rank {
-  -webkit-text-stroke: 2.5px #00d4aa;
-  text-shadow: 0 0 60px rgba(0, 212, 170, 0.3);
+  -webkit-text-stroke: 3px #00d4aa;
+  filter: drop-shadow(0 0 30px rgba(0, 212, 170, 0.3));
 }
 
 /* Mobile adjustments */
 @media (max-width: 600px) {
+  .top10-item {
+    padding-left: 38px;
+  }
   .top10-item .card {
-    flex: 0 0 130px;
-    margin-left: 24px;
+    flex: 0 0 145px;
   }
   .top10-rank {
-    font-size: 5rem;
-    -webkit-text-stroke: 2px rgba(255,255,255,0.3);
-    left: -4px;
+    font-size: 6rem;
+    -webkit-text-stroke: 2.5px rgba(255,255,255,0.22);
   }
   .top10-rank[data-rank="10"] {
-    font-size: 4rem;
-    left: -10px;
+    font-size: 4.8rem;
+    left: -4px;
   }
 }
 
@@ -3371,14 +3454,51 @@ a:hover {
   border: 1px solid rgba(255,255,255,0.06);
   position: relative;
 }
+.card::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 15px;
+  padding: 1px;
+  background: linear-gradient(135deg, transparent 40%, var(--accent) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+.card:hover::after,
+.card.card-hovered::after {
+  opacity: 0.6;
+}
 .card:hover,
 .card.card-hovered {
   transform: translateY(-10px) scale(1.04);
-  border-color: rgba(124, 92, 252, 0.3);
+  border-color: transparent;
   box-shadow:
     0 20px 50px rgba(0, 0, 0, 0.5),
     0 0 30px rgba(124, 92, 252, 0.12);
   z-index: 20;
+}
+.sooraflix-page .card::after {
+  background: linear-gradient(135deg, transparent 40%, #ff6b9d 100%);
+}
+.sooraflix-page .card:hover,
+.sooraflix-page .card.card-hovered {
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(255, 107, 157, 0.12);
+}
+.sooramics-page .card::after {
+  background: linear-gradient(135deg, transparent 40%, #00d4aa 100%);
+}
+.sooramics-page .card:hover,
+.sooramics-page .card.card-hovered {
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(0, 212, 170, 0.12);
 }
 .card-img-wrapper {
   position: relative;
