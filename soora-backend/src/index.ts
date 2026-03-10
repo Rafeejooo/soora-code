@@ -10,6 +10,7 @@ import animeRoutes from './routes/anime';
 import movieRoutes from './routes/movies';
 import mangaRoutes from './routes/manga';
 import doujindesuRoutes from './routes/doujindesu';
+import komikplusRoutes from './routes/komikplus';
 import proxyRoutes from './routes/proxy';
 
 const app = express();
@@ -66,6 +67,7 @@ app.use('/anime', animeRoutes);
 app.use('/movies', movieRoutes);
 app.use('/manga', mangaRoutes);
 app.use('/doujindesu', doujindesuRoutes);
+app.use('/komikplus', komikplusRoutes);
 
 // ========== PROXY ROUTES ==========
 app.use('/proxy', proxyRoutes);

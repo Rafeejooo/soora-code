@@ -65,7 +65,7 @@ export const getBookThumb = (book) => {
 // Legacy proxy helper (kept as last-resort fallback)
 export const komikImgProxy = (url) => {
   if (!url) return '';
-  return `/api/komikplus-img?url=${encodeURIComponent(url)}`;
+  return `/api/komikplus/img?url=${encodeURIComponent(url)}`;
 };
 
 // ─── API calls (JSON only — these still need proxy for CORS) ───

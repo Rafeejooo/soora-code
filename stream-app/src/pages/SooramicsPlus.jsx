@@ -10,6 +10,8 @@ import {
 } from '../api';
 import { addToMyList, removeFromMyList, isInMyList, getMyList } from '../utils/mylist';
 import Loading from '../components/Loading';
+import SkeletonHero from '../components/SkeletonHero';
+import SkeletonSection from '../components/SkeletonSection';
 import CustomSelect from '../components/CustomSelect';
 import Landing from './Landing';
 
@@ -1629,7 +1631,14 @@ export default function SooramicsPlus() {
      ═══════════════════════════════════════════════════════════ */
   if (contentMode === 'doujindesu' && (view === 'home' || (!['browse', 'mylist', 'detail', 'reader', 'landing'].includes(view)))) {
     if (djLatestLoading && djLatest.length === 0) {
-      return <div className="home-page sooramicsplus-page">{NavBar}<Loading text="Loading doujindesu..." /></div>;
+      return (
+        <div className="home-page sooramicsplus-page">
+          {NavBar}
+          <SkeletonHero theme="sooramicsplus" />
+          <SkeletonSection />
+          <SkeletonSection />
+        </div>
+      );
     }
 
     return (
@@ -1810,7 +1819,13 @@ export default function SooramicsPlus() {
      VIEW: HOME (nhentai — original / default)
      ═══════════════════════════════════════════════════════════ */
   if (homeLoading && homeRecent.length === 0) return (
-    <div className="home-page sooramicsplus-page">{NavBar}<Loading text="Loading sooramics+..." /></div>
+    <div className="home-page sooramicsplus-page">
+      {NavBar}
+      <SkeletonHero theme="sooramicsplus" />
+      <SkeletonSection />
+      <SkeletonSection />
+      <SkeletonSection />
+    </div>
   );
 
   const hero = heroItems[heroIdx];

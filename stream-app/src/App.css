@@ -4117,6 +4117,9 @@ a:hover {
 .skeleton-hero-sooramics .skeleton-hero-btn:first-child {
   background: rgba(0, 212, 170, 0.18);
 }
+.skeleton-hero-sooramicsplus .skeleton-hero-btn:first-child {
+  background: rgba(255, 107, 157, 0.18);
+}
 
 /* Mobile adjustments */
 @media (max-width: 600px) {
