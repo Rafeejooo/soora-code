@@ -3,6 +3,7 @@ import * as consumet from '../services/consumet';
 import * as tmdb from '../services/tmdb';
 import { cached, cachedSWR, CACHE_TTL } from '../services/cache';
 import { parallel, normalizeGoku, normalizeLK21, extractResults } from '../utils/normalize';
+import { markAvailability, filterAvailable } from '../services/availability';
 
 const qs = (v: any): string => String(v ?? '');
 
@@ -65,16 +66,16 @@ router.get('/home', async (_req: Request, res: Response) => {
       });
 
       return {
-        trending: trendingRes?.results || [],
-        popularMovies: popularMoviesRes?.results || [],
-        popularTV: popularTVRes?.results || [],
-        gokuTrendingMovies: (Array.isArray(gokuTrendMovie) ? gokuTrendMovie : extractResults(gokuTrendMovie)).map(normalizeGoku),
-        gokuTrendingTV: (Array.isArray(gokuTrendTV) ? gokuTrendTV : extractResults(gokuTrendTV)).map(normalizeGoku),
-        gokuRecentMovies: (Array.isArray(gokuRecentMovie) ? gokuRecentMovie : extractResults(gokuRecentMovie)).map(normalizeGoku),
-        gokuRecentTV: (Array.isArray(gokuRecentTV) ? gokuRecentTV : extractResults(gokuRecentTV)).map(normalizeGoku),
-        lk21Popular: (Array.isArray(lk21PopularRes) ? lk21PopularRes : []).map(normalizeLK21),
-        lk21Recent: (Array.isArray(lk21RecentRes) ? lk21RecentRes : []).map(normalizeLK21),
-        lk21Series: (Array.isArray(lk21SeriesRes) ? lk21SeriesRes : []).map(normalizeLK21),
+        trending: filterAvailable('movie', trendingRes?.results || []),
+        popularMovies: filterAvailable('movie', popularMoviesRes?.results || []),
+        popularTV: filterAvailable('movie', popularTVRes?.results || []),
+        gokuTrendingMovies: filterAvailable('movie', (Array.isArray(gokuTrendMovie) ? gokuTrendMovie : extractResults(gokuTrendMovie)).map(normalizeGoku)),
+        gokuTrendingTV: filterAvailable('movie', (Array.isArray(gokuTrendTV) ? gokuTrendTV : extractResults(gokuTrendTV)).map(normalizeGoku)),
+        gokuRecentMovies: filterAvailable('movie', (Array.isArray(gokuRecentMovie) ? gokuRecentMovie : extractResults(gokuRecentMovie)).map(normalizeGoku)),
+        gokuRecentTV: filterAvailable('movie', (Array.isArray(gokuRecentTV) ? gokuRecentTV : extractResults(gokuRecentTV)).map(normalizeGoku)),
+        lk21Popular: filterAvailable('movie', (Array.isArray(lk21PopularRes) ? lk21PopularRes : []).map(normalizeLK21)),
+        lk21Recent: filterAvailable('movie', (Array.isArray(lk21RecentRes) ? lk21RecentRes : []).map(normalizeLK21)),
+        lk21Series: filterAvailable('movie', (Array.isArray(lk21SeriesRes) ? lk21SeriesRes : []).map(normalizeLK21)),
         genres,
       };
     }, CACHE_TTL.HOME_BUNDLE);
@@ -222,6 +223,11 @@ router.get('/stream', async (req: Request, res: Response) => {
       }
       return { error: 'No streaming sources found', sources: [] };
     }, CACHE_TTL.STREAM);
+
+    // Track availability based on stream result
+    if (tmdbId) {
+      markAvailability('movie', tmdbId, (data?.sources?.length || 0) > 0);
+    }
 
     res.json(data);
   } catch (err: any) {

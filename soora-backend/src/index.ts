@@ -12,6 +12,7 @@ import mangaRoutes from './routes/manga';
 import doujindesuRoutes from './routes/doujindesu';
 import komikplusRoutes from './routes/komikplus';
 import proxyRoutes from './routes/proxy';
+import availabilityRoutes from './routes/availability';
 
 const app = express();
 
@@ -71,6 +72,9 @@ app.use('/komikplus', komikplusRoutes);
 
 // ========== PROXY ROUTES ==========
 app.use('/proxy', proxyRoutes);
+
+// ========== AVAILABILITY TRACKING ==========
+app.use('/availability', availabilityRoutes);
 
 // Manga image proxy (separate mount point)
 import { default as proxyRouter } from './routes/proxy';

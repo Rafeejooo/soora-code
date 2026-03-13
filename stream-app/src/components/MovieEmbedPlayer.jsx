@@ -45,11 +45,11 @@ export default function MovieEmbedPlayer({ tmdbId, mediaType = 'movie', season =
   const [activeServer, setActiveServer] = useState(0);
   const [iframeKey, setIframeKey] = useState(0);
   const [showNextHint, setShowNextHint] = useState(false);
+  const [shieldActive, setShieldActive] = useState(true);
   const timerRef = useRef(null);
 
   const server = availableServers[activeServer] || availableServers[0];
   const url = server?.buildUrl(tmdbId, mediaType, season, episode);
-  const isAutoEmbed = server?.name === 'AutoEmbed';
 
   const startTimer = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -60,6 +60,7 @@ export default function MovieEmbedPlayer({ tmdbId, mediaType = 'movie', season =
   useEffect(() => {
     setIframeKey((k) => k + 1);
     setShowNextHint(false);
+    setShieldActive(true);
     startTimer();
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [activeServer, startTimer]);
@@ -101,8 +102,16 @@ export default function MovieEmbedPlayer({ tmdbId, mediaType = 'movie', season =
           style={{ width: '100%', height: '100%', border: 'none' }}
           title="Movie Player"
           referrerPolicy="no-referrer"
-          {...(isAutoEmbed ? { sandbox: 'allow-same-origin allow-scripts allow-forms' } : {})}
+          sandbox="allow-same-origin allow-scripts allow-forms allow-presentation"
         />
+        {shieldActive && (
+          <div
+            className="embed-click-shield"
+            onClick={() => setShieldActive(false)}
+          >
+            <span className="embed-shield-text">Click to activate player</span>
+          </div>
+        )}
       </div>
 
       {showNextHint && availableServers.length > 1 && (

@@ -27,6 +27,7 @@ import {
   getLK21SeriesInfo,
   getLK21MovieStreams,
   getLK21SeriesStreams,
+  reportAvailability,
 } from '../api';
 import Card from '../components/Card';
 import Loading from '../components/Loading';
@@ -661,6 +662,8 @@ export default function Watch() {
             console.info('[Watch] No sources and no embed IDs, trying Sub Indo');
             setUseSubIndo(true);
             setSubLang('id');
+            // Report: no HLS, no embed IDs — very likely unavailable
+            if (animeId) reportAvailability('anime', animeId, false);
           }
         }
       } catch (err) {
@@ -675,6 +678,7 @@ export default function Watch() {
           console.info('[Watch] No embed IDs available, trying Sub Indo');
           setUseSubIndo(true);
           setSubLang('id');
+          if (animeId) reportAvailability('anime', animeId, false);
         }
         setError(null); // Clear error since we're auto-switching
       } finally {

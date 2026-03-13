@@ -1204,4 +1204,11 @@ export const getDoujindesuByGenre = (slug, page = 1) =>
     return res;
   }, DOUJINDESU_CACHE_TTL);
 
+// ========== AVAILABILITY REPORTING ==========
+
+/** Report content availability to backend (fire-and-forget) */
+export const reportAvailability = (type, id, available) => {
+  api.post('/availability/report', { type, id, available }).catch(() => {});
+};
+
 export default api;

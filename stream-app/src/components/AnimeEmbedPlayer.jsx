@@ -71,12 +71,13 @@ export default function AnimeEmbedPlayer({ malId, alId, episode = 1 }) {
   const [iframeKey, setIframeKey] = useState(0);
   const [showNextHint, setShowNextHint] = useState(false);
   const [autoTried, setAutoTried] = useState(new Set());
+  const [shieldActive, setShieldActive] = useState(true);
   const timerRef = useRef(null);
   const iframeRef = useRef(null);
 
   const server = availableServers[activeServer] || availableServers[0];
   const url = server?.buildUrl(malId, alId, episode);
-  const isAutoEmbed = server?.name === 'EmbeAnime' || server?.name === 'AnimeEmbed';
+  const isAniCrush = server?.name === 'AniCrush';
 
   // Start a countdown — if it fires, show "try next" hint
   const startTimer = useCallback(() => {
@@ -87,10 +88,11 @@ export default function AnimeEmbedPlayer({ malId, alId, episode = 1 }) {
     }, LOAD_TIMEOUT * 1000);
   }, []);
 
-  // When server changes, force iframe reload + restart timer
+  // When server changes, force iframe reload + restart timer + reset click shield
   useEffect(() => {
     setIframeKey((k) => k + 1);
     setShowNextHint(false);
+    setShieldActive(true);
     startTimer();
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [activeServer, startTimer]);
@@ -145,8 +147,18 @@ export default function AnimeEmbedPlayer({ malId, alId, episode = 1 }) {
           style={{ width: '100%', height: '100%', border: 'none' }}
           title="Anime Player"
           referrerPolicy="no-referrer"
-          {...(isAutoEmbed ? { sandbox: 'allow-same-origin allow-scripts allow-forms' } : {})}
+          sandbox={isAniCrush
+            ? 'allow-same-origin allow-scripts allow-forms allow-presentation allow-top-navigation-by-user-activation'
+            : 'allow-same-origin allow-scripts allow-forms allow-presentation'}
         />
+        {shieldActive && (
+          <div
+            className="embed-click-shield"
+            onClick={() => setShieldActive(false)}
+          >
+            <span className="embed-shield-text">Click to activate player</span>
+          </div>
+        )}
       </div>
 
       {/* Prompt to try another server if current one seems stuck */}
