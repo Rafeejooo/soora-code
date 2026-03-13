@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express';
 import * as consumet from '../services/consumet';
 import { cached, cachedSWR, CACHE_TTL, shortCache } from '../services/cache';
 import { parallel, deduplicateAnime, extractResults } from '../utils/normalize';
-import { markAvailability, filterAvailable } from '../services/availability';
 
 const qs = (v: any): string => String(v ?? '');
 
@@ -55,10 +54,10 @@ router.get('/home', async (_req: Request, res: Response) => {
       });
 
       return {
-        spotlight: filterAvailable('anime', filterPlayable(extractResults(spotlight))),
-        recentEpisodes: filterAvailable('anime', filterPlayable(extractResults(recentEps))),
-        mostPopular: filterAvailable('anime', filterPlayable(extractResults(mostPopular))),
-        topAiring: filterAvailable('anime', filterPlayable(extractResults(topAiring))),
+        spotlight: filterPlayable(extractResults(spotlight)),
+        recentEpisodes: filterPlayable(extractResults(recentEps)),
+        mostPopular: filterPlayable(extractResults(mostPopular)),
+        topAiring: filterPlayable(extractResults(topAiring)),
         genres,
       };
     }, CACHE_TTL.HOME_BUNDLE);
@@ -178,7 +177,6 @@ router.get('/watch/:episodeId', async (req: Request, res: Response) => {
       const result = await consumet.animeWatch(episodeId, 'animekai', { ...(server && { server }), ...(category && { category }) });
       if (result?.sources?.length > 0) {
         shortCache.set(cacheKey, result, CACHE_TTL.STREAM);
-        markAvailability('anime', episodeId.split('$')[0], true);
         return res.json(result);
       }
     } catch { /* continue */ }
@@ -217,12 +215,10 @@ router.get('/watch/:episodeId', async (req: Request, res: Response) => {
     const fallbackResult = hiResult || paheResult;
     if (fallbackResult) {
       shortCache.set(cacheKey, fallbackResult, CACHE_TTL.STREAM);
-      markAvailability('anime', episodeId.split('$')[0], true);
       return res.json(fallbackResult);
     }
 
-    // All providers failed — mark unavailable, do NOT cache this
-    markAvailability('anime', episodeId.split('$')[0], false);
+    // All providers failed — do NOT cache this
     res.json({ error: 'All providers failed', sources: [] });
   } catch (err: any) {
     console.error('[anime/watch]', err.message);

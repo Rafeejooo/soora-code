@@ -14,9 +14,14 @@ const saveList = (list) => {
   window.dispatchEvent(new Event('mylist-changed'));
 };
 
+const triggerBuddyHappy = () => {
+  window.dispatchEvent(new CustomEvent('buddy-mood', { detail: 'happy' }));
+};
+
 export const addToMyList = (item) => {
   const list = getList();
   if (list.some((i) => i.id === item.id && i.listType === item.listType)) return;
+  triggerBuddyHappy();
   list.unshift({
     id: item.id,
     title: item.title,

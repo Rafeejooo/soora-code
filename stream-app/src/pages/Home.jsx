@@ -12,10 +12,13 @@ import {
 } from '../api';
 import { buildAnimeUrl } from '../utils/seo';
 import Card from '../components/Card';
+import MoodPicker from '../components/MoodPicker';
 import Top10Section from '../components/Top10Section';
 import SkeletonHero from '../components/SkeletonHero';
 import SkeletonSection from '../components/SkeletonSection';
 import CustomSelect from '../components/CustomSelect';
+import { useAuth } from '../context/AuthContext';
+import { getInProgress } from '../utils/watchHistory';
 
 const APP_VERSION = 'v3.2.0';
 const BUILD_DATE = '2025-06-18';
@@ -103,8 +106,18 @@ export default function Home() {
 
   const navigate = useNavigate();
   const heroInterval = useRef(null);
+  const { user } = useAuth();
+  const [continueWatching, setContinueWatching] = useState([]);
 
   const isFilterActive = filterType || filterSeason || filterYear;
+
+  // Load Continue Watching
+  useEffect(() => {
+    getInProgress(user?.id).then((items) => {
+      const animeItems = items.filter((i) => i.type === 'anime');
+      setContinueWatching(animeItems.slice(0, 6));
+    }).catch(() => {});
+  }, [user?.id]);
 
   // Persist anime language choice
   useEffect(() => {
@@ -650,6 +663,44 @@ export default function Home() {
               )}
             </>
           ) : null}
+        </div>
+      )}
+
+      {/* ── Mood Picker ── */}
+      {!isFilterActive && Object.keys(genreData).length > 0 && (
+        <MoodPicker
+          genreData={genreData}
+          mode="anime"
+          onNavigate={(item) => navigate(`/anime/${item.id}`)}
+        />
+      )}
+
+      {/* ── Continue Watching ── */}
+      {continueWatching.length > 0 && !isFilterActive && selectedLang !== 'id' && (
+        <div className="home-section continue-watching-section">
+          <div className="section-header">
+            <h2 className="section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18" style={{marginRight:6,verticalAlign:'middle'}}>
+                <circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>
+              </svg>
+              Lanjutkan Nonton
+            </h2>
+          </div>
+          <div className="card-row">
+            {continueWatching.map((item) => (
+              <div
+                key={`${item.id}-${item.episodeNumber}`}
+                onClick={() => navigate(item.watchUrl || `/watch/anime?episodeId=${item.episodeId}&animeId=${item.id}&ep=${item.episodeNumber || 1}`)}
+                style={{ cursor: 'pointer' }}
+              >
+                <Card
+                  item={{ id: item.id, title: item.title, image: item.image, type: item.type }}
+                  type="anime"
+                  progress={item.progress}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
