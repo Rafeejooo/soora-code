@@ -236,6 +236,9 @@ export default function MangaReader() {
   if (error) return <div className="error-msg manga-error">{error}<br/><button className="manga-retry-btn" onClick={() => window.location.reload()}>Retry</button></div>;
 
   const chapterTitle = currentChapter?.title || chapterId.replace(/.*chapter[_-]?/i, 'Chapter ') || 'Chapter';
+  const chapterNum = currentChapter?.chapter ||
+    (currentChapter?.title || chapterId || '').match(/([\d.]+)/)?.[1] ||
+    (currentIdx >= 0 ? currentIdx + 1 : '?');
   const mangaTitle = mangaInfo ? normalizeMangaTitle(mangaInfo.title) : '';
   const isMangaDex = provider === 'mangadex';
 
@@ -377,7 +380,7 @@ export default function MangaReader() {
             Prev
           </button>
           <span className="mangareader-page-indicator">
-            {chapterTitle}
+            Chap {chapterNum}
           </span>
           <button
             className="mangareader-nav-btn"
