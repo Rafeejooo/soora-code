@@ -6905,25 +6905,6 @@ a:hover {
   height: 100%;
   border: none;
 }
-.embed-click-shield {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.15);
-  transition: opacity 0.2s;
-}
-.embed-shield-text {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.9rem;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 8px 16px;
-  border-radius: 8px;
-  pointer-events: none;
-}
 .embed-hint {
   display: flex;
   align-items: center;

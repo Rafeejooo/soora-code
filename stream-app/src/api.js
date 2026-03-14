@@ -1204,5 +1204,4 @@ export const getDoujindesuByGenre = (slug, page = 1) =>
     return res;
   }, DOUJINDESU_CACHE_TTL);
 
-
 export default api;
