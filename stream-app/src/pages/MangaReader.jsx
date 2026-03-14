@@ -377,7 +377,7 @@ export default function MangaReader() {
             Prev
           </button>
           <span className="mangareader-page-indicator">
-            {currentPage + 1} / {pages.length}
+            {chapterTitle}
           </span>
           <button
             className="mangareader-nav-btn"
