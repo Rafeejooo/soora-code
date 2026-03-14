@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getMyList } from '../utils/mylist';
-import { getStreak } from '../utils/streakTracker';
 
 export default function Navbar({ section = 'sooranime' }) {
   const navigate = useNavigate();
@@ -9,7 +8,6 @@ export default function Navbar({ section = 'sooranime' }) {
   const [scrolled, setScrolled] = useState(false);
   const [listCount, setListCount] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [streak, setStreak] = useState(0);
 
   const isSooraflix = section === 'sooraflix';
   const isSooramics = section === 'sooramics';
@@ -22,14 +20,6 @@ export default function Navbar({ section = 'sooranime' }) {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  useEffect(() => {
-    const { currentStreak } = getStreak();
-    setStreak(currentStreak);
-    const handler = () => setStreak(getStreak().currentStreak);
-    window.addEventListener('badge-unlocked', handler);
-    return () => window.removeEventListener('badge-unlocked', handler);
   }, []);
 
   useEffect(() => {
@@ -138,11 +128,6 @@ export default function Navbar({ section = 'sooranime' }) {
             <a onClick={() => handleNav('/anime/search')} className={isActive('/anime/search') ? 'active' : ''}>Browse</a>
             <a onClick={() => handleNav('/')} className="nav-exit">Keluar</a>
           </>
-        )}
-        {streak >= 2 && (
-          <span className="nav-streak" title={`${streak} hari berturut-turut nonton!`}>
-            🔥 {streak}
-          </span>
         )}
         <a onClick={() => handleNav(mylistPath)} className={`nav-mylist ${location.pathname.includes('/mylist') ? 'active' : ''}`}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>

@@ -4,9 +4,6 @@ import Navbar from './components/Navbar';
 import MiniPlayer from './components/MiniPlayer';
 import { MiniPlayerProvider } from './context/MiniPlayerContext';
 import { AuthProvider } from './context/AuthContext';
-import { BuddyProvider } from './context/BuddyContext';
-import SooraBuddy from './components/SooraBuddy';
-import BadgeToast from './components/BadgeToast';
 import { LegacyAnimeRedirect, LegacyMovieRedirect, LegacyMangaRedirect } from './components/LegacyRedirect';
 import { usePWAMobileOptimizations } from './hooks/usePWAMobile';
 import './App.css';
@@ -109,11 +106,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <BuddyProvider>
-          <AppLayout />
-          <SooraBuddy />
-          <BadgeToast />
-        </BuddyProvider>
+        <AppLayout />
       </AuthProvider>
     </BrowserRouter>
   );

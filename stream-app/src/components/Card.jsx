@@ -6,7 +6,7 @@ import { mangaImgProxy, getMangaContentType } from '../api';
 import { buildAnimeUrl, buildMovieUrl, buildMangaUrl } from '../utils/seo';
 import CardPopup from './CardPopup';
 
-export default function Card({ item, type = 'anime', progress = null }) {
+export default function Card({ item, type = 'anime' }) {
   const navigate = useNavigate();
   const [inList, setInList] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -234,13 +234,6 @@ export default function Card({ item, type = 'anime', progress = null }) {
           )}
         </div>
       </div>
-
-      {/* Progress bar for Continue Watching */}
-      {progress !== null && progress > 0 && (
-        <div className="card-progress-bar">
-          <div className="card-progress-fill" style={{ width: `${Math.min(progress * 100, 100)}%` }} />
-        </div>
-      )}
 
       {showPopup && popupStyle && createPortal(
         <CardPopup

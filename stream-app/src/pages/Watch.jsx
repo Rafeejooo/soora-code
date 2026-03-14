@@ -5,10 +5,6 @@ import AnimeEmbedPlayer from '../components/AnimeEmbedPlayer';
 import MovieEmbedPlayer from '../components/MovieEmbedPlayer';
 import SubIndoPlayer from '../components/SubIndoPlayer';
 import { useMiniPlayer } from '../context/MiniPlayerContext';
-import { useAuth } from '../context/AuthContext';
-import { useBuddy } from '../context/BuddyContext';
-import { saveProgress, getEntry } from '../utils/watchHistory';
-import { recordWatch } from '../utils/streakTracker';
 import {
   watchAnimeEpisode,
   getAnimeInfo,
@@ -111,104 +107,9 @@ export default function Watch() {
   const playerRef = useRef(null);
   const lastWorkingSource = useRef(null); // track last source that played successfully
   const userForcedDirect = useRef(false); // true when user explicitly clicks Direct pill
-  const saveIntervalRef = useRef(null);
-  const streakTimerRef = useRef(null);
 
   // Effective TMDB ID — from URL param or resolved from Goku enrichment
   const effectiveTmdbId = tmdbId || resolvedTmdbId;
-
-  // Watch history & streak
-  const { user } = useAuth();
-  const { setMoodFromGenre } = useBuddy();
-  const [resumePrompt, setResumePrompt] = useState(null); // { time, label }
-
-  // Check for saved progress when content loads (for resume prompt)
-  useEffect(() => {
-    if (loading || !currentSource) return;
-    const contentId = isAnime ? (animeId || episodeId) : (effectiveTmdbId || gokuId || lk21Id);
-    const epNumber = isAnime ? (epNum ? parseInt(epNum) : undefined) : (isMovie && mediaType === 'tv' ? episode : undefined);
-    if (!contentId) return;
-
-    getEntry(contentId, epNumber, user?.id).then((entry) => {
-      if (entry && entry.currentTime > 30 && entry.progress < 0.90) {
-        const minutes = Math.floor(entry.currentTime / 60);
-        const seconds = Math.floor(entry.currentTime % 60);
-        setResumePrompt({ time: entry.currentTime, label: `${minutes}:${seconds.toString().padStart(2, '0')}` });
-      }
-    }).catch(() => {});
-  }, [loading, currentSource]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Save progress every 15 seconds while playing
-  useEffect(() => {
-    if (saveIntervalRef.current) clearInterval(saveIntervalRef.current);
-    if (!currentSource) return;
-
-    const contentId = isAnime ? (animeId || episodeId) : (effectiveTmdbId || gokuId || lk21Id);
-    if (!contentId) return;
-
-    const contentTitle = isAnime
-      ? (animeInfo?.title?.english || animeInfo?.title?.romaji || animeInfo?.title || title)
-      : title;
-    const contentImage = isAnime
-      ? (animeInfo?.image || animeInfo?.cover)
-      : (movieDetails?.poster_path ? `https://image.tmdb.org/t/p/w300${movieDetails.poster_path}` : '');
-    const contentType = isAnime ? 'anime' : (mediaType === 'tv' ? 'tv' : 'movie');
-
-    const epNumber = isAnime
-      ? (epNum ? parseInt(epNum) : undefined)
-      : (mediaType === 'tv' ? episode : undefined);
-
-    saveIntervalRef.current = setInterval(() => {
-      const videoEl = playerRef.current;
-      if (!videoEl) return;
-      const currentTime = videoEl.getCurrentTime?.() || 0;
-      const duration = videoEl.getDuration?.() || 0;
-      if (currentTime < 5 || duration < 10) return;
-
-      const progress = Math.min(currentTime / duration, 1);
-      saveProgress({
-        id: contentId,
-        title: contentTitle,
-        image: contentImage,
-        type: contentType,
-        episodeId: isAnime ? episodeId : undefined,
-        episodeNumber: epNumber,
-        progress,
-        currentTime,
-        duration,
-        watchUrl: location.pathname + location.search,
-        genre: animeInfo?.genres?.[0]?.name || '',
-      }, user?.id);
-
-      // Mark completed when > 90%
-      if (progress > 0.90) {
-        clearInterval(saveIntervalRef.current);
-        saveProgress({
-          id: contentId, title: contentTitle, image: contentImage, type: contentType,
-          episodeId: isAnime ? episodeId : undefined, episodeNumber: epNumber,
-          progress: 1, currentTime: duration, duration,
-          watchUrl: location.pathname + location.search,
-        }, user?.id);
-      }
-    }, 15000);
-
-    return () => {
-      if (saveIntervalRef.current) clearInterval(saveIntervalRef.current);
-    };
-  }, [currentSource, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Record streak after 5 minutes of watching
-  useEffect(() => {
-    if (streakTimerRef.current) clearTimeout(streakTimerRef.current);
-    if (!currentSource) return;
-    const watchType = isAnime ? 'anime' : (mediaType === 'tv' ? 'anime' : 'movie');
-    streakTimerRef.current = setTimeout(() => {
-      recordWatch(watchType);
-    }, 5 * 60 * 1000); // 5 minutes
-    return () => {
-      if (streakTimerRef.current) clearTimeout(streakTimerRef.current);
-    };
-  }, [currentSource]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Normalize TMDB results for <Card>
   const normRec = (r) => ({
@@ -712,7 +613,6 @@ export default function Watch() {
           const info = hasValidAnkai ? ankaiInfo : (hiInfo || ankaiInfo);
           if (info) {
             setAnimeInfo(info);
-            setMoodFromGenre(info.genres?.[0]?.toLowerCase?.() || info.genres?.[0] || '');
             // Prefer AnimeKai episodes (IDs work with consumet watch), fallback to HiAnime
             const eps = (hasValidAnkai ? ankaiInfo.episodes : (hiInfo?.episodes || ankaiInfo?.episodes)) || [];
             setAnimeEpisodes(eps);
@@ -920,28 +820,6 @@ export default function Watch() {
 
   return (
     <div className="watch-page">
-      {/* ===== RESUME PROMPT ===== */}
-      {resumePrompt && (
-        <div className="resume-prompt">
-          <span>Lanjutkan dari <strong>{resumePrompt.label}</strong>?</span>
-          <button
-            className="resume-btn resume-btn-yes"
-            onClick={() => {
-              playerRef.current?.seekTo?.(resumePrompt.time);
-              setResumePrompt(null);
-            }}
-          >
-            Lanjutkan
-          </button>
-          <button
-            className="resume-btn resume-btn-no"
-            onClick={() => setResumePrompt(null)}
-          >
-            Dari Awal
-          </button>
-        </div>
-      )}
-
       {/* ===== PLAYER ===== */}
       <div className="watch-player-wrap">
         {isAnime && useSubIndo ? (

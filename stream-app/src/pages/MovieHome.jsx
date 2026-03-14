@@ -17,7 +17,6 @@ import {
 } from '../api';
 import { buildMovieUrl } from '../utils/seo';
 import Card from '../components/Card';
-import MoodPicker from '../components/MoodPicker';
 import Top10Section from '../components/Top10Section';
 import SkeletonHero from '../components/SkeletonHero';
 import SkeletonSection from '../components/SkeletonSection';
@@ -817,23 +816,6 @@ export default function MovieHome() {
       )}
 
 
-
-      {/* ── Mood Picker ── */}
-      {!isFilterActive && Object.keys(genreData).length > 0 && (() => {
-        // Build name-keyed genre map for MoodPicker (GENRE_SECTIONS maps id→label)
-        const moodData = {};
-        GENRE_SECTIONS.forEach((g) => {
-          const key = g.label.toLowerCase();
-          moodData[key] = genreData[g.id] || [];
-        });
-        return (
-          <MoodPicker
-            genreData={moodData}
-            mode="movie"
-            onNavigate={(item) => navigate(item._navUrl || `/movie/${item.id}?type=movie`)}
-          />
-        );
-      })()}
 
       {/* ── Default Sections (when no filter active) ── */}
       {!isFilterActive && (
