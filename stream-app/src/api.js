@@ -252,6 +252,12 @@ export const watchAnimeEpisodeByProvider = async (episodeId, provider = 'animeka
 export const getAnimeHomeBundle = () =>
   cachedGetSWR('anime:home-bundle', async () => {
     const res = await api.get('/anime/home');
+    // Don't cache empty bundles (all providers failed)
+    const d = res.data || {};
+    if (!d.spotlight?.length && !d.recentEpisodes?.length &&
+        !d.mostPopular?.length && !d.topAiring?.length) {
+      throw new Error('Empty bundle — all providers may be down');
+    }
     return res;
   }, BUNDLE_CACHE_TTL);
 
@@ -923,6 +929,14 @@ const SAMEHADAKU_BASE = 'https://www.sankavollerei.com/anime/samehadaku';
 
 const samehadaku = axios.create({ baseURL: SAMEHADAKU_BASE, timeout: 15000 });
 
+// Normalize Samehadaku items to have `id` and `image` fields for Card component compatibility
+const _normalizeSamehadaku = (item) => ({
+  ...item,
+  id: item.animeId || item.id,
+  image: item.poster || item.image || '',
+  _source: 'samehadaku',
+});
+
 /**
  * Get Sub Indo anime home bundle for the Sub Indo tab.
  * Tries Samehadaku listing endpoints (ongoing/popular/recent).
@@ -947,9 +961,9 @@ export const getSubIndoHomeBundle = () =>
       tryEndpoint('/recent'),
     ]);
 
-    results.ongoing = ongoing;
-    results.popular = popular;
-    results.recent = recent;
+    results.ongoing = ongoing.map(_normalizeSamehadaku);
+    results.popular = popular.map(_normalizeSamehadaku);
+    results.recent = recent.map(_normalizeSamehadaku);
 
     // If listing endpoints didn't return data, search popular titles
     const totalItems = ongoing.length + popular.length + recent.length;
@@ -977,7 +991,7 @@ export const getSubIndoHomeBundle = () =>
           }
         }
       }
-      results.popular = allItems;
+      results.popular = allItems.map(_normalizeSamehadaku);
     }
 
     return results;

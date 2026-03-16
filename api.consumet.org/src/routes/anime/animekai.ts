@@ -51,9 +51,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await animekai.search(query, page);
 
       reply.status(200).send(res);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('[animekai:search]', error.message);
       reply.status(500).send({
         message: 'Something went wrong. Contact developer for help.',
+        detail: error.message,
       });
     }
   });
@@ -73,9 +75,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
           : await animekai.fetchLatestCompleted(page);
 
         reply.status(200).send(res);
-      } catch (error) {
+      } catch (error: any) {
+        console.error('[animekai:latest-completed]', error.message);
         reply.status(500).send({
           message: 'Something went wrong. Contact developer for help.',
+          detail: error.message,
         });
       }
     },
@@ -94,9 +98,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await animekai.fetchNewReleases(page);
 
       reply.status(200).send(res);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('[animekai:new-releases]', error.message);
       reply.status(500).send({
         message: 'Something went wrong. Contact developer for help.',
+        detail: error.message,
       });
     }
   });
@@ -114,9 +120,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await animekai.fetchRecentlyAdded(page);
 
       reply.status(200).send(res);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('[animekai:recent-added]', error.message);
       reply.status(500).send({
         message: 'Something went wrong. Contact developer for help.',
+        detail: error.message,
       });
     }
   });
@@ -136,9 +144,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
           : await animekai.fetchRecentlyUpdated(page);
 
         reply.status(200).send(res);
-      } catch (error) {
+      } catch (error: any) {
+        console.error('[animekai:recent-episodes]', error.message);
         reply.status(500).send({
           message: 'Something went wrong. Contact developer for help.',
+          detail: error.message,
         });
       }
     },
@@ -157,9 +167,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await animekai.fetchSchedule(date);
 
       reply.status(200).send(res);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('[animekai:schedule]', error.message);
       reply.status(500).send({
         message: 'Something went wrong. Contact developer for help.',
+        detail: error.message,
       });
     }
   });
@@ -176,9 +188,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await animekai.fetchSpotlight();
 
       reply.status(200).send(res);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('[animekai:spotlight]', error.message);
       reply.status(500).send({
         message: 'Something went wrong. Contact developer for help.',
+        detail: error.message,
       });
     }
   });
@@ -202,9 +216,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
           : await animekai.fetchSearchSuggestions(query);
 
         reply.status(200).send(res);
-      } catch (error) {
+      } catch (error: any) {
+        console.error('[animekai:search-suggestions]', error.message);
         reply.status(500).send({
           message: 'Something went wrong. Contact developer for help.',
+          detail: error.message,
         });
       }
     },
@@ -227,10 +243,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await animekai.fetchAnimeInfo(id);
 
       return reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[animekai:info]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -269,10 +286,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
             );
 
         reply.status(200).send(res);
-      } catch (err) {
+      } catch (err: any) {
+        console.error('[animekai:watch]', err.message);
         reply
           .status(500)
-          .send({ message: 'Something went wrong. Contact developer for help.' });
+          .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
       }
     },
   );
@@ -306,10 +324,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
             );
 
         reply.status(200).send(res);
-      } catch (err) {
+      } catch (err: any) {
+        console.error('[animekai:servers]', err.message);
         reply
           .status(500)
-          .send({ message: 'Something went wrong. Contact developer for help.' });
+          .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
       }
     },
   );
@@ -326,9 +345,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await animekai.fetchGenres();
 
       reply.status(200).send(res);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('[animekai:genre-list]', error.message);
       reply.status(500).send({
         message: 'Something went wrong. Contact developer for help.',
+        detail: error.message,
       });
     }
   });
@@ -351,9 +372,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await animekai.genreSearch(genre, page);
 
       reply.status(200).send(res);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('[animekai:genre]', error.message);
       reply.status(500).send({
         message: 'Something went wrong. Contact developer for help.',
+        detail: error.message,
       });
     }
   });
@@ -371,10 +394,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await animekai.fetchMovie(page);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[animekai:movies]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -391,10 +415,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await animekai.fetchONA(page);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[animekai:ona]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -411,10 +436,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await animekai.fetchOVA(page);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[animekai:ova]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -431,10 +457,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await animekai.fetchSpecial(page);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[animekai:specials]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -451,10 +478,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await animekai.fetchTV(page);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[animekai:tv]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 };

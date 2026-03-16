@@ -29,12 +29,16 @@ router.get('/home', async (_req: Request, res: Response) => {
       );
 
       const [spotlight, recentEps, mostPopular, topAiring, ...genreResults] = await parallel(
-        consumet.animeSpotlight('animekai').catch(() => consumet.animeSpotlight('hianime')),
+        consumet.animeSpotlight('animekai')
+          .catch(() => consumet.animeSpotlight('hianime'))
+          .catch(() => null),
         consumet.animeRecentEpisodes(1, 'animekai')
           .then((d) => (extractResults(d).length > 0 ? d : null))
           .catch(() => consumet.passthrough('/anime/hianime/recently-updated', { page: 1 }).catch(() => null)),
-        consumet.animeMostPopular(1),
-        consumet.animeTopAiring(1),
+        consumet.animeMostPopular(1)
+          .catch(() => consumet.passthrough('/anime/animekai/most-popular', { page: 1 }).catch(() => null)),
+        consumet.animeTopAiring(1)
+          .catch(() => consumet.passthrough('/anime/animekai/top-airing', { page: 1 }).catch(() => null)),
         ...genrePromises,
       );
 
@@ -61,7 +65,12 @@ router.get('/home', async (_req: Request, res: Response) => {
         topAiring: filterAvailable('anime', filterPlayable(extractResults(topAiring))),
         genres,
       };
-    }, CACHE_TTL.HOME_BUNDLE);
+    }, CACHE_TTL.HOME_BUNDLE, (d: any) => {
+      // Don't cache if all sections are empty (all providers failed)
+      const total = (d.spotlight?.length || 0) + (d.recentEpisodes?.length || 0) +
+        (d.mostPopular?.length || 0) + (d.topAiring?.length || 0);
+      return total > 0;
+    });
 
     res.json(data);
   } catch (err: any) {

@@ -149,7 +149,7 @@ export default function AnimeInfo() {
           }
           setInfo(merged);
         } catch (err) {
-          if (!cancelled) setError(err.response?.data?.message || err.message);
+          if (!cancelled) setError(err.response?.data?.message || err.message || 'Anime tidak ditemukan. Provider mungkin sedang bermasalah.');
         } finally {
           if (!cancelled) setLoading(false);
         }

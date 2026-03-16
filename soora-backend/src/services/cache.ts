@@ -38,11 +38,13 @@ export async function cached<T>(
 
 /**
  * Stale-while-revalidate: return stale data instantly, refresh in background.
+ * Optional validator: if provided, only cache data that passes validation.
  */
 export async function cachedSWR<T>(
   key: string,
   fetcher: () => Promise<T>,
-  ttl: number = CACHE_TTL.HOME_BUNDLE
+  ttl: number = CACHE_TTL.HOME_BUNDLE,
+  validator?: (data: T) => boolean
 ): Promise<T> {
   const store = shortCache;
   const hit = store.get<T>(key);
@@ -50,13 +52,20 @@ export async function cachedSWR<T>(
     // Check remaining TTL — if < 25% left, revalidate in background
     const remaining = store.getTtl(key);
     if (remaining && remaining - Date.now() < ttl * 250) {
-      fetcher().then((data) => store.set(key, data, ttl)).catch(() => {});
+      fetcher().then((data) => {
+        if (!validator || validator(data)) {
+          store.set(key, data, ttl);
+        }
+      }).catch(() => {});
     }
     return hit;
   }
 
   const data = await fetcher();
-  store.set(key, data, ttl);
+  // Only cache if validator passes (or no validator provided)
+  if (!validator || validator(data)) {
+    store.set(key, data, ttl);
+  }
   return data;
 }
 

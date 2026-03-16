@@ -57,10 +57,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await hianime.search(query, page);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[hianime:search]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -81,10 +82,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await hianime.fetchAnimeInfo(id);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[hianime:info]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -109,10 +111,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
           : await hianime.fetchEpisodeSources(episodeId, server, category);
 
         reply.status(200).send(res);
-      } catch (err) {
+      } catch (err: any) {
+        console.error('[hianime:watch]', err.message);
         reply
           .status(500)
-          .send({ message: 'Something went wrong. Contact developer for help.' });
+          .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
       }
     },
   );
@@ -129,10 +132,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await hianime.fetchGenres();
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[hianime:genres]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -150,10 +154,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await hianime.fetchSchedule(date);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[hianime:schedule]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -169,10 +174,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await hianime.fetchSpotlight();
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[hianime:spotlight]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -192,10 +198,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
           : await hianime.fetchSearchSuggestions(query);
 
         reply.status(200).send(res);
-      } catch (err) {
+      } catch (err: any) {
+        console.error('[hianime:search-suggestions]', err.message);
         reply
           .status(500)
-          .send({ message: 'Something went wrong. Contact developer for help.' });
+          .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
       }
     },
   );
@@ -285,10 +292,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
             );
 
         reply.status(200).send(res);
-      } catch (err) {
+      } catch (err: any) {
+        console.error('[hianime:advanced-search]', err.message);
         reply
           .status(500)
-          .send({ message: 'Something went wrong. Contact developer for help.' });
+          .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
       }
     },
   );
@@ -307,10 +315,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await hianime.fetchTopAiring(page);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[hianime:top-airing]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -328,10 +337,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await hianime.fetchMostPopular(page);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[hianime:most-popular]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -349,10 +359,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await hianime.fetchMostFavorite(page);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[hianime:most-favorite]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -372,10 +383,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
           : await hianime.fetchLatestCompleted(page);
 
         reply.status(200).send(res);
-      } catch (err) {
+      } catch (err: any) {
+        console.error('[hianime:latest-completed]', err.message);
         reply
           .status(500)
-          .send({ message: 'Something went wrong. Contact developer for help.' });
+          .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
       }
     },
   );
@@ -396,10 +408,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
           : await hianime.fetchRecentlyUpdated(page);
 
         reply.status(200).send(res);
-      } catch (err) {
+      } catch (err: any) {
+        console.error('[hianime:recently-updated]', err.message);
         reply
           .status(500)
-          .send({ message: 'Something went wrong. Contact developer for help.' });
+          .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
       }
     },
   );
@@ -418,10 +431,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await hianime.fetchRecentlyAdded(page);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[hianime:recently-added]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -439,10 +453,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await hianime.fetchTopUpcoming(page);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[hianime:top-upcoming]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -461,10 +476,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await hianime.fetchStudio(studio, page);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[hianime:studio]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -482,10 +498,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await hianime.fetchSubbedAnime(page);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[hianime:subbed-anime]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -503,10 +520,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await hianime.fetchDubbedAnime(page);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[hianime:dubbed-anime]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -524,10 +542,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await hianime.fetchMovie(page);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[hianime:movie]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -545,10 +564,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await hianime.fetchTV(page);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[hianime:tv]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -566,10 +586,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await hianime.fetchOVA(page);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[hianime:ova]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -587,10 +608,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await hianime.fetchONA(page);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[hianime:ona]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -608,10 +630,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await hianime.fetchSpecial(page);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[hianime:special]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 
@@ -630,10 +653,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         : await hianime.genreSearch(genre, page);
 
       reply.status(200).send(res);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[hianime:genre]', err.message);
       reply
         .status(500)
-        .send({ message: 'Something went wrong. Contact developer for help.' });
+        .send({ message: 'Something went wrong. Contact developer for help.', detail: err.message });
     }
   });
 };

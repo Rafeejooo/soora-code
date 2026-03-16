@@ -620,13 +620,9 @@ export default function Home() {
             </>
           ) : subIndoData ? (
             <>
-              {/* Top 10 Sub Indo */}
+              {/* Popular Sub Indo — uses SubIndoSection for correct Sub Indo navigation */}
               {subIndoData.popular?.length > 0 && (
-                <Top10Section
-                  title="Anime Indonesia Saat Ini"
-                  items={subIndoData.popular}
-                  type="anime"
-                />
+                <SubIndoSection title="Anime Indonesia Saat Ini" items={subIndoData.popular} navigate={navigate} />
               )}
               {subIndoData.ongoing?.length > 0 && (
                 <SubIndoSection title="Sedang Tayang" items={subIndoData.ongoing} navigate={navigate} />
@@ -703,9 +699,12 @@ export default function Home() {
         </>
       )}
 
-      {!spotlight.length && !recentEps.length && (
+      {!spotlight.length && !recentEps.length && !topAiring.length && !mostPopular.length && heroReady && sectionsReady && (
         <div className="empty-state">
-          <p>No data available. Make sure the Consumet API is running on <code>localhost:3000</code></p>
+          <p>Gagal memuat data anime. Server mungkin sedang maintenance.</p>
+          <button onClick={() => { try { sessionStorage.removeItem('soora_cache:anime:home-bundle'); } catch {} window.location.reload(); }} className="af-reset" style={{ marginTop: '1rem' }}>
+            Coba Lagi
+          </button>
         </div>
       )}
 
@@ -903,6 +902,7 @@ function SubIndoSection({ title, items, navigate }) {
                   src={item.poster || item.image || ''}
                   alt={item.title || ''}
                   loading="lazy"
+                  referrerPolicy="no-referrer"
                   onError={(e) => { e.target.src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="170" height="240" viewBox="0 0 170 240"><rect fill="%231a1a2e" width="170" height="240"/><text x="85" y="120" text-anchor="middle" fill="%23666" font-family="system-ui" font-size="12">No Image</text></svg>')}`; }}
                 />
                 <div className="card-overlay">

@@ -11913,3 +11913,183 @@ a:hover {
     font-size: 0.75rem;
   }
 }
+/* ===== ANIMAL COMPANION ===== */
+.companion-area {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  pointer-events: none;
+  z-index: 800;
+}
+
+.companion-sprite {
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  pointer-events: all;
+  cursor: pointer;
+  user-select: none;
+  will-change: transform;
+}
+
+.companion-sprite canvas {
+  display: block;
+}
+
+/* Chat bubble */
+.companion-bubble {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 20, 45, 0.95);
+  border: 1px solid rgba(124, 92, 252, 0.4);
+  color: #f0f0f5;
+  font-size: 0.78rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 12px;
+  white-space: nowrap;
+  margin-bottom: 6px;
+  pointer-events: none;
+  animation: bubble-in 0.15s ease;
+}
+
+.companion-bubble::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(20, 20, 45, 0.95);
+}
+
+@keyframes bubble-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Settings button */
+.companion-settings {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  z-index: 801;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.companion-settings-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(20, 20, 45, 0.85);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #8888a8;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.companion-settings-btn:hover {
+  color: #f0f0f5;
+  border-color: rgba(124, 92, 252, 0.5);
+}
+
+/* Settings panel */
+.companion-settings-panel {
+  background: rgba(15, 15, 30, 0.97);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 0.9rem 1rem;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  animation: panel-in 0.15s ease;
+}
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.companion-settings-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #8888a8;
+  letter-spacing: 0.04em;
+}
+
+/* Animal picker */
+.companion-animal-picker {
+  display: flex;
+  gap: 6px;
+}
+
+.companion-animal-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 0.4rem 0.2rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: transparent;
+  color: #8888a8;
+  font-size: 0.65rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.companion-animal-btn span:first-child {
+  font-size: 1.2rem;
+}
+
+.companion-animal-btn:hover {
+  background: rgba(124, 92, 252, 0.1);
+  border-color: rgba(124, 92, 252, 0.3);
+  color: #f0f0f5;
+}
+
+.companion-animal-btn.active {
+  background: rgba(124, 92, 252, 0.2);
+  border-color: rgba(124, 92, 252, 0.6);
+  color: #f0f0f5;
+}
+
+/* Toggle row */
+.companion-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #8888a8;
+}
+
+.companion-toggle {
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05);
+  color: #8888a8;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.companion-toggle.on {
+  background: rgba(124, 92, 252, 0.25);
+  border-color: rgba(124, 92, 252, 0.5);
+  color: #9b7dff;
+}
