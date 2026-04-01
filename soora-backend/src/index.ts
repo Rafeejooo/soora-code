@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { config } from './config';
 import { clearCache, getCacheStats } from './services/cache';
+import { notifyError } from './services/telegram';
 
 // Routes
 import animeRoutes from './routes/anime';
@@ -90,6 +91,20 @@ app.get('/manga-img', async (req, res) => {
   } catch { res.status(502).send('Image proxy error'); }
 });
 
+// ========== ERROR REPORTING (Frontend → Telegram) ==========
+app.post('/report-error', (req, res) => {
+  const report = req.body;
+  if (!report?.status || !report?.url) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  notifyError({
+    ...report,
+    source: 'frontend',
+    timestamp: report.timestamp || new Date().toISOString(),
+  });
+  res.json({ ok: true });
+});
+
 // ========== GLOBAL PASSTHROUGH ==========
 // Any route not handled by orchestrated routes gets forwarded to Consumet directly.
 // This ensures existing frontend calls still work during migration.
@@ -105,6 +120,18 @@ app.use('*', async (req, res, next) => {
   } catch (err: any) {
     const status = err.response?.status || 502;
     const message = err.response?.data || { error: 'Upstream error' };
+    notifyError({
+      status,
+      method: req.method,
+      url: req.originalUrl,
+      source: 'backend',
+      trigger: 'passthrough',
+      timestamp: new Date().toISOString(),
+      details: {
+        responseBody: message,
+        stack: err.stack,
+      },
+    });
     res.status(status).json(message);
   }
 });
@@ -112,6 +139,19 @@ app.use('*', async (req, res, next) => {
 // ========== ERROR HANDLING ==========
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[Error]', err.message || err);
+  notifyError({
+    status: err.status || 500,
+    method: _req.method,
+    url: _req.originalUrl,
+    source: 'backend',
+    trigger: 'global-error-handler',
+    timestamp: new Date().toISOString(),
+    details: {
+      requestHeaders: _req.headers as Record<string, any>,
+      requestBody: _req.body,
+      stack: err.stack,
+    },
+  });
   res.status(err.status || 500).json({
     error: config.nodeEnv === 'development' ? err.message : 'Internal server error',
   });

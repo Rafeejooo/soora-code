@@ -13,6 +13,45 @@ const tmdb = axios.create({
   params: { api_key: TMDB_KEY },
 });
 
+// ========== ERROR REPORTING TO TELEGRAM ==========
+const reportError = (error) => {
+  const cfg = error.config || {};
+  // Build full URL with query params
+  let fullUrl = (cfg.baseURL || '') + (cfg.url || 'unknown');
+  if (cfg.params) {
+    const qs = new URLSearchParams(cfg.params).toString();
+    if (qs) fullUrl += '?' + qs;
+  }
+  const report = {
+    status: error.response?.status || 0,
+    method: (cfg.method || 'GET').toUpperCase(),
+    url: fullUrl,
+    page: window.location.pathname + window.location.search,
+    trigger: cfg.url || 'unknown',
+    timestamp: new Date().toISOString(),
+    details: {
+      requestHeaders: cfg.headers ? { ...cfg.headers } : undefined,
+      requestBody: cfg.data,
+      responseBody: typeof error.response?.data === 'string'
+        ? error.response.data.substring(0, 2000)
+        : error.response?.data,
+      errorMessage: error.message || undefined,
+    },
+  };
+  // Use raw axios (not `api` instance) to avoid infinite loop
+  axios.post(`${API_BASE}/report-error`, report).catch(() => {});
+};
+
+api.interceptors.response.use(
+  (res) => res,
+  (error) => { reportError(error); return Promise.reject(error); }
+);
+
+tmdb.interceptors.response.use(
+  (res) => res,
+  (error) => { reportError(error); return Promise.reject(error); }
+);
+
 // ========== CACHE ==========
 // Persistent cache backed by sessionStorage + in-memory for speed
 const memCache = new Map();

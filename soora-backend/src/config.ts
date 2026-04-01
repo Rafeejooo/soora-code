@@ -9,6 +9,8 @@ export const config = {
   tmdbImg: 'https://image.tmdb.org/t/p',
   corsOrigin: process.env.CORS_ORIGIN || '*',
   nodeEnv: process.env.NODE_ENV || 'development',
+  telegramBotToken: process.env.BOT_TOKEN || '',
+  telegramChatId: process.env.CHAT_ID || '',
   samehadakuBase: 'https://www.sankavollerei.com/anime/samehadaku',
   jikanBase: 'https://api.jikan.moe/v4',
 };
