@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { cached, CACHE_TTL } from '../services/cache';
 import * as doujindesu from '../services/doujindesu';
+import { reportRouteError } from '../services/telegram';
 
 const router = Router();
 
@@ -8,12 +9,13 @@ const router = Router();
  * GET /doujindesu/genres
  * List available genres
  */
-router.get('/genres', async (_req: Request, res: Response) => {
+router.get('/genres', async (req: Request, res: Response) => {
   try {
     const data = await cached('doujindesu:genres', () => doujindesu.doujindesuGenres(), CACHE_TTL.SEARCH * 6);
     res.json(data);
   } catch (err: any) {
     console.error('[doujindesu/genres]', err.message);
+    reportRouteError(req, err, 'doujindesu/genres');
     res.status(500).json({ error: 'Failed to load genres' });
   }
 });
@@ -30,6 +32,7 @@ router.get('/genre/:slug', async (req: Request, res: Response) => {
     res.json(data);
   } catch (err: any) {
     console.error('[doujindesu/genre]', err.message);
+    reportRouteError(req, err, 'doujindesu/genre');
     res.status(500).json({ error: 'Failed to load genre' });
   }
 });
@@ -44,6 +47,7 @@ router.get('/latest', async (req: Request, res: Response) => {
     res.json(data);
   } catch (err: any) {
     console.error('[doujindesu/latest]', err.message);
+    reportRouteError(req, err, 'doujindesu/latest');
     res.status(500).json({ error: 'Failed to load latest' });
   }
 });
@@ -60,6 +64,7 @@ router.get('/search', async (req: Request, res: Response) => {
     res.json(data);
   } catch (err: any) {
     console.error('[doujindesu/search]', err.message);
+    reportRouteError(req, err, 'doujindesu/search');
     res.status(500).json({ error: 'Search failed' });
   }
 });
@@ -75,6 +80,7 @@ router.get('/detail/:id', async (req: Request, res: Response) => {
     res.json(data);
   } catch (err: any) {
     console.error('[doujindesu/detail]', err.message);
+    reportRouteError(req, err, 'doujindesu/detail');
     res.status(500).json({ error: 'Failed to load detail' });
   }
 });
@@ -89,6 +95,7 @@ router.get('/read/:chapterId', async (req: Request, res: Response) => {
     res.json(data);
   } catch (err: any) {
     console.error('[doujindesu/read]', err.message);
+    reportRouteError(req, err, 'doujindesu/read');
     res.status(500).json({ error: 'Failed to load chapter' });
   }
 });

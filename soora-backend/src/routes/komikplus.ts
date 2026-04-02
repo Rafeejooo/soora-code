@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { cached, CACHE_TTL } from '../services/cache';
+import { reportRouteError } from '../services/telegram';
 
 const router = Router();
 
@@ -70,6 +71,7 @@ router.get('/', async (req: Request, res: Response) => {
     res.json(data);
   } catch (err: any) {
     console.error('[komikplus]', err.message);
+    reportRouteError(req, err, 'komikplus');
     res.status(502).json({ error: 'KomikPlus proxy error', message: err.message });
   }
 });

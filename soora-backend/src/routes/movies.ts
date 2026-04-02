@@ -4,6 +4,7 @@ import * as tmdb from '../services/tmdb';
 import { cached, cachedSWR, CACHE_TTL } from '../services/cache';
 import { parallel, normalizeGoku, normalizeLK21, extractResults } from '../utils/normalize';
 import { markAvailability, filterAvailable } from '../services/availability';
+import { reportRouteError } from '../services/telegram';
 
 const qs = (v: any): string => String(v ?? '');
 
@@ -27,7 +28,7 @@ const MOVIE_GENRE_SECTIONS = [
  * GET /movies/home
  * Orchestrated home page: TMDB + Goku + LK21 in parallel.
  */
-router.get('/home', async (_req: Request, res: Response) => {
+router.get('/home', async (req: Request, res: Response) => {
   try {
     const data = await cachedSWR('movies:home', async () => {
       // Phase 1: Core sections (all in parallel)
@@ -83,6 +84,7 @@ router.get('/home', async (_req: Request, res: Response) => {
     res.json(data);
   } catch (err: any) {
     console.error('[movies/home]', err.message);
+    reportRouteError(req, err, 'movies/home');
     res.status(500).json({ error: 'Failed to load movie home' });
   }
 });
@@ -104,6 +106,7 @@ router.get('/info/:id', async (req: Request, res: Response) => {
     res.json(data);
   } catch (err: any) {
     console.error('[movies/info]', err.message);
+    reportRouteError(req, err, 'movies/info');
     res.status(500).json({ error: 'Failed to load movie info' });
   }
 });
@@ -119,6 +122,7 @@ router.get('/tv-season/:id/:season', async (req: Request, res: Response) => {
       () => tmdb.tvSeason(id, season), CACHE_TTL.INFO, 'long');
     res.json(data);
   } catch (err: any) {
+    reportRouteError(req, err, 'movies/tv-season');
     res.status(500).json({ error: 'Failed to load season' });
   }
 });
@@ -149,6 +153,7 @@ router.get('/search', async (req: Request, res: Response) => {
 
     res.json(data);
   } catch (err: any) {
+    reportRouteError(req, err, 'movies/search');
     res.status(500).json({ error: 'Search failed' });
   }
 });
@@ -232,6 +237,7 @@ router.get('/stream', async (req: Request, res: Response) => {
     res.json(data);
   } catch (err: any) {
     console.error('[movies/stream]', err.message);
+    reportRouteError(req, err, 'movies/stream');
     res.status(500).json({ error: 'Failed to get stream' });
   }
 });
@@ -257,6 +263,7 @@ router.get('/discover', async (req: Request, res: Response) => {
     const data = await cached(cacheKey, () => tmdb.discover(params), CACHE_TTL.GENRE);
     res.json(data);
   } catch (err: any) {
+    reportRouteError(req, err, 'movies/discover');
     res.status(500).json({ error: 'Discover failed' });
   }
 });
@@ -264,11 +271,12 @@ router.get('/discover', async (req: Request, res: Response) => {
 /**
  * GET /movies/genres
  */
-router.get('/genres', async (_req: Request, res: Response) => {
+router.get('/genres', async (req: Request, res: Response) => {
   try {
     const data = await cached('movies:genres', () => tmdb.getGenres(), CACHE_TTL.TMDB, 'long');
     res.json(data);
   } catch (err: any) {
+    reportRouteError(req, err, 'movies/genres');
     res.status(500).json({ error: 'Failed to load genres' });
   }
 });
@@ -283,6 +291,7 @@ router.get('/trending', async (req: Request, res: Response) => {
     const data = await cached(`movies:trending:${type}:${time}`, () => tmdb.trending(type, time), CACHE_TTL.GENRE);
     res.json(data);
   } catch (err: any) {
+    reportRouteError(req, err, 'movies/trending');
     res.status(500).json({ error: 'Failed to load trending' });
   }
 });
@@ -303,6 +312,7 @@ router.get('/find-tmdb', async (req: Request, res: Response) => {
     );
     res.json(data);
   } catch (err: any) {
+    reportRouteError(req, err, 'movies/find-tmdb');
     res.status(500).json({ error: 'TMDB lookup failed' });
   }
 });
@@ -315,6 +325,7 @@ router.get('/goku/info/:id', async (req: Request, res: Response) => {
       () => consumet.movieInfo(qs(req.params.id), 'goku'), CACHE_TTL.INFO, 'long');
     res.json(data);
   } catch (err: any) {
+    reportRouteError(req, err, 'movies/goku/info');
     res.status(500).json({ error: 'Failed to get Goku info' });
   }
 });
@@ -327,6 +338,7 @@ router.get('/lk21/info/:id', async (req: Request, res: Response) => {
       () => consumet.lk21Info(qs(req.params.id)), CACHE_TTL.INFO, 'long');
     res.json(data);
   } catch (err: any) {
+    reportRouteError(req, err, 'movies/lk21/info');
     res.status(500).json({ error: 'Failed to get LK21 info' });
   }
 });
@@ -337,6 +349,7 @@ router.get('/lk21/series/info/:id', async (req: Request, res: Response) => {
       () => consumet.lk21SeriesInfo(qs(req.params.id)), CACHE_TTL.INFO, 'long');
     res.json(data);
   } catch (err: any) {
+    reportRouteError(req, err, 'movies/lk21/series/info');
     res.status(500).json({ error: 'Failed to get LK21 series info' });
   }
 });
@@ -346,6 +359,7 @@ router.get('/lk21/streams/:id', async (req: Request, res: Response) => {
     const data = await consumet.lk21MovieStreams(qs(req.params.id));
     res.json(data);
   } catch (err: any) {
+    reportRouteError(req, err, 'movies/lk21/streams');
     res.status(500).json({ error: 'Failed to get LK21 streams' });
   }
 });
@@ -357,6 +371,7 @@ router.get('/lk21/series/streams/:id', async (req: Request, res: Response) => {
     const data = await consumet.lk21SeriesStreams(qs(req.params.id), season, episode);
     res.json(data);
   } catch (err: any) {
+    reportRouteError(req, err, 'movies/lk21/series/streams');
     res.status(500).json({ error: 'Failed to get LK21 series streams' });
   }
 });
@@ -436,6 +451,7 @@ router.get('/lk21/search/:query', async (req: Request, res: Response) => {
     res.json(data);
   } catch (err: any) {
     console.error('[movies/lk21/search]', err.message);
+    reportRouteError(req, err, 'movies/lk21/search');
     res.status(500).json({ error: 'LK21 search failed' });
   }
 });

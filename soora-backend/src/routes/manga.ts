@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import * as consumet from '../services/consumet';
 import { cached, cachedSWR, CACHE_TTL } from '../services/cache';
 import { parallel, extractResults } from '../utils/normalize';
+import { reportRouteError } from '../services/telegram';
 
 const qs = (v: any): string => String(v ?? '');
 
@@ -78,6 +79,7 @@ router.get('/home', async (req: Request, res: Response) => {
     res.json(data);
   } catch (err: any) {
     console.error('[manga/home]', err.message);
+    reportRouteError(req, err, 'manga/home');
     res.status(500).json({ error: 'Failed to load manga home' });
   }
 });
@@ -100,6 +102,7 @@ router.get('/info/:id', async (req: Request, res: Response) => {
 
     res.json(data);
   } catch (err: any) {
+    reportRouteError(req, err, 'manga/info');
     res.status(500).json({ error: 'Failed to load manga info' });
   }
 });
@@ -120,6 +123,7 @@ router.get('/read/:chapterId', async (req: Request, res: Response) => {
 
     res.json(data);
   } catch (err: any) {
+    reportRouteError(req, err, 'manga/read');
     res.status(500).json({ error: 'Failed to load chapter' });
   }
 });
@@ -156,6 +160,7 @@ router.get('/search', async (req: Request, res: Response) => {
 
     res.json(data);
   } catch (err: any) {
+    reportRouteError(req, err, 'manga/search');
     res.status(500).json({ error: 'Search failed' });
   }
 });
@@ -163,11 +168,12 @@ router.get('/search', async (req: Request, res: Response) => {
 /**
  * GET /manga/komiku/trending
  */
-router.get('/komiku/trending', async (_req: Request, res: Response) => {
+router.get('/komiku/trending', async (req: Request, res: Response) => {
   try {
     const data = await cached('manga:komiku:trending', () => consumet.komikuTrending(), CACHE_TTL.GENRE);
     res.json(data);
   } catch (err: any) {
+    reportRouteError(req, err, 'manga/komiku/trending');
     res.status(500).json({ error: 'Failed to load Komiku trending' });
   }
 });
@@ -181,6 +187,7 @@ router.get('/komiku/info/:id', async (req: Request, res: Response) => {
       () => consumet.komikuInfo(qs(req.params.id)), CACHE_TTL.INFO, 'long');
     res.json(data);
   } catch (err: any) {
+    reportRouteError(req, err, 'manga/komiku/info');
     res.status(500).json({ error: 'Failed to get Komiku info' });
   }
 });
@@ -194,6 +201,7 @@ router.get('/komiku/read/:chapterId', async (req: Request, res: Response) => {
       () => consumet.komikuRead(qs(req.params.chapterId)), CACHE_TTL.MANGA_READ, 'long');
     res.json(data);
   } catch (err: any) {
+    reportRouteError(req, err, 'manga/komiku/read');
     res.status(500).json({ error: 'Failed to read Komiku chapter' });
   }
 });

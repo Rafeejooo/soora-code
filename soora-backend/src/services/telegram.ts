@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { Request } from 'express';
 import { config } from '../config';
 
 export interface ErrorReport {
@@ -32,6 +33,51 @@ function isRateLimited(): boolean {
     windowStart = now;
   }
   return msgCount >= MAX_PER_MINUTE;
+}
+
+// Deduplication: suppress identical errors within a 5-minute window
+const DEDUP_WINDOW = 5 * 60_000; // 5 minutes
+const DEDUP_CLEANUP = 10 * 60_000; // cleanup entries older than 10 minutes
+const dedupMap = new Map<string, { count: number; firstSeen: number }>();
+
+function getFingerprint(report: ErrorReport): string {
+  // Strip query params from URL for grouping
+  const urlPath = report.url.split('?')[0];
+  const msg = report.details?.errorMessage || '';
+  return `${report.status}|${urlPath}|${msg}`;
+}
+
+function cleanupDedupMap(): void {
+  const now = Date.now();
+  for (const [key, entry] of dedupMap) {
+    if (now - entry.firstSeen > DEDUP_CLEANUP) {
+      dedupMap.delete(key);
+    }
+  }
+}
+
+/** Returns null if should send, or the suppressed count if deduplicated */
+function checkDedup(report: ErrorReport): { send: boolean; suppressedCount: number } {
+  const key = getFingerprint(report);
+  const now = Date.now();
+  const entry = dedupMap.get(key);
+
+  if (!entry) {
+    // First occurrence — allow send, start tracking
+    dedupMap.set(key, { count: 0, firstSeen: now });
+    return { send: true, suppressedCount: 0 };
+  }
+
+  if (now - entry.firstSeen < DEDUP_WINDOW) {
+    // Within window — suppress and increment count
+    entry.count++;
+    return { send: false, suppressedCount: entry.count };
+  }
+
+  // Window expired — allow send with summary of suppressed count, then reset
+  const suppressed = entry.count;
+  dedupMap.set(key, { count: 0, firstSeen: now });
+  return { send: true, suppressedCount: suppressed };
 }
 
 function escapeHtml(text: string): string {
@@ -104,11 +150,17 @@ export async function notifyError(report: ErrorReport): Promise<void> {
   if (!config.telegramBotToken || !config.telegramChatId) return;
   if (isRateLimited()) return;
 
+  // Deduplication check
+  cleanupDedupMap();
+  const { send, suppressedCount } = checkDedup(report);
+  if (!send) return;
+
   msgCount++;
 
   const statusText = getStatusText(report.status);
   const brief = [
     `<b>🚨 ERROR ${report.status} ${statusText}</b>`,
+    suppressedCount > 0 ? `<i>(+${suppressedCount} same error suppressed in last 5m)</i>` : null,
     ``,
     `<b>URL:</b> ${report.method} ${escapeHtml(report.url)}`,
     `<b>Source:</b> ${report.source}`,
@@ -157,4 +209,20 @@ function getStatusText(status: number): string {
     504: 'Gateway Timeout',
   };
   return map[status] || 'Error';
+}
+
+/** Convenience helper for route catch blocks */
+export function reportRouteError(req: Request, err: any, trigger?: string): void {
+  notifyError({
+    status: err.response?.status || err.status || 500,
+    method: req.method,
+    url: req.originalUrl,
+    source: 'backend',
+    trigger: trigger || req.path,
+    timestamp: new Date().toISOString(),
+    details: {
+      errorMessage: err.message,
+      stack: err.stack,
+    },
+  });
 }

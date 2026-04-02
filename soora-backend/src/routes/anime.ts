@@ -3,6 +3,7 @@ import * as consumet from '../services/consumet';
 import { cached, cachedSWR, CACHE_TTL, shortCache } from '../services/cache';
 import { parallel, deduplicateAnime, extractResults } from '../utils/normalize';
 import { markAvailability, filterAvailable } from '../services/availability';
+import { reportRouteError } from '../services/telegram';
 
 const qs = (v: any): string => String(v ?? '');
 
@@ -19,7 +20,7 @@ const GENRE_SECTIONS = [
  * Orchestrated home page — 1 request replaces 16+ frontend calls.
  * Returns: { spotlight, recentEpisodes, mostPopular, topAiring, genres: { action: [...], ... } }
  */
-router.get('/home', async (_req: Request, res: Response) => {
+router.get('/home', async (req: Request, res: Response) => {
   try {
     const data = await cachedSWR('anime:home', async () => {
       // Run ALL calls in parallel (core + genres) — no sequential phases
@@ -75,6 +76,7 @@ router.get('/home', async (_req: Request, res: Response) => {
     res.json(data);
   } catch (err: any) {
     console.error('[anime/home]', err.message);
+    reportRouteError(req, err, 'anime/home');
     res.status(500).json({ error: 'Failed to load anime home' });
   }
 });
@@ -122,6 +124,7 @@ router.get('/info/:id', async (req: Request, res: Response) => {
     res.json(data);
   } catch (err: any) {
     console.error('[anime/info]', err.message);
+    reportRouteError(req, err, 'anime/info');
     res.status(500).json({ error: 'Failed to load anime info' });
   }
 });
@@ -159,6 +162,7 @@ router.get('/search', async (req: Request, res: Response) => {
     res.json(data);
   } catch (err: any) {
     console.error('[anime/search]', err.message);
+    reportRouteError(req, err, 'anime/search');
     res.status(500).json({ error: 'Search failed' });
   }
 });
@@ -235,6 +239,7 @@ router.get('/watch/:episodeId', async (req: Request, res: Response) => {
     res.json({ error: 'All providers failed', sources: [] });
   } catch (err: any) {
     console.error('[anime/watch]', err.message);
+    reportRouteError(req, err, 'anime/watch');
     res.status(500).json({ error: 'Failed to get stream' });
   }
 });
@@ -247,6 +252,7 @@ router.get('/servers/:episodeId', async (req: Request, res: Response) => {
     const data = await consumet.animeServers(qs(req.params.episodeId));
     res.json(data);
   } catch (err: any) {
+    reportRouteError(req, err, 'anime/servers');
     res.status(500).json({ error: 'Failed to get servers' });
   }
 });
@@ -269,6 +275,7 @@ router.get('/genre/:genre', async (req: Request, res: Response) => {
 
     res.json(data);
   } catch (err: any) {
+    reportRouteError(req, err, 'anime/genre');
     res.status(500).json({ error: 'Failed to load genre' });
   }
 });
@@ -305,6 +312,7 @@ router.get('/filter', async (req: Request, res: Response) => {
     const data = await cached(cacheKey, () => consumet.animeAdvancedSearch(params), CACHE_TTL.SEARCH);
     res.json(data);
   } catch (err: any) {
+    reportRouteError(req, err, 'anime/filter');
     res.status(500).json({ error: 'Filter failed' });
   }
 });
