@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Soora</string>
+    <string name="title_activity_main">Soora</string>
+    <string name="package_name">fun.soora.app</string>
+    <string name="custom_url_scheme">fun.soora.app</string>
+</resources>

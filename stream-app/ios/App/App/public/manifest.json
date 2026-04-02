@@ -1,0 +1,74 @@
+{
+  "name": "Soora — Nonton Anime, Film & Baca Manga",
+  "short_name": "Soora",
+  "description": "Nonton Anime, Film & Baca Manga Sub Indo Gratis Tanpa Iklan",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#6c5ce7",
+  "background_color": "#06060e",
+  "categories": ["entertainment", "social"],
+  "lang": "id",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/soranime.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/soora.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Anime",
+      "short_name": "Anime",
+      "url": "/anime",
+      "icons": [{ "src": "/soranime.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Film & Series",
+      "short_name": "Film",
+      "url": "/movies",
+      "icons": [{ "src": "/soranime.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Manga",
+      "short_name": "Manga",
+      "url": "/manga",
+      "icons": [{ "src": "/soranime.svg", "sizes": "any" }]
+    }
+  ]
+}

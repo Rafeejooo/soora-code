@@ -1,0 +1,41 @@
+{
+	"appId": "fun.soora.app",
+	"appName": "Soora",
+	"webDir": "dist",
+	"server": {
+		"androidScheme": "https",
+		"allowNavigation": [
+			"api.soora.fun",
+			"stream.soora.fun",
+			"*.megacloud.tv",
+			"*.rabbitstream.net",
+			"*.rapid-cloud.co",
+			"*.uwucdn.top",
+			"*.vidking.pro"
+		]
+	},
+	"android": {
+		"allowMixedContent": true,
+		"captureInput": true,
+		"webContentsDebuggingEnabled": false
+	},
+	"plugins": {
+		"SplashScreen": {
+			"launchShowDuration": 300,
+			"backgroundColor": "#06060e",
+			"androidSplashResourceName": "splash",
+			"showSpinner": false
+		},
+		"StatusBar": {
+			"style": "DARK",
+			"backgroundColor": "#06060e"
+		}
+	},
+	"packageClassList": [
+		"AppPlugin",
+		"HapticsPlugin",
+		"ScreenOrientationPlugin",
+		"SplashScreenPlugin",
+		"StatusBarPlugin"
+	]
+}
