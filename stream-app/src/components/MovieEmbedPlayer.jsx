@@ -5,28 +5,27 @@ import { useState, useRef, useEffect, useCallback } from 'react';
  * Uses TMDB IDs.
  */
 
+/**
+ * Movie/TV embed servers — curated 2026-05-30. Dead domains removed
+ * (vidsrc.icu NXDOMAIN, player.autoembed.cc NXDOMAIN).
+ * `sandbox: true` blocks ad pop-ups/redirects; only on servers that play sandboxed.
+ */
 const EMBED_SERVERS = [
-  // ✅ Tested & confirmed working (Feb 2026)
-  {
-    name: 'VidSrc.icu',
-    buildUrl: (tmdbId, type, season, ep) =>
-      type === 'tv'
-        ? `https://vidsrc.icu/embed/tv/${tmdbId}/${season}/${ep}`
-        : `https://vidsrc.icu/embed/movie/${tmdbId}`,
-  },
-  {
-    name: 'AutoEmbed',
-    buildUrl: (tmdbId, type, season, ep) =>
-      type === 'tv'
-        ? `https://player.autoembed.cc/embed/tv/${tmdbId}/${season}/${ep}`
-        : `https://player.autoembed.cc/embed/movie/${tmdbId}`,
-  },
   {
     name: 'VidLink',
     buildUrl: (tmdbId, type, season, ep) =>
       type === 'tv'
         ? `https://vidlink.pro/tv/${tmdbId}/${season}/${ep}?primaryColor=7c5cfc&secondaryColor=7c5cfc&autoplay=true&iconColor=7c5cfc`
         : `https://vidlink.pro/movie/${tmdbId}?primaryColor=7c5cfc&secondaryColor=7c5cfc&autoplay=true&iconColor=7c5cfc`,
+    sandbox: true,
+  },
+  {
+    name: 'VidSrc',
+    buildUrl: (tmdbId, type, season, ep) =>
+      type === 'tv'
+        ? `https://vidsrc.cc/v2/embed/tv/${tmdbId}/${season}/${ep}?autoPlay=true`
+        : `https://vidsrc.cc/v2/embed/movie/${tmdbId}?autoPlay=true`,
+    sandbox: true,
   },
   {
     name: 'VidSrc.su',
@@ -34,6 +33,7 @@ const EMBED_SERVERS = [
       type === 'tv'
         ? `https://vidsrc.su/embed/tv/${tmdbId}/${season}/${ep}`
         : `https://vidsrc.su/embed/movie/${tmdbId}`,
+    sandbox: false, // needs top-nav for some sources
   },
 ];
 
@@ -49,7 +49,7 @@ export default function MovieEmbedPlayer({ tmdbId, mediaType = 'movie', season =
 
   const server = availableServers[activeServer] || availableServers[0];
   const url = server?.buildUrl(tmdbId, mediaType, season, episode);
-  const isAutoEmbed = server?.name === 'AutoEmbed';
+  const useSandbox = server?.sandbox === true;
 
   const startTimer = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -86,8 +86,10 @@ export default function MovieEmbedPlayer({ tmdbId, mediaType = 'movie', season =
             key={i}
             className={`embed-srv-btn ${i === activeServer ? 'active' : ''}`}
             onClick={() => setActiveServer(i)}
+            title={s.sandbox ? 'Ad-blocked (sandboxed)' : 'May show provider ads'}
           >
             {s.name}
+            {s.sandbox && <span className="embed-srv-noad" aria-label="ad-blocked">⦸</span>}
           </button>
         ))}
       </div>
@@ -101,7 +103,7 @@ export default function MovieEmbedPlayer({ tmdbId, mediaType = 'movie', season =
           style={{ width: '100%', height: '100%', border: 'none' }}
           title="Movie Player"
           referrerPolicy="no-referrer"
-          {...(isAutoEmbed ? { sandbox: 'allow-same-origin allow-scripts allow-forms' } : {})}
+          {...(useSandbox ? { sandbox: 'allow-same-origin allow-scripts allow-forms allow-presentation' } : {})}
         />
       </div>
 

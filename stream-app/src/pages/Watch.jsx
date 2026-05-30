@@ -29,7 +29,7 @@ import {
   getLK21SeriesStreams,
 } from '../api';
 import Card from '../components/Card';
-import Loading from '../components/Loading';
+import SkeletonWatch from '../components/SkeletonWatch';
 
 export default function Watch() {
   const [searchParams] = useSearchParams();
@@ -107,6 +107,7 @@ export default function Watch() {
   const playerRef = useRef(null);
   const lastWorkingSource = useRef(null); // track last source that played successfully
   const userForcedDirect = useRef(false); // true when user explicitly clicks Direct pill
+  const lastFetchedEpisodeId = useRef(null); // detect real episode change vs retry
 
   // Effective TMDB ID — from URL param or resolved from Goku enrichment
   const effectiveTmdbId = tmdbId || resolvedTmdbId;
@@ -561,7 +562,13 @@ export default function Watch() {
       setLoading(true);
       setError(null);
       setUseEmbedPlayer(false);
-      userForcedDirect.current = false; // reset on episode change
+      // Only reset the user's "force Direct" choice when the episode actually
+      // changes — NOT on a retry/refetch, otherwise embed-first would override
+      // a Direct click before the direct fetch runs.
+      if (lastFetchedEpisodeId.current !== episodeId) {
+        userForcedDirect.current = false;
+        lastFetchedEpisodeId.current = episodeId;
+      }
       setAnimeHlsLevels([]);
       setAnimeSelectedLevel(-1);
       setAnimeCurrentLevel(-1);
@@ -629,7 +636,6 @@ export default function Watch() {
           }
         }
 
-        // Now try to load the stream (with auto-fallback AnimeKai → HiAnime)
         // Skip direct stream if user chose Sub Indo mode — go straight to SubIndo player
         if (useSubIndo || subIndoParam) {
           console.info('[Watch] Sub Indo mode active, skipping direct stream fetch');
@@ -637,7 +643,19 @@ export default function Watch() {
           return;
         }
 
-        console.info('[Watch] Loading stream for:', episodeId, '| ep:', epNum, '| animeId:', animeId);
+        // EMBED-FIRST: the consumet direct extractors are unreliable (scrapers rot),
+        // so default to the embed player when we have a MAL/AniList ID. This avoids
+        // a long wait on a direct fetch that usually fails. User can still click
+        // "Direct" to force an HLS attempt (userForcedDirect).
+        if (!userForcedDirect.current && (gotMalId || gotAlId)) {
+          console.info('[Watch] Embed-first: using embed player (malId:', gotMalId, 'alId:', gotAlId, ')');
+          setUseEmbedPlayer(true);
+          if (!subLang) setSubLang('multi');
+          setLoading(false);
+          return;
+        }
+
+        console.info('[Watch] Loading direct stream for:', episodeId, '| ep:', epNum, '| animeId:', animeId);
         const data = (await watchAnimeEpisode(episodeId, undefined, undefined, epNum)).data;
         const fallbackProvider = data._fallback || 'animekai';
         console.info('[Watch] Stream loaded via:', fallbackProvider, '| sources:', data.sources?.length);
@@ -792,7 +810,7 @@ export default function Watch() {
     return <div className="error-msg">No content ID provided</div>;
   }
 
-  if (loading) return <Loading text="Loading..." />;
+  if (loading) return <SkeletonWatch episodes={isAnime || mediaType === 'tv'} />;
 
   // Build seasons from either TMDB or Goku data
   const isGokuFlow = !!gokuId;
@@ -976,7 +994,7 @@ export default function Watch() {
             <div className="watch-player-mode-pills">
               <button
                 className={`watch-quality-pill ${!useEmbedPlayer && !useSubIndo ? 'active' : ''}`}
-                onClick={() => { userForcedDirect.current = true; setSubLang(null); setUseEmbedPlayer(false); setUseSubIndo(false); }}
+                onClick={() => { userForcedDirect.current = true; setSubLang(null); setUseEmbedPlayer(false); setUseSubIndo(false); if (isAnime && sources.length === 0) setRetryKey((k) => k + 1); }}
                 title="Direct HLS stream — best quality"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -1013,7 +1031,7 @@ export default function Watch() {
             <div className="watch-player-mode-pills">
               <button
                 className={`watch-quality-pill ${!useSubIndo ? 'active' : ''}`}
-                onClick={() => { userForcedDirect.current = true; setSubLang(null); setUseEmbedPlayer(false); setUseSubIndo(false); }}
+                onClick={() => { userForcedDirect.current = true; setSubLang(null); setUseEmbedPlayer(false); setUseSubIndo(false); if (isAnime && sources.length === 0) setRetryKey((k) => k + 1); }}
                 title="Direct HLS stream — best quality"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>

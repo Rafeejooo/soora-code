@@ -12,44 +12,41 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
  *  - Manual server switching always available
  */
 
-// Anime-dedicated embed servers — prioritized by reliability for anime content
+/**
+ * Anime embed servers — curated 2026-05-30. Dead domains removed
+ * (2anime.xyz parked, autoembed.cc gone, vidsrc.icu gone, anicrush 522).
+ *
+ * `sandbox: true` → iframe runs sandboxed: blocks pop-ups, redirects and
+ * top-window navigation = no ad pop-ups. Only set on servers that still PLAY
+ * while sandboxed. Servers that need top-navigation/pop-ups to start playback
+ * are left `sandbox: false` (they'd break otherwise) — those keep a minimal
+ * `allow` + `referrerPolicy=no-referrer` instead.
+ */
 const EMBED_SERVERS = [
-  // ── Anime-optimized embeds (MAL ID) ──
   {
-    name: '2Anime',
+    // VidLink — verified alive 2026-05-30, format confirmed from vidlink.pro docs:
+    // /anime/{malId}/{episode}/{sub|dub}
+    name: 'VidLink',
     buildUrl: (malId, _alId, ep) =>
-      `https://2anime.xyz/embed/${malId}/${ep}`,
+      malId ? `https://vidlink.pro/anime/${malId}/${ep}/sub?fallback=true&primaryColor=7c5cfc&secondaryColor=7c5cfc&autoplay=true&iconColor=7c5cfc` : null,
     idType: 'mal',
+    sandbox: true, // plays sandboxed → ad pop-ups/redirects blocked
   },
   {
-    name: 'AnimeEmbed',
+    // VidSrc.cc v2 — anime via MAL id. Stable format `animal{mal}`.
+    name: 'VidSrc',
     buildUrl: (malId, _alId, ep) =>
-      `https://anime.autoembed.cc/embed/${malId}-episode-${ep}`,
+      malId ? `https://vidsrc.cc/v2/embed/anime/ani${malId}/${ep}/sub?autoPlay=true` : null,
     idType: 'mal',
+    sandbox: true,
   },
   {
-    name: 'AniCrush',
-    buildUrl: (_malId, alId, ep) =>
-      alId ? `https://anicrush.to/watch/${alId}?ep=${ep}` : null,
-    idType: 'al',
-  },
-  {
-    name: 'VidSrc Anime',
+    // Dub variant on VidLink for shows that only have dub or user wants dub.
+    name: 'VidLink Dub',
     buildUrl: (malId, _alId, ep) =>
-      `https://vidsrc.icu/embed/anime/mal/${malId}/${ep}`,
+      malId ? `https://vidlink.pro/anime/${malId}/${ep}/dub?fallback=true&primaryColor=7c5cfc&autoplay=true` : null,
     idType: 'mal',
-  },
-  {
-    name: 'EmbeAnime',
-    buildUrl: (malId, _alId, ep) =>
-      `https://player.autoembed.cc/embed/anime/mal/${malId}/${ep}`,
-    idType: 'mal',
-  },
-  {
-    name: 'VidLink Anime',
-    buildUrl: (malId, _alId, ep) =>
-      `https://vidlink.pro/anime/mal/${malId}/${ep}?primaryColor=7c5cfc&secondaryColor=7c5cfc&autoplay=true&iconColor=7c5cfc`,
-    idType: 'mal',
+    sandbox: true,
   },
 ];
 
@@ -76,7 +73,8 @@ export default function AnimeEmbedPlayer({ malId, alId, episode = 1 }) {
 
   const server = availableServers[activeServer] || availableServers[0];
   const url = server?.buildUrl(malId, alId, episode);
-  const isAutoEmbed = server?.name === 'EmbeAnime' || server?.name === 'AnimeEmbed';
+  // Sandbox kills ad pop-ups/redirects but only on servers that still play sandboxed.
+  const useSandbox = server?.sandbox === true;
 
   // Start a countdown — if it fires, show "try next" hint
   const startTimer = useCallback(() => {
@@ -129,8 +127,10 @@ export default function AnimeEmbedPlayer({ malId, alId, episode = 1 }) {
             key={i}
             className={`embed-srv-btn ${i === activeServer ? 'active' : ''}`}
             onClick={() => setActiveServer(i)}
+            title={s.sandbox ? 'Ad-blocked (sandboxed)' : 'May show provider ads'}
           >
             {s.name}
+            {s.sandbox && <span className="embed-srv-noad" aria-label="ad-blocked">⦸</span>}
           </button>
         ))}
       </div>
@@ -145,7 +145,7 @@ export default function AnimeEmbedPlayer({ malId, alId, episode = 1 }) {
           style={{ width: '100%', height: '100%', border: 'none' }}
           title="Anime Player"
           referrerPolicy="no-referrer"
-          {...(isAutoEmbed ? { sandbox: 'allow-same-origin allow-scripts allow-forms' } : {})}
+          {...(useSandbox ? { sandbox: 'allow-same-origin allow-scripts allow-forms allow-presentation' } : {})}
         />
       </div>
 

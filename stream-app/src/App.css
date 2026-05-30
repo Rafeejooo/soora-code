@@ -2614,11 +2614,15 @@ a:hover {
   margin-bottom: 2rem;
 }
 .af-card {
-  background: linear-gradient(135deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0.01) 100%);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.012) 100%);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
   overflow: hidden;
   backdrop-filter: blur(16px);
+  transition: border-color 0.2s ease;
+}
+.af-card.open {
+  border-color: rgba(255,255,255,0.1);
 }
 
 /* Toggle header — always visible */
@@ -2736,30 +2740,31 @@ a:hover {
   flex-wrap: wrap;
 }
 .af-pill {
-  padding: 0.38rem 0.85rem;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: transparent;
+  padding: 0.42rem 0.95rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.02);
   color: var(--text-secondary);
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
   white-space: nowrap;
   font-family: inherit;
 }
 .af-pill:hover {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.06);
   color: #fff;
-  border-color: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.16);
 }
 .af-pill.active {
   background: var(--accent);
   border-color: transparent;
   color: #fff;
   font-weight: 600;
-  box-shadow: 0 2px 12px var(--accent-glow);
+  box-shadow: 0 4px 16px var(--accent-glow);
 }
+.af-pill:active { transform: scale(0.96); }
 
 /* Genre section (manga filters) */
 .af-genre-section {
@@ -2867,30 +2872,31 @@ a:hover {
 }
 .af-year-btn {
   min-width: 52px;
-  padding: 0.38rem 0.65rem;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: transparent;
+  padding: 0.42rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.02);
   color: var(--text-secondary);
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
   font-family: inherit;
   text-align: center;
 }
 .af-year-btn:hover {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.06);
   color: #fff;
-  border-color: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.16);
 }
 .af-year-btn.active {
   background: var(--accent);
   border-color: transparent;
   color: #fff;
   font-weight: 600;
-  box-shadow: 0 2px 12px var(--accent-glow);
+  box-shadow: 0 4px 16px var(--accent-glow);
 }
+.af-year-btn:active { transform: scale(0.96); }
 .af-year-more {
   position: relative;
 }
@@ -2947,9 +2953,9 @@ a:hover {
   align-items: center;
   gap: 0.3rem;
   padding: 0.25rem 0.4rem 0.25rem 0.7rem;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 8px;
+  background: var(--accent-glow, rgba(124,92,252,0.12));
+  border: 1px solid rgba(124,92,252,0.25);
+  border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 500;
   color: #fff;
@@ -2976,9 +2982,9 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  padding: 0.3rem 0.7rem;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.06);
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
   background: transparent;
   color: var(--text-muted);
   font-size: 0.75rem;
@@ -4174,6 +4180,42 @@ a:hover {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+/* ===== WATCH PAGE SKELETON ===== */
+.skeleton-watch { pointer-events: none; animation: sectionFadeIn 0.35s ease-out; }
+.sk-watch-player {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.12);
+  border-radius: inherit;
+}
+.sk-watch-pills { display: flex; gap: 8px; margin: 1rem 0 1.25rem; }
+.sk-watch-pill { height: 30px; border-radius: 8px; background: rgba(255,255,255,0.06); }
+.sk-watch-title-block { display: flex; flex-direction: column; gap: 10px; }
+.sk-watch-bar { background: rgba(255,255,255,0.06); border-radius: 6px; }
+.sk-watch-title { height: 26px; width: 55%; }
+.sk-watch-sub { height: 15px; width: 28%; }
+.sk-watch-line { height: 12px; width: 92%; }
+.sk-watch-line.short { width: 70%; }
+.sk-watch-badges { display: flex; gap: 8px; margin-top: 6px; }
+.sk-watch-badge { height: 22px; border-radius: 20px; background: rgba(255,255,255,0.06); }
+.sk-watch-eps { margin-top: 1.75rem; }
+.sk-watch-eps-title { display: block; height: 20px; width: 140px; margin-bottom: 14px; }
+.sk-watch-eps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+}
+.sk-watch-ep { height: 46px; border-radius: 8px; background: rgba(255,255,255,0.06); }
+@media (max-width: 600px) {
+  .sk-watch-title { width: 75%; }
+  .sk-watch-line { width: 100%; }
+  .sk-watch-eps-grid { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
 }
 
 /* Bottom actions */
@@ -6891,6 +6933,14 @@ a:hover {
   color: #fff;
   box-shadow: 0 2px 8px rgba(124, 92, 252, 0.3);
 }
+.embed-srv-noad {
+  display: inline-flex;
+  margin-left: 5px;
+  font-size: 0.7rem;
+  color: #4ade80;
+  vertical-align: middle;
+}
+.embed-srv-btn.active .embed-srv-noad { color: #fff; }
 .embed-player-wrap {
   position: relative;
   width: 100%;

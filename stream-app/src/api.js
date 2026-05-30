@@ -708,11 +708,28 @@ export const getGokuRecentTV = () =>
     return { data: (Array.isArray(res.data) ? res.data : res.data?.results || []).map(normalizeGoku) };
   });
 
-// Search movies/TV via Goku (no TMDB key needed)
+// English movie/TV search via the backend multi-provider orchestrator
+// (TMDB + Goku + LK21). The old single-provider /movies/goku/:q passthrough
+// returned nothing whenever the Goku scraper was down — this endpoint falls
+// back to TMDB (always available server-side) so search keeps working.
+// Backend already card-normalizes tmdb results; goku/lk21 come as raw results.
 export const searchGoku = async (query) => {
-  const res = await api.get(`/movies/goku/${encodeURIComponent(query)}`);
-  const items = (res.data?.results || []).map(normalizeGoku);
-  return { data: { results: items } };
+  const res = await api.get('/movies/search', { params: { q: query, page: 1 } });
+  const d = res.data || {};
+  const tmdbItems = d.tmdb?.results || [];               // already card-ready
+  const gokuItems = (d.goku?.results || []).map((r) => (r.gokuId || r.tmdbId ? r : normalizeGoku(r)));
+  const lk21Items = d.lk21?.results || [];               // already normalized by backend
+  // TMDB first (richest metadata + working posters), then scraper fallbacks. Dedup.
+  const seen = new Set();
+  const merged = [];
+  for (const item of [...tmdbItems, ...gokuItems, ...lk21Items]) {
+    if (!item) continue;
+    const key = String(item.tmdbId ?? item.gokuId ?? item.lk21Id ?? item.id ?? item.title);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(item);
+  }
+  return { data: { results: merged } };
 };
 
 // ========== LK21 (Indonesian movie/series provider) ==========
