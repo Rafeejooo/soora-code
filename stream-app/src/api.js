@@ -981,9 +981,9 @@ export const getKomikuTrending = () =>
   }, MANGA_CACHE_TTL);
 
 // ========== SAMEHADAKU / Sub Indo (via Sankavollerei API) ==========
-const SAMEHADAKU_BASE = 'https://www.sankavollerei.com/anime/samehadaku';
-
-const samehadaku = axios.create({ baseURL: SAMEHADAKU_BASE, timeout: 15000 });
+// Sub Indo (Samehadaku) now goes through our backend proxy (/anime/subindo/*)
+// — faster (VPS path + server cache) and avoids sankavollerei's per-user anti-bot.
+const samehadaku = axios.create({ baseURL: `${API_BASE}/anime/subindo`, timeout: 20000 });
 
 // Normalize Samehadaku items to have `id` and `image` fields for Card component compatibility
 const _normalizeSamehadaku = (item) => ({
@@ -1000,57 +1000,18 @@ const _normalizeSamehadaku = (item) => ({
  */
 export const getSubIndoHomeBundle = () =>
   cachedGetSWR('subindo:home-bundle', async () => {
-    const results = { ongoing: [], popular: [], recent: [] };
-
-    // Try listing endpoints in parallel
-    const tryEndpoint = async (path) => {
-      try {
-        const res = await samehadaku.get(path);
-        const data = res.data?.data || res.data || {};
-        return data.animeList || (Array.isArray(data) ? data : []);
-      } catch { return []; }
-    };
-
-    const [ongoing, popular, recent] = await Promise.all([
-      tryEndpoint('/ongoing'),
-      tryEndpoint('/popular'),
-      tryEndpoint('/recent'),
-    ]);
-
-    results.ongoing = ongoing.map(_normalizeSamehadaku);
-    results.popular = popular.map(_normalizeSamehadaku);
-    results.recent = recent.map(_normalizeSamehadaku);
-
-    // If listing endpoints didn't return data, search popular titles
-    const totalItems = ongoing.length + popular.length + recent.length;
-    if (totalItems === 0) {
-      const popularSearches = [
-        'naruto', 'one piece', 'demon slayer', 'jujutsu kaisen',
-        'attack on titan', 'solo leveling', 'dragon ball', 'bleach',
-        'my hero academia', 'chainsaw man', 'spy x family', 'blue lock',
-        'sword art online', 'death note', 'tokyo revengers', 'boruto',
-      ];
-
-      const searchResults = await Promise.allSettled(
-        popularSearches.map((q) => searchSamehadaku(q))
-      );
-
-      const seen = new Set();
-      const allItems = [];
-      for (const result of searchResults) {
-        if (result.status === 'fulfilled') {
-          for (const item of (result.value?.animeList || [])) {
-            if (!seen.has(item.animeId)) {
-              seen.add(item.animeId);
-              allItems.push(item);
-            }
-          }
-        }
-      }
-      results.popular = allItems.map(_normalizeSamehadaku);
+    // Backend proxy returns { ongoing, popular, recent } already combined + cached.
+    try {
+      const res = await samehadaku.get('/home');
+      const d = res.data || {};
+      return {
+        ongoing: (d.ongoing || []).map(_normalizeSamehadaku),
+        popular: (d.popular || []).map(_normalizeSamehadaku),
+        recent: (d.recent || []).map(_normalizeSamehadaku),
+      };
+    } catch {
+      return { ongoing: [], popular: [], recent: [] };
     }
-
-    return results;
   }, BUNDLE_CACHE_TTL);
 
 /**
@@ -1073,7 +1034,7 @@ export const checkSubIndoAvailable = async (title) => {
 export const searchSamehadaku = (query) =>
   cachedGet(`samehadaku:search:${query}`, async () => {
     const res = await samehadaku.get('/search', { params: { q: query } });
-    return res.data?.data || { animeList: [] };
+    return res.data?.data ?? res.data ?? { animeList: [] };
   });
 
 /**
@@ -1083,7 +1044,7 @@ export const searchSamehadaku = (query) =>
 export const getSamehadakuAnimeInfo = (animeId) =>
   cachedGet(`samehadaku:info:${animeId}`, async () => {
     const res = await samehadaku.get(`/anime/${animeId}`);
-    return res.data?.data || null;
+    return res.data?.data ?? res.data ?? null;
   });
 
 /**
@@ -1094,7 +1055,7 @@ export const getSamehadakuAnimeInfo = (animeId) =>
 export const getSamehadakuEpisode = (episodeId) =>
   cachedGet(`samehadaku:ep:${episodeId}`, async () => {
     const res = await samehadaku.get(`/episode/${episodeId}`);
-    return res.data?.data || null;
+    return res.data?.data ?? res.data ?? null;
   });
 
 /**
@@ -1105,7 +1066,7 @@ export const getSamehadakuEpisode = (episodeId) =>
 export const getSamehadakuServerUrl = (serverId) =>
   cachedGet(`samehadaku:server:${serverId}`, async () => {
     const res = await samehadaku.get(`/server/${serverId}`);
-    return res.data?.data || null;
+    return res.data?.data ?? res.data ?? null;
   });
 
 /**

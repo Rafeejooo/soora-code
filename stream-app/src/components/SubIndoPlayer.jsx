@@ -35,20 +35,27 @@ export default function SubIndoPlayer({ animeTitle, japaneseTitle, episode = 1, 
   const [samehadakuEpisodes, setSamehadakuEpisodes] = useState([]);
   const [matchedAnimeId, setMatchedAnimeId] = useState(null);
   const [iframeKey, setIframeKey] = useState(0);
-  const [showNextHint, setShowNextHint] = useState(false);
   const timerRef = useRef(null);
 
-  const LOAD_TIMEOUT = 12;
+  const LOAD_TIMEOUT = 14;
+  const autoTriedRef = useRef(new Set());
 
-  // Start a countdown — if it fires, show "try next" hint
+  // Countdown — if the current server stalls, AUTO-rotate to the next one
+  // (once per server). No manual control surfaced; fully automatic.
   const startTimer = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    setShowNextHint(false);
     timerRef.current = setTimeout(() => {
-      setShowNextHint(true);
+      setActiveServerIdx((cur) => {
+        if (autoTriedRef.current.has(cur) || servers.length < 2) return cur;
+        autoTriedRef.current.add(cur);
+        const next = (cur + 1) % servers.length;
+        switchServerRef.current?.(next);
+        return cur;
+      });
     }, LOAD_TIMEOUT * 1000);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, []);
+  }, [servers.length]);
+  const switchServerRef = useRef(null);
 
   // Main fetch: search → info → episode → servers
   useEffect(() => {
@@ -166,14 +173,10 @@ export default function SubIndoPlayer({ animeTitle, japaneseTitle, episode = 1, 
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [animeTitle, japaneseTitle, episode, samehadakuId, startTimer]);
 
-  // Switch to a specific server
+  // Switch to a specific server (used by auto-rotation only)
   const switchServer = useCallback(async (idx) => {
     if (idx < 0 || idx >= servers.length) return;
     setActiveServerIdx(idx);
-    setShowNextHint(false);
-
-    // "Default" is index -1 (defaultStreamingUrl) — handled separately
-    // For indexed servers, resolve the URL
     try {
       setLoading(true);
       const serverData = await getSamehadakuServerUrl(servers[idx].serverId);
@@ -190,12 +193,7 @@ export default function SubIndoPlayer({ animeTitle, japaneseTitle, episode = 1, 
       startTimer();
     }
   }, [servers, startTimer]);
-
-  // Try next server
-  const tryNextServer = useCallback(() => {
-    const next = (activeServerIdx + 1) % (servers.length || 1);
-    switchServer(next);
-  }, [activeServerIdx, servers, switchServer]);
+  switchServerRef.current = switchServer;
 
   if (!animeTitle) {
     return (
@@ -259,20 +257,6 @@ export default function SubIndoPlayer({ animeTitle, japaneseTitle, episode = 1, 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
             <p style={{ color: 'var(--text-muted)' }}>Tidak ada URL streaming</p>
           </div>
-        )}
-        {/* Minimal floating switch — auto-fallback is silent; this is the manual escape hatch */}
-        {servers.length > 1 && (
-          <button
-            className={`embed-switch-btn ${showNextHint ? 'pulse' : ''}`}
-            onClick={tryNextServer}
-            title="Ganti server jika video tidak jalan"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M1 4v6h6M23 20v-6h-6" />
-              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" />
-            </svg>
-            Ganti server
-          </button>
         )}
       </div>
     </div>

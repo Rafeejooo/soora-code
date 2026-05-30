@@ -86,15 +86,28 @@ export default function Home() {
   const [heroIdx, setHeroIdx] = useState(0);
   const [searchVal, setSearchVal] = useState('');
 
-  /* Language: 'id' (Sub Indo — DEFAULT, direct/clean) or 'en' (English — embed, has ads) */
+  /* Language: 'id' (Sub Indo — DEFAULT, direct/clean) or 'en' (English — embed, has ads).
+     Sub Indo is the default landing pool. Legacy 'all' was the OLD default (not an
+     explicit English choice) → map it to 'id'. Only an explicit 'en' stays 'en'. */
   const [selectedLang, setSelectedLang] = useState(() => {
     const saved = localStorage.getItem('soora_anime_lang');
-    // Migrate legacy 'all' → 'en'; default to 'id' (Sub Indo is the clean default)
-    if (saved === 'all') return 'en';
-    return saved || 'id';
+    if (saved === 'en') return 'en';
+    return 'id';
   });
   const [subIndoData, setSubIndoData] = useState(null); // { ongoing, popular, recent }
   const [subIndoLoading, setSubIndoLoading] = useState(false);
+  const [showEnWarn, setShowEnWarn] = useState(false); // ad-warning popup before switching to English
+
+  // Switching to English shows an ad warning first (unless already confirmed this session)
+  const requestEnglish = () => {
+    if (sessionStorage.getItem('soora_en_ack') === '1') { setSelectedLang('en'); return; }
+    setShowEnWarn(true);
+  };
+  const confirmEnglish = () => {
+    sessionStorage.setItem('soora_en_ack', '1');
+    setShowEnWarn(false);
+    setSelectedLang('en');
+  };
 
   /* filters */
   const [filterOpen, setFilterOpen] = useState(false);
@@ -479,7 +492,7 @@ export default function Home() {
                     </button>
                     <button
                       className={`af-pill ${selectedLang === 'en' ? 'active' : ''}`}
-                      onClick={() => setSelectedLang('en')}
+                      onClick={requestEnglish}
                     >
                       🌐 English
                     </button>
@@ -678,15 +691,6 @@ export default function Home() {
       {/* ── English (embed) Sections — when no filter active and EN selected ── */}
       {!isFilterActive && selectedLang !== 'id' && (
         <>
-          {/* Ad warning — EN uses third-party embed players that show provider ads */}
-          <div className="en-ad-notice">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-              <path d="M12 9v4M12 17h.01"/>
-            </svg>
-            <span>Mode English pakai player pihak ketiga — <b>mungkin ada iklan dari provider</b>. Untuk pengalaman bersih tanpa iklan, pakai <button className="en-ad-switch" onClick={() => setSelectedLang('id')}>🇮🇩 Sub Indo</button></span>
-          </div>
-
           {/* Top 10 Anime global */}
           {sectionsReady && topAiring.length > 0 && (
             <Top10Section
@@ -740,6 +744,30 @@ export default function Home() {
           <button onClick={() => { try { sessionStorage.removeItem('soora_cache:anime:home-bundle'); } catch {} window.location.reload(); }} className="af-reset" style={{ marginTop: '1rem' }}>
             Coba Lagi
           </button>
+        </div>
+      )}
+
+      {/* English ad-warning popup — only when user opts into English */}
+      {showEnWarn && (
+        <div className="en-warn-overlay" onClick={() => setShowEnWarn(false)}>
+          <div className="en-warn-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="en-warn-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="28" height="28">
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <path d="M12 9v4M12 17h.01"/>
+              </svg>
+            </div>
+            <h3>Mode English ada iklan</h3>
+            <p>Anime English diputar lewat player pihak ketiga yang <b>mungkin menampilkan iklan</b>. Sub Indo bebas iklan dan jadi pilihan utama kami.</p>
+            <div className="en-warn-actions">
+              <button className="en-warn-stay" onClick={() => setShowEnWarn(false)}>
+                🇮🇩 Tetap Sub Indo
+              </button>
+              <button className="en-warn-go" onClick={confirmEnglish}>
+                Lanjut English
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

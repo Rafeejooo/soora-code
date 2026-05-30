@@ -24,7 +24,10 @@ export default function Card({ item, type = 'anime' }) {
   }, [item.id, type]);
 
   const handleClick = () => {
-    if (type === 'anime') {
+    if (type === 'anime' && (item._subIndo || item.provider === 'samehadaku')) {
+      // Sub Indo (samehadaku) — go straight to the Sub Indo watch flow
+      navigate(`/watch/anime?title=${encodeURIComponent(item.title || '')}&subIndo=1&samehadakuId=${encodeURIComponent(item.animeId || item.id || '')}&ep=1`);
+    } else if (type === 'anime') {
       navigate(buildAnimeUrl(item.id));
     } else if (type === 'manga') {
       navigate(buildMangaUrl(item.id));
@@ -110,8 +113,8 @@ export default function Card({ item, type = 'anime' }) {
   const handleMouseEnter = useCallback(() => {
     clearTimeout(leaveTimer.current);
     setHovered(true);
-    // No popup for manga cards
-    if (type === 'manga') return;
+    // No popup for manga or Sub Indo (samehadaku) cards — popup fetches EN info
+    if (type === 'manga' || item._subIndo || item.provider === 'samehadaku') return;
     hoverTimer.current = setTimeout(() => {
       const style = calcPopupStyle();
       if (style) {

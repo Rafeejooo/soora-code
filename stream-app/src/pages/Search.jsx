@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom';
 import {
   searchAnime,
+  searchSamehadaku,
   searchMoviesTMDB,
   searchGoku,
   searchLK21,
@@ -284,7 +285,25 @@ export default function Search({ searchType }) {
           res = await searchManga(q);
         }
       } else {
-        res = await searchAnime(q);
+        // Anime: default Sub Indo (samehadaku) search; English only when chosen
+        const animeLang = localStorage.getItem('soora_anime_lang') === 'en' ? 'en' : 'id';
+        if (animeLang === 'id') {
+          const sh = await searchSamehadaku(q);
+          const items = (sh.animeList || []).map((a) => ({
+            id: a.animeId,
+            animeId: a.animeId,
+            title: a.title,
+            image: a.poster || a.image || '',
+            type: a.type || 'TV',
+            sub: 1,
+            score: a.score,
+            provider: 'samehadaku',
+            _subIndo: true,
+          }));
+          res = { data: { results: items } };
+        } else {
+          res = await searchAnime(q);
+        }
       }
       setResults(res.data.results || []);
     } catch (err) {

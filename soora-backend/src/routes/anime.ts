@@ -9,6 +9,83 @@ const qs = (v: any): string => String(v ?? '');
 
 const router = Router();
 
+// ========== SUB INDO (Samehadaku via sankavollerei) PROXY ==========
+// Frontend hit sankavollerei directly → slow + anti-bot from user IPs.
+// Proxy through the VPS (fast path + server-side cache) instead.
+import axios from 'axios';
+const SAMEHADAKU = 'https://www.sankavollerei.com/anime/samehadaku';
+const shClient = axios.create({
+  baseURL: SAMEHADAKU,
+  timeout: 20000,
+  headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+});
+
+const shGet = async (path: string) => {
+  const res = await shClient.get(path);
+  return res.data?.data ?? res.data ?? null;
+};
+
+// Home bundle (ongoing + popular + recent) — single cached call
+router.get('/subindo/home', async (req: Request, res: Response) => {
+  try {
+    const data = await cachedSWR('subindo:home', async () => {
+      const [ongoing, popular, recent] = await parallel(
+        shGet('/ongoing').catch(() => null),
+        shGet('/popular').catch(() => null),
+        shGet('/recent').catch(() => null),
+      );
+      const list = (d: any) => (d?.animeList || (Array.isArray(d) ? d : []));
+      return { ongoing: list(ongoing), popular: list(popular), recent: list(recent) };
+    }, CACHE_TTL.HOME_BUNDLE);
+    res.json(data);
+  } catch (err: any) {
+    reportRouteError(req, err, 'subindo/home');
+    res.json({ ongoing: [], popular: [], recent: [] });
+  }
+});
+
+router.get('/subindo/search', async (req: Request, res: Response) => {
+  try {
+    const q = qs(req.query.q);
+    if (!q) return res.json({ animeList: [] });
+    const data = await cached(`subindo:search:${q}`, () => shGet(`/search?q=${encodeURIComponent(q)}`), CACHE_TTL.SEARCH);
+    res.json(data || { animeList: [] });
+  } catch (err: any) {
+    reportRouteError(req, err, 'subindo/search');
+    res.json({ animeList: [] });
+  }
+});
+
+router.get('/subindo/anime/:id', async (req: Request, res: Response) => {
+  try {
+    const data = await cached(`subindo:info:${req.params.id}`, () => shGet(`/anime/${req.params.id}`), CACHE_TTL.INFO);
+    res.json(data || {});
+  } catch (err: any) {
+    reportRouteError(req, err, 'subindo/anime');
+    res.status(502).json({ error: 'fetch failed' });
+  }
+});
+
+router.get('/subindo/episode/:id', async (req: Request, res: Response) => {
+  try {
+    const data = await cached(`subindo:ep:${req.params.id}`, () => shGet(`/episode/${req.params.id}`), CACHE_TTL.STREAM);
+    res.json(data || {});
+  } catch (err: any) {
+    reportRouteError(req, err, 'subindo/episode');
+    res.status(502).json({ error: 'fetch failed' });
+  }
+});
+
+router.get('/subindo/server/:id', async (req: Request, res: Response) => {
+  try {
+    const data = await cached(`subindo:srv:${req.params.id}`, () => shGet(`/server/${req.params.id}`), CACHE_TTL.STREAM);
+    res.json(data || {});
+  } catch (err: any) {
+    reportRouteError(req, err, 'subindo/server');
+    res.status(502).json({ error: 'fetch failed' });
+  }
+});
+
 // ========== GENRE CONFIG (matches frontend) ==========
 const GENRE_SECTIONS = [
   'action', 'romance', 'slice-of-life', 'fantasy', 'comedy', 'adventure',
