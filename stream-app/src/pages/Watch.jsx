@@ -948,8 +948,11 @@ export default function Watch() {
       {/* ===== CONTENT BELOW PLAYER ===== */}
       <div className="watch-content">
 
-        {/* Player mode selector — Direct HLS or Embed fallback */}
-        {lk21Id && sources.length > 0 ? (
+        {/* Player controls — auto by default. Server fallback is automatic; we
+            only surface (a) LK21's distinct server list, and (b) a small Sub Indo
+            toggle for anime since it's a different content source. No Direct/Embed
+            choice — the player picks and auto-rotates silently. */}
+        {lk21Id && sources.length > 1 ? (
           <div className="watch-player-mode">
             <span className="watch-player-mode-label">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -967,84 +970,28 @@ export default function Watch() {
                   title={src.provider || `Server ${i + 1}`}
                 >
                   {src.provider || `Server ${i + 1}`}
-                  {src.isEmbed && <span className="quality-auto-hint">embed</span>}
                 </button>
               ))}
-              {effectiveTmdbId && (
-                <button
-                  className={`watch-quality-pill ${useEmbedPlayer ? 'active' : ''}`}
-                  onClick={() => { setSubLang('multi'); setUseEmbedPlayer(true); }}
-                  title="Embed player fallback"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                  Embed
-                </button>
-              )}
-            </div>
-          </div>
-        ) : (isAnime && (malId || alId)) || (isMovie && effectiveTmdbId) ? (
-          <div className="watch-player-mode">
-            <span className="watch-player-mode-label">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="2" y="3" width="20" height="14" rx="2"/>
-                <polygon points="10 8 16 11 10 14 10 8" fill="currentColor"/>
-              </svg>
-              Player
-            </span>
-            <div className="watch-player-mode-pills">
-              <button
-                className={`watch-quality-pill ${!useEmbedPlayer && !useSubIndo ? 'active' : ''}`}
-                onClick={() => { userForcedDirect.current = true; setSubLang(null); setUseEmbedPlayer(false); setUseSubIndo(false); if (isAnime && sources.length === 0) setRetryKey((k) => k + 1); }}
-                title="Direct HLS stream — best quality"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                Direct
-              </button>
-              <button
-                className={`watch-quality-pill ${useEmbedPlayer && !useSubIndo ? 'active' : ''}`}
-                onClick={() => { setSubLang('multi'); setUseEmbedPlayer(true); setUseSubIndo(false); }}
-                title="Embedded player — try this if Direct doesn't work"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                Embed
-              </button>
-              {isAnime && (
-                <button
-                  className={`watch-quality-pill watch-quality-pill-indo ${useSubIndo ? 'active' : ''}`}
-                  onClick={() => { setSubLang('id'); setUseEmbedPlayer(false); setUseSubIndo(true); }}
-                  title="Sub Indonesia — dari Samehadaku"
-                >
-                  🇮🇩 Sub Indo
-                </button>
-              )}
             </div>
           </div>
         ) : isAnime ? (
-          <div className="watch-player-mode">
-            <span className="watch-player-mode-label">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="2" y="3" width="20" height="14" rx="2"/>
-                <polygon points="10 8 16 11 10 14 10 8" fill="currentColor"/>
-              </svg>
-              Player
-            </span>
-            <div className="watch-player-mode-pills">
-              <button
-                className={`watch-quality-pill ${!useSubIndo ? 'active' : ''}`}
-                onClick={() => { userForcedDirect.current = true; setSubLang(null); setUseEmbedPlayer(false); setUseSubIndo(false); if (isAnime && sources.length === 0) setRetryKey((k) => k + 1); }}
-                title="Direct HLS stream — best quality"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                Direct
-              </button>
-              <button
-                className={`watch-quality-pill watch-quality-pill-indo ${useSubIndo ? 'active' : ''}`}
-                onClick={() => { setSubLang('id'); setUseEmbedPlayer(false); setUseSubIndo(true); }}
-                title="Sub Indonesia — dari Samehadaku"
-              >
-                🇮🇩 Sub Indo
-              </button>
-            </div>
+          <div className="watch-player-mode watch-player-mode-compact">
+            <button
+              className={`watch-subindo-toggle ${useSubIndo ? 'active' : ''}`}
+              onClick={() => {
+                if (useSubIndo) {
+                  // back to auto (embed-first)
+                  setUseSubIndo(false); setSubLang('multi');
+                  if (malId || alId) setUseEmbedPlayer(true);
+                } else {
+                  setSubLang('id'); setUseEmbedPlayer(false); setUseSubIndo(true);
+                }
+              }}
+              title="Sub Indonesia — dari Samehadaku"
+            >
+              🇮🇩 Sub Indo
+              {useSubIndo && <span className="subindo-on-dot" />}
+            </button>
           </div>
         ) : null}
 

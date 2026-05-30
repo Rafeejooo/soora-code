@@ -76,14 +76,30 @@ export default function AnimeEmbedPlayer({ malId, alId, episode = 1 }) {
   // Sandbox kills ad pop-ups/redirects but only on servers that still play sandboxed.
   const useSandbox = server?.sandbox === true;
 
-  // Start a countdown — if it fires, show "try next" hint
+  // Manually (or auto) advance to the next server.
+  const tryNextServer = useCallback(() => {
+    setActiveServer((cur) => (cur + 1) % availableServers.length);
+  }, [availableServers.length]);
+
+  // Start a countdown — if the current server hasn't visibly started by then,
+  // AUTO-rotate to the next one (once per server, so we don't loop forever).
+  // After a full cycle, just surface the manual "Ganti server" pulse.
   const startTimer = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     setShowNextHint(false);
     timerRef.current = setTimeout(() => {
-      setShowNextHint(true);
+      setAutoTried((prev) => {
+        if (prev.has(activeServer) || prev.size >= availableServers.length - 1) {
+          // Already auto-tried this one (or exhausted) → show manual hint, stop.
+          setShowNextHint(true);
+          return prev;
+        }
+        const next = new Set(prev).add(activeServer);
+        setActiveServer((cur) => (cur + 1) % availableServers.length);
+        return next;
+      });
     }, LOAD_TIMEOUT * 1000);
-  }, []);
+  }, [activeServer, availableServers.length]);
 
   // When server changes, force iframe reload + restart timer
   useEffect(() => {
@@ -92,13 +108,6 @@ export default function AnimeEmbedPlayer({ malId, alId, episode = 1 }) {
     startTimer();
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [activeServer, startTimer]);
-
-  // Auto-try next server when hint appears (up to one auto-rotation per server)
-  const tryNextServer = useCallback(() => {
-    setAutoTried((prev) => new Set(prev).add(activeServer));
-    const next = (activeServer + 1) % availableServers.length;
-    setActiveServer(next);
-  }, [activeServer, availableServers.length]);
 
   if (!url) {
     return (
@@ -112,28 +121,6 @@ export default function AnimeEmbedPlayer({ malId, alId, episode = 1 }) {
 
   return (
     <div className="anime-embed-container">
-      <div className="embed-server-bar">
-        <span className="embed-server-label">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
-            <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
-            <line x1="6" y1="6" x2="6.01" y2="6" />
-            <line x1="6" y1="18" x2="6.01" y2="18" />
-          </svg>
-          Server:
-        </span>
-        {availableServers.map((s, i) => (
-          <button
-            key={i}
-            className={`embed-srv-btn ${i === activeServer ? 'active' : ''}`}
-            onClick={() => setActiveServer(i)}
-            title={s.sandbox ? 'Ad-blocked (sandboxed)' : 'May show provider ads'}
-          >
-            {s.name}
-            {s.sandbox && <span className="embed-srv-noad" aria-label="ad-blocked">⦸</span>}
-          </button>
-        ))}
-      </div>
       <div className="embed-player-wrap">
         <iframe
           key={iframeKey}
@@ -147,33 +134,22 @@ export default function AnimeEmbedPlayer({ malId, alId, episode = 1 }) {
           referrerPolicy="no-referrer"
           {...(useSandbox ? { sandbox: 'allow-same-origin allow-scripts allow-forms allow-presentation' } : {})}
         />
-      </div>
-
-      {/* Prompt to try another server if current one seems stuck */}
-      {showNextHint && availableServers.length > 1 && (
-        <div className="embed-hint embed-hint-action">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="16" x2="12" y2="12" />
-            <line x1="12" y1="8" x2="12.01" y2="8" />
-          </svg>
-          Not loading?
-          <button className="embed-srv-btn active" style={{ marginLeft: 8, fontSize: '0.75rem' }} onClick={tryNextServer}>
-            Try {availableServers[(activeServer + 1) % availableServers.length]?.name} →
+        {/* Minimal, unobtrusive "switch server" control — auto-rotation handles
+            the common case; this is the manual escape hatch. */}
+        {availableServers.length > 1 && (
+          <button
+            className={`embed-switch-btn ${showNextHint ? 'pulse' : ''}`}
+            onClick={tryNextServer}
+            title="Ganti server jika video tidak jalan"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M1 4v6h6M23 20v-6h-6" />
+              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" />
+            </svg>
+            Ganti server
           </button>
-        </div>
-      )}
-
-      {!showNextHint && (
-        <div className="embed-hint">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="16" x2="12" y2="12" />
-            <line x1="12" y1="8" x2="12.01" y2="8" />
-          </svg>
-          If video doesn't load, try a different server above
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

@@ -2464,22 +2464,34 @@ a:hover {
 .hero-bg {
   position: absolute;
   inset: 0;
+  animation: heroBgFade 0.8s ease-out;
+}
+@keyframes heroBgFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 .hero-bg img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   filter: brightness(0.35);
+  animation: heroKenBurns 18s ease-in-out infinite alternate;
+  transform-origin: center 30%;
+}
+@keyframes heroKenBurns {
+  from { transform: scale(1.02); }
+  to   { transform: scale(1.12); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-bg img { animation: none; }
 }
 
 /* Enhance low-res hero images with blur for sooraflix & sooramics */
 .sooraflix-hero .hero-bg img {
   filter: brightness(0.35) blur(2px);
-  transform: scale(1.05);
 }
 .sooramics-hero .hero-bg img {
   filter: brightness(0.3) blur(6px);
-  transform: scale(1.1);
 }
 .hero-bg::after {
   content: '';
@@ -3481,13 +3493,14 @@ a:hover {
 }
 .card:hover,
 .card.card-hovered {
-  transform: translateY(-10px) scale(1.04);
+  transform: translateY(-12px) scale(1.05);
   border-color: transparent;
   box-shadow:
-    0 20px 50px rgba(0, 0, 0, 0.5),
-    0 0 30px rgba(124, 92, 252, 0.12);
+    0 24px 56px rgba(0, 0, 0, 0.6),
+    0 0 40px rgba(124, 92, 252, 0.22);
   z-index: 20;
 }
+.card:active { transform: translateY(-4px) scale(1.0); transition-duration: 0.12s; }
 .sooraflix-page .card::after {
   background: linear-gradient(135deg, transparent 40%, #ff6b9d 100%);
 }
@@ -3566,22 +3579,22 @@ a:hover {
   opacity: 1;
 }
 .card-play-circle {
-  width: 42px;
-  height: 42px;
+  width: 50px;
+  height: 50px;
   background: var(--accent);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 4px 20px rgba(124, 92, 252, 0.5);
+  box-shadow: 0 6px 24px rgba(124, 92, 252, 0.6);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  transform: scale(0.8);
+  transform: scale(0.6) translateY(6px);
   opacity: 0;
 }
 .card:hover .card-play-circle,
 .card.card-hovered .card-play-circle {
-  transform: scale(1);
+  transform: scale(1) translateY(0);
   opacity: 1;
 }
 .card-play-circle:hover {
@@ -3611,7 +3624,7 @@ a:hover {
   padding: 0.65rem 0.75rem 0.7rem;
 }
 .card-title {
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 600;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -3619,7 +3632,12 @@ a:hover {
   overflow: hidden;
   line-height: 1.35;
   letter-spacing: -0.01em;
+  transition: color 0.2s ease;
 }
+.card:hover .card-title,
+.card.card-hovered .card-title { color: var(--accent); }
+.sooraflix-page .card:hover .card-title { color: #ff6b9d; }
+.sooramics-page .card:hover .card-title { color: #00d4aa; }
 .card-meta {
   display: flex;
   gap: 0.35rem;
@@ -3654,21 +3672,21 @@ a:hover {
   background: rgba(255, 170, 50, 0.12);
 }
 .card-badge-sub {
-  font-size: 0.6rem !important;
-  color: var(--accent) !important;
+  font-size: 0.62rem !important;
+  color: #b9a4ff !important;
   text-transform: uppercase;
   font-weight: 700;
-  background: rgba(124, 92, 252, 0.12);
+  background: rgba(124, 92, 252, 0.22);
   padding: 2px 7px;
   border-radius: 6px;
   letter-spacing: 0.02em;
 }
 .card-badge-dub {
-  font-size: 0.6rem !important;
-  color: #34d399 !important;
+  font-size: 0.62rem !important;
+  color: #6ee7b7 !important;
   text-transform: uppercase;
   font-weight: 700;
-  background: rgba(52, 211, 153, 0.12);
+  background: rgba(52, 211, 153, 0.2);
   padding: 2px 7px;
   border-radius: 6px;
   letter-spacing: 0.02em;
@@ -4183,39 +4201,38 @@ a:hover {
 }
 
 /* ===== WATCH PAGE SKELETON ===== */
-.skeleton-watch { pointer-events: none; animation: sectionFadeIn 0.35s ease-out; }
-.sk-watch-player {
+.skeleton-watch { pointer-events: none; animation: sectionFadeIn 0.3s ease-out; }
+/* Player box owns the 16:9 ratio (watch-player-wrap has none on its own) */
+.sk-player-box {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%;
+  background: #000;
+  overflow: hidden;
+}
+.sk-player-fill {
   position: absolute;
   inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255,255,255,0.04);
-  color: rgba(255,255,255,0.12);
-  border-radius: inherit;
+  background: rgba(255,255,255,0.05);
 }
-.sk-watch-pills { display: flex; gap: 8px; margin: 1rem 0 1.25rem; }
-.sk-watch-pill { height: 30px; border-radius: 8px; background: rgba(255,255,255,0.06); }
-.sk-watch-title-block { display: flex; flex-direction: column; gap: 10px; }
-.sk-watch-bar { background: rgba(255,255,255,0.06); border-radius: 6px; }
-.sk-watch-title { height: 26px; width: 55%; }
-.sk-watch-sub { height: 15px; width: 28%; }
-.sk-watch-line { height: 12px; width: 92%; }
-.sk-watch-line.short { width: 70%; }
-.sk-watch-badges { display: flex; gap: 8px; margin-top: 6px; }
-.sk-watch-badge { height: 22px; border-radius: 20px; background: rgba(255,255,255,0.06); }
-.sk-watch-eps { margin-top: 1.75rem; }
-.sk-watch-eps-title { display: block; height: 20px; width: 140px; margin-bottom: 14px; }
-.sk-watch-eps-grid {
+.sk-title-block { display: flex; flex-direction: column; gap: 12px; padding-top: 1.25rem; }
+.sk-bar { background: rgba(255,255,255,0.06); border-radius: 6px; }
+.sk-title { height: 24px; width: 48%; }
+.sk-sub { height: 14px; width: 26%; }
+.sk-badges { display: flex; gap: 8px; margin-top: 4px; }
+.sk-badge { height: 22px; border-radius: 999px; background: rgba(255,255,255,0.06); }
+.sk-eps { margin-top: 1.75rem; }
+.sk-eps-title { display: block; height: 18px; width: 130px; margin-bottom: 14px; }
+.sk-eps-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
   gap: 10px;
 }
-.sk-watch-ep { height: 46px; border-radius: 8px; background: rgba(255,255,255,0.06); }
+.sk-ep { height: 44px; border-radius: 8px; background: rgba(255,255,255,0.06); }
 @media (max-width: 600px) {
-  .sk-watch-title { width: 75%; }
-  .sk-watch-line { width: 100%; }
-  .sk-watch-eps-grid { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
+  .sk-title { width: 72%; }
+  .sk-sub { width: 40%; }
+  .sk-eps-grid { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
 }
 
 /* Bottom actions */
@@ -6941,6 +6958,42 @@ a:hover {
   vertical-align: middle;
 }
 .embed-srv-btn.active .embed-srv-noad { color: #fff; }
+
+/* Minimal floating "Ganti server" escape hatch (auto-rotation handles the rest) */
+.embed-switch-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(10,10,18,0.72);
+  backdrop-filter: blur(8px);
+  color: rgba(255,255,255,0.85);
+  font-size: 0.74rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  opacity: 0.35;
+  transition: opacity 0.2s ease, background 0.2s ease, transform 0.15s ease;
+}
+.embed-player-wrap:hover .embed-switch-btn { opacity: 0.85; }
+.embed-switch-btn:hover { opacity: 1; background: var(--accent, #7c5cfc); border-color: transparent; }
+.embed-switch-btn:active { transform: scale(0.95); }
+.embed-switch-btn.pulse {
+  opacity: 1;
+  background: var(--accent, #7c5cfc);
+  border-color: transparent;
+  animation: embedSwitchPulse 1.6s ease-in-out infinite;
+}
+@keyframes embedSwitchPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124,92,252,0.5); }
+  50% { box-shadow: 0 0 0 8px rgba(124,92,252,0); }
+}
 .embed-player-wrap {
   position: relative;
   width: 100%;
@@ -7525,6 +7578,34 @@ a:hover {
   gap: 1rem;
   padding: 0.8rem 0;
   border-bottom: 1px solid var(--border);
+}
+.watch-player-mode-compact { border-bottom: none; padding: 0.6rem 0; }
+.watch-subindo-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.42rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.03);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.watch-subindo-toggle:hover { background: rgba(255,255,255,0.07); color: #fff; }
+.watch-subindo-toggle.active {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(239,68,68,0.3);
+}
+.subindo-on-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px #fff;
 }
 .watch-player-mode-label {
   font-size: 0.8rem;
