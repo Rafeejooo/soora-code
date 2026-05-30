@@ -2945,6 +2945,82 @@ a:hover {
   color: #fff;
 }
 
+/* ===== GENRE FILTER (sooranime — simple chip rail) ===== */
+.genre-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 4%;
+  margin: 0.5rem 0 1.5rem;
+}
+.genre-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.03);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  position: relative;
+  transition: all 0.16s ease;
+}
+.genre-filter-toggle:hover { background: rgba(255,255,255,0.07); color: #fff; }
+.genre-filter-toggle svg { color: var(--accent); }
+.genre-filter-active-dot {
+  position: absolute; top: 6px; right: 8px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 6px var(--accent);
+}
+.genre-chip-rail {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 2px 0;
+  scroll-snap-type: x proximity;
+}
+.genre-chip-rail::-webkit-scrollbar { display: none; }
+.genre-chip {
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.02);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  scroll-snap-align: start;
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, transform 0.12s ease;
+}
+.genre-chip:hover { background: rgba(255,255,255,0.07); color: #fff; border-color: rgba(255,255,255,0.16); }
+.genre-chip.active {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 4px 16px var(--accent-glow);
+}
+.genre-chip:active { transform: scale(0.95); }
+.genre-results { padding: 0 4% 1rem; }
+.genre-results .section-title { margin-bottom: 1rem; }
+.genre-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1.2rem;
+}
+@media (max-width: 600px) {
+  .genre-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.8rem; }
+}
+
 /* English ad-warning popup */
 .en-warn-overlay {
   position: fixed;

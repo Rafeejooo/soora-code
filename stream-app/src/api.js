@@ -1000,7 +1000,7 @@ const _normalizeSamehadaku = (item) => ({
  */
 export const getSubIndoHomeBundle = () =>
   cachedGetSWR('subindo:home-bundle', async () => {
-    // Backend proxy returns { ongoing, popular, recent } already combined + cached.
+    // Backend proxy returns { ongoing, popular, recent, top10 } combined + cached.
     try {
       const res = await samehadaku.get('/home');
       const d = res.data || {};
@@ -1008,9 +1008,41 @@ export const getSubIndoHomeBundle = () =>
         ongoing: (d.ongoing || []).map(_normalizeSamehadaku),
         popular: (d.popular || []).map(_normalizeSamehadaku),
         recent: (d.recent || []).map(_normalizeSamehadaku),
+        top10: (d.top10 || []).map(_normalizeSamehadaku),
       };
     } catch {
-      return { ongoing: [], popular: [], recent: [] };
+      return { ongoing: [], popular: [], recent: [], top10: [] };
+    }
+  }, BUNDLE_CACHE_TTL);
+
+/** Sub Indo anime by genre (samehadaku). Returns array of normalized items. */
+export const getSubIndoGenre = (genreId) =>
+  cachedGet(`subindo:genre:${genreId}`, async () => {
+    try {
+      const res = await samehadaku.get(`/genre/${genreId}`);
+      const d = res.data?.data ?? res.data ?? {};
+      return (d.animeList || []).map(_normalizeSamehadaku);
+    } catch {
+      return [];
+    }
+  }, MANGA_CACHE_TTL);
+
+/**
+ * Themed Sub Indo home sections (curated, non-generic).
+ * Returns { sections: [{key,title}], data: { key: [items] } }
+ */
+export const getSubIndoSections = () =>
+  cachedGetSWR('subindo:sections', async () => {
+    try {
+      const res = await samehadaku.get('/sections');
+      const d = res.data || {};
+      const data = {};
+      for (const k of Object.keys(d.data || {})) {
+        data[k] = (d.data[k] || []).map(_normalizeSamehadaku);
+      }
+      return { sections: d.sections || [], data };
+    } catch {
+      return { sections: [], data: {} };
     }
   }, BUNDLE_CACHE_TTL);
 

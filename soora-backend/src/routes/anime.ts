@@ -29,18 +29,71 @@ const shGet = async (path: string) => {
 router.get('/subindo/home', async (req: Request, res: Response) => {
   try {
     const data = await cachedSWR('subindo:home', async () => {
-      const [ongoing, popular, recent] = await parallel(
+      const [ongoing, popular, recent, home] = await parallel(
         shGet('/ongoing').catch(() => null),
         shGet('/popular').catch(() => null),
         shGet('/recent').catch(() => null),
+        shGet('/home').catch(() => null),
       );
       const list = (d: any) => (d?.animeList || (Array.isArray(d) ? d : []));
-      return { ongoing: list(ongoing), popular: list(popular), recent: list(recent) };
+      const top10 = home?.top10?.animeList || home?.top10 || [];
+      return { ongoing: list(ongoing), popular: list(popular), recent: list(recent), top10 };
     }, CACHE_TTL.HOME_BUNDLE);
     res.json(data);
   } catch (err: any) {
     reportRouteError(req, err, 'subindo/home');
     res.json({ ongoing: [], popular: [], recent: [] });
+  }
+});
+
+// Genre listing proxy
+router.get('/subindo/genre/:id', async (req: Request, res: Response) => {
+  try {
+    const data = await cached(`subindo:genre:${req.params.id}`, () => shGet(`/genres/${req.params.id}`), CACHE_TTL.HOME_BUNDLE);
+    res.json(data || { animeList: [] });
+  } catch (err: any) {
+    reportRouteError(req, err, 'subindo/genre');
+    res.json({ animeList: [] });
+  }
+});
+
+// Themed home sections — curated, non-generic. One cached call builds them all.
+const SUBINDO_SECTIONS = [
+  { key: 'suka',     title: 'Mungkin Kamu Suka',          genres: ['fantasy', 'adventure'] },
+  { key: 'aksi',     title: 'Aksi Tanpa Henti',           genres: ['action', 'super-power'] },
+  { key: 'isekai',   title: 'Menjelajah ke Dunia Lain',   genres: ['isekai', 'reincarnation'] },
+  { key: 'hangat',   title: 'Hangat di Hati',             genres: ['slice-of-life', 'comedy'] },
+  { key: 'pilihan',  title: 'Karya Pilihan',              genres: ['seinen', 'drama'] },
+  { key: 'misteri',  title: 'Penuh Misteri & Tegang',     genres: ['mystery', 'supernatural'] },
+  { key: 'sekolah',  title: 'Cerita Masa Sekolah',        genres: ['school', 'romance'] },
+];
+
+router.get('/subindo/sections', async (req: Request, res: Response) => {
+  try {
+    const data = await cachedSWR('subindo:sections', async () => {
+      // Fetch each section's genres in parallel, dedup, cap 18 per section
+      const out: Record<string, any[]> = {};
+      const seenGlobal = new Set<string>();
+      await Promise.all(SUBINDO_SECTIONS.map(async (sec) => {
+        const lists = await Promise.all(
+          sec.genres.map((g) => shGet(`/genres/${g}`).then((d: any) => d?.animeList || []).catch(() => []))
+        );
+        const merged: any[] = [];
+        const seen = new Set<string>();
+        for (const list of lists) {
+          for (const a of list) {
+            const id = a.animeId || a.id;
+            if (id && !seen.has(id)) { seen.add(id); merged.push(a); }
+          }
+        }
+        out[sec.key] = merged.slice(0, 18);
+      }));
+      return { sections: SUBINDO_SECTIONS.map((s) => ({ key: s.key, title: s.title })), data: out };
+    }, CACHE_TTL.HOME_BUNDLE);
+    res.json(data);
+  } catch (err: any) {
+    reportRouteError(req, err, 'subindo/sections');
+    res.json({ sections: [], data: {} });
   }
 });
 
