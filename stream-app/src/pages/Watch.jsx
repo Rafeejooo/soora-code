@@ -584,7 +584,7 @@ export default function Watch() {
             japaneseTitle: info.japanese || '',
             description: syn,
             genres,
-            rating: info.score ? parseFloat(info.score) * 10 : null,
+            rating: Number.isFinite(parseFloat(info.score)) ? parseFloat(info.score) * 10 : null,
             totalEpisodes: info.episodes || (info.episodeList || []).length,
             status: info.status,
             image: info.poster,
@@ -1048,23 +1048,14 @@ export default function Watch() {
             </div>
           </div>
         ) : isAnime ? (
-          <div className="watch-player-mode watch-player-mode-compact">
-            <button
-              className={`watch-subindo-toggle ${useSubIndo ? 'active' : ''}`}
-              onClick={() => {
-                if (useSubIndo) {
-                  // back to auto (embed-first)
-                  setUseSubIndo(false); setSubLang('multi');
-                  if (malId || alId) setUseEmbedPlayer(true);
-                } else {
-                  setSubLang('id'); setUseEmbedPlayer(false); setUseSubIndo(true);
-                }
-              }}
-              title="Sub Indonesia — dari Samehadaku"
-            >
-              🇮🇩 Sub Indo
-              {useSubIndo && <span className="subindo-on-dot" />}
-            </button>
+          <div className="watch-sub-select">
+            <span className="watch-sub-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 12h4M14 12h4M6 16h8"/></svg>
+              Subtitle
+            </span>
+            <div className="watch-sub-pills">
+              <button className="watch-sub-pill active" title="Subtitle Indonesia">Indonesia</button>
+            </div>
           </div>
         ) : null}
 
@@ -1181,7 +1172,7 @@ export default function Watch() {
                 ★ {movieDetails.vote_average.toFixed(1)}
               </span>
             )}
-            {animeInfo?.rating && (
+            {Number.isFinite(animeInfo?.rating) && animeInfo.rating > 0 && (
               <span className="watch-badge watch-badge-gold">
                 ★ {(animeInfo.rating / 10).toFixed(1)}
               </span>

@@ -25,8 +25,8 @@ export default function Card({ item, type = 'anime' }) {
 
   const handleClick = () => {
     if (type === 'anime' && (item._subIndo || item.provider === 'samehadaku')) {
-      // Sub Indo (samehadaku) — go straight to the Sub Indo watch flow
-      navigate(`/watch/anime?title=${encodeURIComponent(item.title || '')}&subIndo=1&samehadakuId=${encodeURIComponent(item.animeId || item.id || '')}&ep=1`);
+      // Sub Indo (samehadaku) — open the info page first (synopsis + episodes)
+      navigate(`/anime/${encodeURIComponent(item.animeId || item.id || '')}?sub=1`);
     } else if (type === 'anime') {
       navigate(buildAnimeUrl(item.id));
     } else if (type === 'manga') {

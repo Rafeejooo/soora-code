@@ -67,9 +67,7 @@ export default function Home() {
     e.preventDefault();
     if (searchVal.trim()) navigate(`/anime/search?q=${encodeURIComponent(searchVal.trim())}`);
   };
-  const goWatch = (a) => navigate(
-    `/watch/anime?title=${encodeURIComponent(a.title || '')}&subIndo=1&samehadakuId=${encodeURIComponent(a.animeId || a.id || '')}&ep=1`
-  );
+  const goWatch = (a) => navigate(`/anime/${encodeURIComponent(a.animeId || a.id || '')}?sub=1`);
 
   const top10 = (bundle?.top10?.length ? bundle.top10 : bundle?.popular || []).slice(0, 10).map(toCard);
   const ongoing = (bundle?.ongoing || []).map(toCard);
@@ -90,7 +88,7 @@ export default function Home() {
           </div>
           <div className="hero-content">
             <div className="hero-top-row">
-              <div className="hero-badge">🇮🇩 Sub Indo</div>
+              <div className="hero-badge">Spotlight</div>
               {hero.type && <div className="hero-quality">{hero.type}</div>}
             </div>
             <h1 className="hero-title">{hero.title || 'Unknown'}</h1>
@@ -242,7 +240,6 @@ function FeaturedRow({ title, eyebrow, items, onPick }) {
               <div className="fcard-art">
                 <img src={a.image} alt={a.title} loading="lazy" referrerPolicy="no-referrer" onError={(e) => { e.target.style.opacity = 0; }} />
                 <div className="fcard-grad" />
-                <span className="fcard-badge">🇮🇩 Sub Indo</span>
                 {a.score && <span className="fcard-score">★ {a.score}</span>}
                 <div className="fcard-play"><svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
               </div>
@@ -273,11 +270,14 @@ function RankRow({ title, eyebrow, items, onPick }) {
         <RailArrows {...rail} />
         <div className="rrow-scroll" ref={rail.ref}>
           {items.map((a, i) => (
-            <button className="rcard" key={a.id} onClick={() => onPick(a)}>
+            <button className="rcard" key={a.id} onClick={() => onPick(a)} title={a.title}>
               <span className="rcard-num" data-n={i + 1}>{i + 1}</span>
-              <div className="rcard-art">
-                <img src={a.image} alt={a.title} loading="lazy" referrerPolicy="no-referrer" />
-                <div className="rcard-play"><svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+              <div className="rcard-col">
+                <div className="rcard-art">
+                  <img src={a.image} alt={a.title} loading="lazy" referrerPolicy="no-referrer" />
+                  <div className="rcard-play"><svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+                </div>
+                <span className="rcard-name">{a.title}</span>
               </div>
             </button>
           ))}

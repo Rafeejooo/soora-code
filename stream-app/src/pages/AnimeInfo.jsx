@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { getAnimeInfo, getHiAnimeInfo } from '../api';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { getAnimeInfo, getHiAnimeInfo, getSamehadakuAnimeInfo, getSubIndoGenre } from '../api';
 import { useSEO, buildAnimeSchema, buildAnimeUrl } from '../utils/seo';
 
 /* ===== Skeleton Loader (inline, no extra component) ===== */
@@ -95,8 +95,11 @@ function ExpandableDescription({ html }) {
 export default function AnimeInfo() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isSub = searchParams.get('sub') === '1'; // Sub Indo (samehadaku) source
 
   const [info, setInfo] = useState(null);
+  const [recs, setRecs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeRange, setActiveRange] = useState(0);
@@ -117,6 +120,51 @@ export default function AnimeInfo() {
       setActiveRange(0);
       setEpSearch('');
       setSortNewest(false);
+
+      // ── Sub Indo (samehadaku) source ──
+      if (isSub) {
+        try {
+          const sh = await getSamehadakuAnimeInfo(id);
+          if (cancelled) return;
+          if (!sh || (!sh.title && !sh.episodeList)) throw new Error('No data found');
+          const syn = sh.synopsis?.paragraphs?.join('\n\n') || (typeof sh.synopsis === 'string' ? sh.synopsis : '');
+          const eps = (sh.episodeList || [])
+            .map((e) => {
+              const num = parseInt(String(e.episodeId).match(/episode-(\d+)/)?.[1] || e.title);
+              return { id: e.episodeId, number: Number.isFinite(num) ? num : null, title: `Episode ${Number.isFinite(num) ? num : e.title}` };
+            })
+            .filter((e) => e.number != null)
+            .sort((a, b) => a.number - b.number);
+          const genres = (sh.genreList || []).map((g) => g.title || g);
+          const score = parseFloat(sh.score);
+          setInfo({
+            title: sh.title || 'Unknown',
+            description: syn,
+            image: sh.poster,
+            cover: sh.poster,
+            genres,
+            status: sh.status,
+            type: sh.type,
+            totalEpisodes: eps.length,
+            rating: Number.isFinite(score) ? Math.round(score * 10) : null,
+            episodes: eps,
+            _samehadaku: true,
+            _samehadakuId: id,
+          });
+          // recommendations from first genre
+          if (genres[0]) {
+            try {
+              const slug = genres[0].toLowerCase().replace(/\s+/g, '-');
+              const r = await getSubIndoGenre(slug);
+              if (!cancelled) setRecs((r || []).filter((x) => x.animeId !== id).slice(0, 12));
+            } catch { /* optional */ }
+          }
+          setLoading(false);
+        } catch (err) {
+          if (!cancelled) { setError('Anime tidak ditemukan di Samehadaku.'); setLoading(false); }
+        }
+        return;
+      }
 
       try {
         // Use the orchestrated backend endpoint first (faster, pre-merged)
@@ -212,10 +260,12 @@ export default function AnimeInfo() {
   }, [episodes, epSearch, ranges, activeRange]);
 
   const handleEpClick = useCallback((ep) => {
-    navigate(
-      `/watch/anime?episodeId=${encodeURIComponent(ep.id)}&title=${encodeURIComponent(title)}&ep=${ep.number || ''}&animeId=${encodeURIComponent(id)}`
-    );
-  }, [navigate, title, id]);
+    if (isSub) {
+      navigate(`/watch/anime?title=${encodeURIComponent(title)}&subIndo=1&samehadakuId=${encodeURIComponent(id)}&ep=${ep.number || 1}`);
+    } else {
+      navigate(`/watch/anime?episodeId=${encodeURIComponent(ep.id)}&title=${encodeURIComponent(title)}&ep=${ep.number || ''}&animeId=${encodeURIComponent(id)}`);
+    }
+  }, [navigate, title, id, isSub]);
 
   const scrollToEpisodes = useCallback(() => {
     epSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -345,31 +395,18 @@ export default function AnimeInfo() {
                 <>
                   <button
                     className="btn-primary btn-glow"
-                    onClick={() => navigate(
-                      `/watch/anime?episodeId=${encodeURIComponent(episodes[0].id)}&title=${encodeURIComponent(title)}&ep=${episodes[0].number || 1}&animeId=${encodeURIComponent(id)}`
-                    )}
+                    onClick={() => handleEpClick(episodes[0])}
                   >
                     <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                    Watch EP 1
+                    Tonton EP {episodes[0].number || 1}
                   </button>
                   <button
                     className="btn-glass"
-                    onClick={() => navigate(
-                      `/watch/anime?episodeId=${encodeURIComponent(episodes[episodes.length - 1].id)}&title=${encodeURIComponent(title)}&ep=${episodes[episodes.length - 1].number || episodes.length}&animeId=${encodeURIComponent(id)}`
-                    )}
+                    onClick={() => handleEpClick(episodes[episodes.length - 1])}
                     title="Watch latest episode"
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/></svg>
                     Latest EP {episodes[episodes.length - 1].number || episodes.length}
-                  </button>
-                  <button
-                    className="btn-sub-indo"
-                    onClick={() => navigate(
-                      `/watch/anime?episodeId=${encodeURIComponent(episodes[0].id)}&title=${encodeURIComponent(title)}&ep=${episodes[0].number || 1}&animeId=${encodeURIComponent(id)}&subIndo=1`
-                    )}
-                    title="Tonton dengan subtitle Indonesia"
-                  >
-                    🇮🇩 Sub Indo
                   </button>
                 </>
               ) : (
@@ -506,6 +543,28 @@ export default function AnimeInfo() {
                   <p>No episodes match "<strong>{epSearch}</strong>"</p>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Recommendations (Sub Indo, from same genre) */}
+        {recs.length > 0 && (
+          <div className="info-recs">
+            <h2 className="info-recs-title">Anime Serupa</h2>
+            <div className="info-recs-grid">
+              {recs.map((r) => (
+                <button
+                  key={r.animeId || r.id}
+                  className="info-rec-card"
+                  onClick={() => navigate(`/anime/${encodeURIComponent(r.animeId || r.id)}?sub=1`)}
+                >
+                  <div className="info-rec-art">
+                    <img src={r.poster || r.image} alt={r.title} loading="lazy" referrerPolicy="no-referrer" />
+                    <div className="info-rec-play"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+                  </div>
+                  <span className="info-rec-name">{r.title}</span>
+                </button>
+              ))}
             </div>
           </div>
         )}

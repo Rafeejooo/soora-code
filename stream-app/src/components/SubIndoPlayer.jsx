@@ -118,37 +118,38 @@ export default function SubIndoPlayer({ animeTitle, japaneseTitle, episode = 1, 
           return;
         }
 
-        // 5) Build server list — only real qualities, sorted best-first
+        // 5) Build server list — only real qualities. Rank by RELIABILITY then
+        //    quality. Raw file-hosts (wibufile/filedon/krakenfiles) expire/hotlink
+        //    mid-stream ("File tidak lagi dapat diakses"), so they go LAST.
+        const FILEHOST = /wibufile|filedon|krakenfiles|mp4upload|streamtape|gofile/i;
         const allServers = [];
         if (epData.server?.qualities) {
           for (const q of epData.server.qualities) {
             const qual = (q.title || '').trim();
-            if (!qual || qual.toLowerCase() === 'unknown') continue; // skip noise
+            if (!qual || qual.toLowerCase() === 'unknown') continue;
             for (const s of (q.serverList || [])) {
-              allServers.push({ title: s.title || qual, serverId: s.serverId, quality: qual });
+              const name = s.title || qual;
+              allServers.push({ title: name, serverId: s.serverId, quality: qual, filehost: FILEHOST.test(name) });
             }
           }
         }
-        allServers.sort((a, b) => qIndex(a.quality) - qIndex(b.quality));
+        // reliable streaming hosts first, then by quality (best-first)
+        allServers.sort((a, b) => (a.filehost - b.filehost) || (qIndex(a.quality) - qIndex(b.quality)));
+
+        // Blogger default = most stable; expose it as a virtual "Auto" server first
+        if (epData.defaultStreamingUrl) {
+          allServers.unshift({ title: 'Auto', serverId: null, quality: 'Auto', url: epData.defaultStreamingUrl, filehost: false });
+        }
         setServers(allServers);
 
-        // 6) Resolve the BEST quality server first (e.g. 1080p/720p, not the
-        //    360p Blogger default). Fall back to Blogger default only if needed.
+        // 6) Play the first (most reliable) server.
         let played = false;
-        for (const srv of allServers) {
+        for (let i = 0; i < allServers.length; i++) {
+          const srv = allServers[i];
           try {
-            const sd = await getSamehadakuServerUrl(srv.serverId);
-            if (sd?.url) {
-              setActiveServerIdx(allServers.indexOf(srv));
-              setEmbedUrl(sd.url);
-              played = true;
-              break;
-            }
+            const url = srv.url || (await getSamehadakuServerUrl(srv.serverId))?.url;
+            if (url) { setActiveServerIdx(i); setEmbedUrl(url); played = true; break; }
           } catch { /* try next */ }
-        }
-        if (!played && epData.defaultStreamingUrl) {
-          setEmbedUrl(epData.defaultStreamingUrl);
-          played = true;
         }
         if (!played) setError('Tidak ada server tersedia');
       } catch (err) {
@@ -171,9 +172,10 @@ export default function SubIndoPlayer({ animeTitle, japaneseTitle, episode = 1, 
     setActiveServerIdx(idx);
     try {
       setLoading(true);
-      const serverData = await getSamehadakuServerUrl(servers[idx].serverId);
-      if (serverData?.url) {
-        setEmbedUrl(serverData.url);
+      const srv = servers[idx];
+      const url = srv.url || (await getSamehadakuServerUrl(srv.serverId))?.url;
+      if (url) {
+        setEmbedUrl(url);
         setIframeKey((k) => k + 1);
       } else {
         setError('Server tidak tersedia');
