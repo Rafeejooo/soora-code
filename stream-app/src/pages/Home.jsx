@@ -86,9 +86,12 @@ export default function Home() {
   const [heroIdx, setHeroIdx] = useState(0);
   const [searchVal, setSearchVal] = useState('');
 
-  /* Sub Indo tab state */
+  /* Language: 'id' (Sub Indo — DEFAULT, direct/clean) or 'en' (English — embed, has ads) */
   const [selectedLang, setSelectedLang] = useState(() => {
-    return localStorage.getItem('soora_anime_lang') || 'all';
+    const saved = localStorage.getItem('soora_anime_lang');
+    // Migrate legacy 'all' → 'en'; default to 'id' (Sub Indo is the clean default)
+    if (saved === 'all') return 'en';
+    return saved || 'id';
   });
   const [subIndoData, setSubIndoData] = useState(null); // { ongoing, popular, recent }
   const [subIndoLoading, setSubIndoLoading] = useState(false);
@@ -283,13 +286,26 @@ export default function Home() {
       });
     };
 
+    // EN catalog (animekai/MAL embed) is only needed in English mode. In the
+    // default Sub Indo mode we skip it entirely so the home loads faster.
+    if (selectedLang === 'id') {
+      setHeroReady(true); setSectionsReady(true); setGenresReady(true);
+      return () => { cancelled = true; };
+    }
+
+    // Avoid refetch if we already have EN data (from cache or prior load)
+    if (spotlight.length || recentEps.length || mostPopular.length) {
+      setHeroReady(true); setSectionsReady(true); setGenresReady(true);
+      return () => { cancelled = true; };
+    }
+
     (async () => {
       const bundleOk = await fetchViaBundle();
       if (!bundleOk && !cancelled) await fetchIndividual();
     })();
 
     return () => { cancelled = true; };
-  }, []);
+  }, [selectedLang]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── Filter search ── */
   useEffect(() => {
@@ -319,14 +335,18 @@ export default function Home() {
     return () => clearTimeout(debounce);
   }, [filterType, filterSeason, filterYear, isFilterActive]);
 
-  /* ── Auto-rotate hero ── */
+  /* ── Auto-rotate hero (works for both EN spotlight and ID samehadaku popular) ── */
+  const heroCount = selectedLang === 'id'
+    ? Math.min((subIndoData?.popular || []).length, 10)
+    : spotlight.length;
   useEffect(() => {
-    if (spotlight.length < 2) return;
+    if (heroCount < 2) return;
+    setHeroIdx(0);
     heroInterval.current = setInterval(() => {
-      setHeroIdx((i) => (i + 1) % spotlight.length);
+      setHeroIdx((i) => (i + 1) % heroCount);
     }, 6000);
     return () => clearInterval(heroInterval.current);
-  }, [spotlight]);
+  }, [heroCount]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -350,7 +370,13 @@ export default function Home() {
     </div>
   );
 
-  const hero = spotlight[heroIdx];
+  // In Sub Indo (default) mode the hero rotates through samehadaku popular;
+  // in English mode it uses the animekai spotlight.
+  const idSpotlight = selectedLang === 'id'
+    ? (subIndoData?.popular || []).filter((a) => a.poster || a.image).slice(0, 10)
+    : [];
+  const heroPool = selectedLang === 'id' ? idSpotlight : spotlight;
+  const hero = heroPool[heroIdx];
 
   /* ── human-readable filter summary ── */
   const filterSummary = [
@@ -373,25 +399,25 @@ export default function Home() {
               {hero.quality && <div className="hero-quality">{hero.quality}</div>}
             </div>
             <h1 className="hero-title">{hero.title?.english || hero.title?.romaji || hero.title || 'Unknown'}</h1>
-            {hero.description && (
+            {(hero.description || hero.synopsis) && (
               <p className="hero-desc" dangerouslySetInnerHTML={{
-                __html: (typeof hero.description === 'string' ? hero.description : '').slice(0, 180) + '...'
+                __html: (typeof (hero.description || hero.synopsis) === 'string' ? (hero.description || hero.synopsis) : '').slice(0, 180) + '...'
               }} />
             )}
             <HeroMeta hero={hero} />
             <div className="hero-actions">
-              <button className="btn-play" onClick={() => navigate(buildAnimeUrl(hero.id))}>
+              <button className="btn-play" onClick={() => navigate(
+                selectedLang === 'id'
+                  ? `/watch/anime?title=${encodeURIComponent(hero.title || '')}&subIndo=1&samehadakuId=${encodeURIComponent(hero.animeId || hero.id || '')}&ep=1`
+                  : buildAnimeUrl(hero.id)
+              )}>
                 <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                Watch Now
-              </button>
-              <button className="btn-glass" onClick={() => navigate(buildAnimeUrl(hero.id))}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                Details
+                Tonton Sekarang
               </button>
             </div>
-            {spotlight.length > 1 && (
+            {heroPool.length > 1 && (
               <div className="hero-dots">
-                {spotlight.slice(0, 10).map((_, i) => (
+                {heroPool.slice(0, 10).map((_, i) => (
                   <button
                     key={i}
                     className={`hero-dot ${i === heroIdx ? 'active' : ''}`}
@@ -446,16 +472,16 @@ export default function Home() {
                   <span className="af-label">Bahasa</span>
                   <div className="af-pills">
                     <button
-                      className={`af-pill ${selectedLang === 'all' ? 'active' : ''}`}
-                      onClick={() => setSelectedLang('all')}
-                    >
-                      🌐 Semua
-                    </button>
-                    <button
                       className={`af-pill ${selectedLang === 'id' ? 'active' : ''}`}
                       onClick={() => setSelectedLang('id')}
                     >
                       🇮🇩 Sub Indo
+                    </button>
+                    <button
+                      className={`af-pill ${selectedLang === 'en' ? 'active' : ''}`}
+                      onClick={() => setSelectedLang('en')}
+                    >
+                      🌐 English
                     </button>
                   </div>
                 </div>
@@ -639,8 +665,8 @@ export default function Home() {
                     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                   </svg>
                   <p>Tidak ada data Sub Indo tersedia saat ini</p>
-                  <button className="af-reset" onClick={() => setSelectedLang('all')}>
-                    Kembali ke Semua Anime
+                  <button className="af-reset" onClick={() => setSelectedLang('en')}>
+                    Coba Anime English
                   </button>
                 </div>
               )}
@@ -649,9 +675,18 @@ export default function Home() {
         </div>
       )}
 
-      {/* ── Default Sections (when no filter active and not Sub Indo) ── */}
+      {/* ── English (embed) Sections — when no filter active and EN selected ── */}
       {!isFilterActive && selectedLang !== 'id' && (
         <>
+          {/* Ad warning — EN uses third-party embed players that show provider ads */}
+          <div className="en-ad-notice">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <path d="M12 9v4M12 17h.01"/>
+            </svg>
+            <span>Mode English pakai player pihak ketiga — <b>mungkin ada iklan dari provider</b>. Untuk pengalaman bersih tanpa iklan, pakai <button className="en-ad-switch" onClick={() => setSelectedLang('id')}>🇮🇩 Sub Indo</button></span>
+          </div>
+
           {/* Top 10 Anime global */}
           {sectionsReady && topAiring.length > 0 && (
             <Top10Section

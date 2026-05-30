@@ -243,29 +243,6 @@ export default function SubIndoPlayer({ animeTitle, japaneseTitle, episode = 1, 
 
   return (
     <div className="anime-embed-container">
-      {/* Server bar */}
-      <div className="embed-server-bar">
-        <span className="embed-server-label">
-          <span className="subindo-badge">🇮🇩 Sub Indo</span>
-          Server:
-        </span>
-        {servers.length > 0 ? (
-          servers.map((s, i) => (
-            <button
-              key={s.serverId}
-              className={`embed-srv-btn ${i === activeServerIdx ? 'active' : ''}`}
-              onClick={() => switchServer(i)}
-              title={`${s.title} (${s.quality})`}
-            >
-              {s.title}
-            </button>
-          ))
-        ) : (
-          <span className="embed-srv-btn active">Default</span>
-        )}
-      </div>
-
-      {/* Player */}
       <div className="embed-player-wrap">
         {embedUrl ? (
           <iframe
@@ -283,33 +260,21 @@ export default function SubIndoPlayer({ animeTitle, japaneseTitle, episode = 1, 
             <p style={{ color: 'var(--text-muted)' }}>Tidak ada URL streaming</p>
           </div>
         )}
-      </div>
-
-      {/* Hint / next server prompt */}
-      {showNextHint && servers.length > 1 && (
-        <div className="embed-hint embed-hint-action">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="16" x2="12" y2="12" />
-            <line x1="12" y1="8" x2="12.01" y2="8" />
-          </svg>
-          Tidak loading?
-          <button className="embed-srv-btn active" style={{ marginLeft: 8, fontSize: '0.75rem' }} onClick={tryNextServer}>
-            Coba {servers[(activeServerIdx + 1) % servers.length]?.title} →
+        {/* Minimal floating switch — auto-fallback is silent; this is the manual escape hatch */}
+        {servers.length > 1 && (
+          <button
+            className={`embed-switch-btn ${showNextHint ? 'pulse' : ''}`}
+            onClick={tryNextServer}
+            title="Ganti server jika video tidak jalan"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M1 4v6h6M23 20v-6h-6" />
+              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" />
+            </svg>
+            Ganti server
           </button>
-        </div>
-      )}
-
-      {!showNextHint && embedUrl && (
-        <div className="embed-hint">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="16" x2="12" y2="12" />
-            <line x1="12" y1="8" x2="12.01" y2="8" />
-          </svg>
-          Sumber: Samehadaku — jika tidak loading, coba server lain
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
