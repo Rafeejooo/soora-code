@@ -5,6 +5,7 @@ import compression from 'compression';
 import { config } from './config';
 import { clearCache, getCacheStats } from './services/cache';
 import { notifyError } from './services/telegram';
+import { isUrlAllowed } from './utils/ssrfGuard';
 
 // Routes
 import animeRoutes from './routes/anime';
@@ -78,6 +79,7 @@ import { default as proxyRouter } from './routes/proxy';
 app.get('/manga-img', async (req, res) => {
   const targetUrl = String(req.query.url || '');
   if (!targetUrl) return res.status(400).send('Missing url');
+  if (!isUrlAllowed(targetUrl)) return res.status(403).send('Forbidden target');
   try {
     const axios = (await import('axios')).default;
     const response = await axios.get(targetUrl, {

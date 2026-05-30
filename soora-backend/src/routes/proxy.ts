@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import axios from 'axios';
+import { isUrlAllowed } from '../utils/ssrfGuard';
 
 const router = Router();
 
@@ -11,6 +12,7 @@ const router = Router();
 router.get('/', async (req: Request, res: Response) => {
   const targetUrl = String(req.query.url || '');
   if (!targetUrl) return res.status(400).send('Missing url parameter');
+  if (!isUrlAllowed(targetUrl)) return res.status(403).send('Forbidden target');
 
   try {
     const headers: Record<string, string> = {
@@ -114,6 +116,7 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/manga-img', async (req: Request, res: Response) => {
   const targetUrl = String(req.query.url || '');
   if (!targetUrl) return res.status(400).send('Missing url');
+  if (!isUrlAllowed(targetUrl)) return res.status(403).send('Forbidden target');
 
   try {
     const response = await axios.get(targetUrl, {
