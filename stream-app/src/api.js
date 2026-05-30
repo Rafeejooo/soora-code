@@ -1015,6 +1015,18 @@ export const getSubIndoHomeBundle = () =>
     }
   }, BUNDLE_CACHE_TTL);
 
+/** Validated play sources for a Sub Indo episode. Backend verifies each URL is
+ *  a live video (drops dead "file tidak diakses" ones). Returns { sources, default }. */
+export const getSubIndoPlay = (episodeId) =>
+  cachedGet(`subindo:play:${episodeId}`, async () => {
+    try {
+      const res = await samehadaku.get(`/play/${encodeURIComponent(episodeId)}`);
+      return res.data || { sources: [], default: null };
+    } catch {
+      return { sources: [], default: null };
+    }
+  });
+
 /** Sub Indo anime by genre (samehadaku). Returns array of normalized items. */
 export const getSubIndoGenre = (genreId) =>
   cachedGet(`subindo:genre:${genreId}`, async () => {

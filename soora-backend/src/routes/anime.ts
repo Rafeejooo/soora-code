@@ -139,6 +139,93 @@ router.get('/subindo/server/:id', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /anime/subindo/play/:id
+ * Resolve an episode's servers, VALIDATE each resolved URL is a real, reachable
+ * video (not an expired "File tidak lagi dapat diakses" HTML page), and return
+ * only the working ones grouped by quality. Frontend can trust these to play.
+ * Returns: { sources: [{ quality, url, type }], default: <url|null> }
+ */
+const FILEHOST = /wibufile|filedon|krakenfiles|gofile/i;
+const QORDER = ['1080p', '720p', '480p', '360p'];
+const qi = (q: string) => { const i = QORDER.indexOf(q); return i === -1 ? 99 : i; };
+
+// Verify a URL is actually usable.
+// - Direct file URLs (.mp4/.m3u8 / file-hosts): must return real video bytes,
+//   NOT an HTML "File tidak lagi dapat diakses" error page.
+// - Embed/player pages (blogger, etc.): served as HTML by design — accept if
+//   reachable and not an obvious error page.
+async function isPlayable(url: string): Promise<boolean> {
+  const isEmbed = /blogger\.com|\/embed|player|streamtape|mp4upload|filemoon|pixeldrain/i.test(url);
+  try {
+    const r = await axios.get(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0', Referer: 'https://v2.samehadaku.how/', Range: 'bytes=0-2047' },
+      timeout: 8000, maxRedirects: 5, validateStatus: (s) => s < 500,
+      responseType: 'arraybuffer',
+    });
+    if (r.status >= 400) return false;
+    const ct = String(r.headers['content-type'] || '').toLowerCase();
+    if (isEmbed) {
+      // player page — reject only if body literally shows the dead-file message
+      const body = Buffer.from(r.data).toString('utf-8', 0, 2048).toLowerCase();
+      return !body.includes('tidak lagi dapat diakses') && !body.includes('file not found') && !body.includes('404 not found');
+    }
+    // direct file — must be real video/stream, not an HTML error page
+    if (ct.includes('text/html')) return false;
+    return ct.includes('video') || ct.includes('mpegurl') || ct.includes('octet-stream') || ct.includes('mp4');
+  } catch { return false; }
+}
+
+router.get('/subindo/play/:id', async (req: Request, res: Response) => {
+  try {
+    const data = await cached(`subindo:play:${req.params.id}`, async () => {
+      const ep = await shGet(`/episode/${req.params.id}`);
+      if (!ep) return { sources: [], default: null };
+
+      // Collect candidate servers (skip noise), best quality first, file-hosts last
+      const candidates: { quality: string; serverId: string; filehost: boolean }[] = [];
+      for (const q of (ep.server?.qualities || [])) {
+        const qual = String(q.title || '').trim();
+        if (!qual || qual.toLowerCase() === 'unknown') continue;
+        for (const s of (q.serverList || [])) {
+          if (s.serverId) candidates.push({ quality: qual, serverId: s.serverId, filehost: false });
+        }
+      }
+      candidates.sort((a, b) => qi(a.quality) - qi(b.quality));
+
+      // Resolve + validate, keeping the FIRST working server per quality.
+      const byQuality = new Map<string, string>();
+      // limit concurrency / total work
+      for (const c of candidates) {
+        if (byQuality.has(c.quality)) continue;
+        let url: string | null = null;
+        try { url = (await shGet(`/server/${c.serverId}`))?.url || null; } catch { url = null; }
+        if (!url) continue;
+        if (FILEHOST.test(url)) { /* still allow but verify */ }
+        if (await isPlayable(url)) byQuality.set(c.quality, url);
+      }
+
+      // Blogger default as a last-resort Auto (validate it too)
+      let auto: string | null = null;
+      if (ep.defaultStreamingUrl && await isPlayable(ep.defaultStreamingUrl)) {
+        auto = ep.defaultStreamingUrl;
+      }
+
+      const sources = [...byQuality.entries()]
+        .sort((a, b) => qi(a[0]) - qi(b[0]))
+        .map(([quality, url]) => ({ quality, url, type: 'iframe' }));
+      if (auto) sources.push({ quality: 'Auto', url: auto, type: 'iframe' });
+
+      const def = sources[0]?.url || auto || null;
+      return { sources, default: def };
+    }, CACHE_TTL.STREAM);
+    res.json(data);
+  } catch (err: any) {
+    reportRouteError(req, err, 'subindo/play');
+    res.json({ sources: [], default: null });
+  }
+});
+
 // ========== GENRE CONFIG (matches frontend) ==========
 const GENRE_SECTIONS = [
   'action', 'romance', 'slice-of-life', 'fantasy', 'comedy', 'adventure',
