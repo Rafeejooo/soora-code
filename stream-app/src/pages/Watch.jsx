@@ -27,6 +27,8 @@ import {
   getLK21SeriesInfo,
   getLK21MovieStreams,
   getLK21SeriesStreams,
+  getSamehadakuAnimeInfo,
+  getSubIndoGenre,
 } from '../api';
 import Card from '../components/Card';
 import SkeletonWatch from '../components/SkeletonWatch';
@@ -556,17 +558,67 @@ export default function Watch() {
   }, [selectedSeason]);
 
   // ===== PURE SUB INDO FLOW (samehadakuId, no consumet episodeId) =====
-  // Cards from the samehadaku dashboard pass title + samehadakuId only.
-  // SubIndoPlayer handles its own fetch, so just flip into Sub Indo mode and
-  // clear the page loading state (the main anime effect below needs episodeId).
+  // Fetch full Samehadaku info so the watch page has synopsis + episode list +
+  // genres + recommendations (same surrounding UI as the EN flow), then let
+  // SubIndoPlayer handle the actual stream.
   useEffect(() => {
     if (!isAnime) return;
-    if (!episodeId && (samehadakuId || (subIndoParam && title))) {
+    if (episodeId) return; // EN/consumet flow handles this
+    if (!samehadakuId && !(subIndoParam && title)) return;
+
+    let cancelled = false;
+    const fetchSub = async () => {
+      setLoading(true);
       setUseSubIndo(true);
       setSubLang('id');
-      setLoading(false);
-    }
-  }, [isAnime, episodeId, samehadakuId, subIndoParam, title]);
+      try {
+        if (samehadakuId) {
+          const info = await getSamehadakuAnimeInfo(samehadakuId);
+          if (cancelled || !info) { setLoading(false); return; }
+
+          // Synopsis can be { paragraphs: [...] } or a string
+          const syn = info.synopsis?.paragraphs?.join('\n\n') || (typeof info.synopsis === 'string' ? info.synopsis : '');
+          const genres = (info.genreList || []).map((g) => g.title || g);
+          setAnimeInfo({
+            title: info.title || title,
+            japaneseTitle: info.japanese || '',
+            description: syn,
+            genres,
+            rating: info.score ? parseFloat(info.score) * 10 : null,
+            totalEpisodes: info.episodes || (info.episodeList || []).length,
+            status: info.status,
+            image: info.poster,
+            _samehadaku: true,
+          });
+
+          // Map samehadaku episodes to the grid shape {id, number, title}
+          const eps = (info.episodeList || [])
+            .map((e) => {
+              const num = parseInt(String(e.episodeId).match(/episode-(\d+)/)?.[1] || e.title) || null;
+              return { id: e.episodeId, number: num, title: String(e.title) };
+            })
+            .sort((a, b) => (a.number || 0) - (b.number || 0));
+          setAnimeEpisodes(eps);
+
+          // Recommendations: pull from the first genre so the "kamu mungkin suka" row isn't empty
+          if (genres[0]) {
+            try {
+              const slug = genres[0].toLowerCase().replace(/\s+/g, '-');
+              const recs = await getSubIndoGenre(slug);
+              if (!cancelled) setAnimeRecs((recs || []).filter((r) => r.animeId !== samehadakuId).slice(0, 12)
+                .map((r) => ({ id: r.animeId, title: r.title, image: r.poster || r.image, type: r.type, _subIndo: true, animeId: r.animeId })));
+            } catch { /* optional */ }
+          }
+        } else {
+          setAnimeInfo({ title, _samehadaku: true });
+        }
+      } catch { /* fall through */ } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    fetchSub();
+    return () => { cancelled = true; };
+  }, [isAnime, episodeId, samehadakuId, subIndoParam, title, retryKey]);
 
   // ===== FETCH ANIME DATA (consumet/EN flow — needs episodeId) =====
   useEffect(() => {
@@ -782,7 +834,15 @@ export default function Watch() {
 
   // ===== NAVIGATION HELPERS =====
   const getAdjacentEpisode = (dir) => {
-    if (isAnime && animeEpisodes.length > 0) {
+    // Sub Indo (samehadaku): navigate by episode number, keep samehadakuId
+    if (isAnime && samehadakuId && animeEpisodes.length > 0) {
+      const curNum = parseInt(epNum) || 1;
+      const target = animeEpisodes.find((e) => e.number === curNum + dir);
+      if (target) {
+        return `/watch/anime?title=${encodeURIComponent(title)}&subIndo=1&samehadakuId=${encodeURIComponent(samehadakuId)}&ep=${target.number}`;
+      }
+    }
+    if (isAnime && !samehadakuId && animeEpisodes.length > 0) {
       const idx = animeEpisodes.findIndex((ep) => ep.id === episodeId);
       const target = animeEpisodes[idx + dir];
       if (target) {
@@ -1278,10 +1338,12 @@ export default function Watch() {
                 {displayEps.map((ep) => (
                   <button
                     key={ep.id}
-                    className={`watch-ep-item compact ${ep.id === episodeId ? 'active' : ''}`}
+                    className={`watch-ep-item compact ${(samehadakuId ? ep.number === (parseInt(epNum) || 1) : ep.id === episodeId) ? 'active' : ''}`}
                     onClick={() =>
                       navigate(
-                        `/watch/anime?episodeId=${encodeURIComponent(ep.id)}&title=${encodeURIComponent(title)}&ep=${ep.number || ''}&animeId=${encodeURIComponent(animeId)}`
+                        samehadakuId
+                          ? `/watch/anime?title=${encodeURIComponent(title)}&subIndo=1&samehadakuId=${encodeURIComponent(samehadakuId)}&ep=${ep.number || 1}`
+                          : `/watch/anime?episodeId=${encodeURIComponent(ep.id)}&title=${encodeURIComponent(title)}&ep=${ep.number || ''}&animeId=${encodeURIComponent(animeId)}`
                       )
                     }
                   >

@@ -23,8 +23,9 @@ import {
  *  - episode: number — current episode number
  */
 
-// Preferred quality order (highest first)
-const QUALITY_PREF = ['720p', '480p', '360p'];
+// Preferred quality order (highest first) — default to best available
+const QUALITY_PREF = ['1080p', '720p', '480p', '360p'];
+const qIndex = (q) => { const i = QUALITY_PREF.indexOf(q); return i === -1 ? 99 : i; };
 
 export default function SubIndoPlayer({ animeTitle, japaneseTitle, episode = 1, samehadakuId = null }) {
   const [loading, setLoading] = useState(true);
@@ -117,48 +118,39 @@ export default function SubIndoPlayer({ animeTitle, japaneseTitle, episode = 1, 
           return;
         }
 
-        // 5) Build server list from all qualities
+        // 5) Build server list — only real qualities, sorted best-first
         const allServers = [];
         if (epData.server?.qualities) {
           for (const q of epData.server.qualities) {
+            const qual = (q.title || '').trim();
+            if (!qual || qual.toLowerCase() === 'unknown') continue; // skip noise
             for (const s of (q.serverList || [])) {
-              allServers.push({
-                title: s.title || `${q.title} Server`,
-                serverId: s.serverId,
-                quality: q.title,
-              });
+              allServers.push({ title: s.title || qual, serverId: s.serverId, quality: qual });
             }
           }
         }
-
-        // Sort by quality preference
-        allServers.sort((a, b) => {
-          const aIdx = QUALITY_PREF.indexOf(a.quality);
-          const bIdx = QUALITY_PREF.indexOf(b.quality);
-          return (aIdx === -1 ? 99 : aIdx) - (bIdx === -1 ? 99 : bIdx);
-        });
-
+        allServers.sort((a, b) => qIndex(a.quality) - qIndex(b.quality));
         setServers(allServers);
 
-        // 6) Use defaultStreamingUrl first (blogger.com video — direct embed)
-        if (epData.defaultStreamingUrl) {
+        // 6) Resolve the BEST quality server first (e.g. 1080p/720p, not the
+        //    360p Blogger default). Fall back to Blogger default only if needed.
+        let played = false;
+        for (const srv of allServers) {
+          try {
+            const sd = await getSamehadakuServerUrl(srv.serverId);
+            if (sd?.url) {
+              setActiveServerIdx(allServers.indexOf(srv));
+              setEmbedUrl(sd.url);
+              played = true;
+              break;
+            }
+          } catch { /* try next */ }
+        }
+        if (!played && epData.defaultStreamingUrl) {
           setEmbedUrl(epData.defaultStreamingUrl);
-          setLoading(false);
-          startTimer();
-          return;
+          played = true;
         }
-
-        // 7) If no default, resolve best server
-        if (allServers.length > 0) {
-          const serverData = await getSamehadakuServerUrl(allServers[0].serverId);
-          if (serverData?.url) {
-            setEmbedUrl(serverData.url);
-          } else {
-            setError('Gagal memuat URL streaming');
-          }
-        } else {
-          setError('Tidak ada server tersedia');
-        }
+        if (!played) setError('Tidak ada server tersedia');
       } catch (err) {
         console.error('[SubIndoPlayer] Error:', err);
         setError(err.message || 'Gagal memuat Sub Indo');
@@ -239,8 +231,34 @@ export default function SubIndoPlayer({ animeTitle, japaneseTitle, episode = 1, 
     );
   }
 
+  // Distinct qualities for the picker (best-first)
+  const qualities = [...new Set(servers.map((s) => s.quality))].sort((a, b) => qIndex(a) - qIndex(b));
+  const activeQuality = servers[activeServerIdx]?.quality;
+  const pickQuality = (q) => {
+    const idx = servers.findIndex((s) => s.quality === q);
+    if (idx >= 0) switchServer(idx);
+  };
+
   return (
     <div className="anime-embed-container">
+      {qualities.length > 0 && (
+        <div className="subindo-quality-bar">
+          <span className="subindo-quality-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16v12H4z"/><path d="M2 20h20"/></svg>
+            Kualitas
+          </span>
+          {qualities.map((q) => (
+            <button
+              key={q}
+              className={`subindo-quality-pill ${q === activeQuality ? 'active' : ''}`}
+              onClick={() => pickQuality(q)}
+            >
+              {q}
+              {qIndex(q) <= 1 && <span className="subindo-hd-badge">HD</span>}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="embed-player-wrap">
         {embedUrl ? (
           <iframe

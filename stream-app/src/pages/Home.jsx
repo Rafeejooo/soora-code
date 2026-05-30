@@ -162,7 +162,43 @@ export default function Home() {
   );
 }
 
-/* ── Section header (hooky, no color dot) ── */
+/* ── Scrollable rail with redesigned arrow nav (hover-reveal, modern) ── */
+function useRail() {
+  const ref = useRef(null);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(true);
+  const check = useCallback(() => {
+    const el = ref.current; if (!el) return;
+    setCanLeft(el.scrollLeft > 8);
+    setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 8);
+  }, []);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    check();
+    el.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check);
+    return () => { el.removeEventListener('scroll', check); window.removeEventListener('resize', check); };
+  }, [check]);
+  const scroll = (dir) => {
+    if (!ref.current) return;
+    ref.current.scrollBy({ left: dir * ref.current.clientWidth * 0.8, behavior: 'smooth' });
+  };
+  return { ref, canLeft, canRight, scroll };
+}
+
+function RailArrows({ canLeft, canRight, scroll }) {
+  return (
+    <>
+      <button className={`srail-arrow srail-arrow-left ${canLeft ? '' : 'hidden'}`} onClick={() => scroll(-1)} aria-label="Geser kiri">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="22" height="22"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <button className={`srail-arrow srail-arrow-right ${canRight ? '' : 'hidden'}`} onClick={() => scroll(1)} aria-label="Geser kanan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="22" height="22"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </>
+  );
+}
+
 function SectionHead({ title, eyebrow }) {
   return (
     <div className="srow-head">
@@ -172,69 +208,80 @@ function SectionHead({ title, eyebrow }) {
   );
 }
 
-/* ── Standard row: native scroll-snap, no arrow buttons, drag-friendly ── */
+/* ── Standard poster row ── */
 function Row({ title, eyebrow, items }) {
+  const rail = useRail();
   return (
     <section className="srow">
       <SectionHead title={title} eyebrow={eyebrow} />
-      <div className="srow-scroll">
-        {items.slice(0, 24).map((item) => (
-          <div className="srow-cell" key={item.id}>
-            <Card item={item} type="anime" />
-          </div>
-        ))}
+      <div className="srail">
+        <RailArrows {...rail} />
+        <div className="srow-scroll" ref={rail.ref}>
+          {items.slice(0, 24).map((item) => (
+            <div className="srow-cell" key={item.id}>
+              <Card item={item} type="anime" />
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
 }
 
-/* ── Featured row: larger landscape cards with title + meta + synopsis (Netflix/CR style) ── */
+/* ── Featured row: landscape cards w/ meta + synopsis ── */
 function FeaturedRow({ title, eyebrow, items, onPick }) {
+  const rail = useRail();
   return (
     <section className="srow srow-featured">
       <SectionHead title={title} eyebrow={eyebrow} />
-      <div className="frow-scroll">
-        {items.map((a) => (
-          <button className="fcard" key={a.id} onClick={() => onPick(a)}>
-            <div className="fcard-art">
-              <img src={a.image} alt={a.title} loading="lazy" referrerPolicy="no-referrer"
-                onError={(e) => { e.target.style.opacity = 0; }} />
-              <div className="fcard-grad" />
-              <span className="fcard-badge">🇮🇩 Sub Indo</span>
-              {a.score && <span className="fcard-score">★ {a.score}</span>}
-              <div className="fcard-play"><svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
-            </div>
-            <div className="fcard-body">
-              <h3 className="fcard-title">{a.title}</h3>
-              <div className="fcard-tags">
-                {a.type && <span>{a.type}</span>}
-                {a.status && <span>{a.status}</span>}
-                {a.genres?.slice(0, 2).map((g) => <span key={g}>{g}</span>)}
+      <div className="srail">
+        <RailArrows {...rail} />
+        <div className="frow-scroll" ref={rail.ref}>
+          {items.map((a) => (
+            <button className="fcard" key={a.id} onClick={() => onPick(a)}>
+              <div className="fcard-art">
+                <img src={a.image} alt={a.title} loading="lazy" referrerPolicy="no-referrer" onError={(e) => { e.target.style.opacity = 0; }} />
+                <div className="fcard-grad" />
+                <span className="fcard-badge">🇮🇩 Sub Indo</span>
+                {a.score && <span className="fcard-score">★ {a.score}</span>}
+                <div className="fcard-play"><svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
               </div>
-              {a.synopsis && <p className="fcard-syn">{String(a.synopsis).slice(0, 120)}…</p>}
-            </div>
-          </button>
-        ))}
+              <div className="fcard-body">
+                <h3 className="fcard-title">{a.title}</h3>
+                <div className="fcard-tags">
+                  {a.type && <span>{a.type}</span>}
+                  {a.status && <span>{a.status}</span>}
+                  {a.genres?.slice(0, 2).map((g) => <span key={g}>{g}</span>)}
+                </div>
+                {a.synopsis && <p className="fcard-syn">{String(a.synopsis).slice(0, 120)}…</p>}
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   );
 }
 
-/* ── Rank row: Top 10 with big numerals ── */
+/* ── Rank row: Top 10 big numerals ── */
 function RankRow({ title, eyebrow, items, onPick }) {
+  const rail = useRail();
   return (
     <section className="srow srow-rank">
       <SectionHead title={title} eyebrow={eyebrow} />
-      <div className="rrow-scroll">
-        {items.map((a, i) => (
-          <button className="rcard" key={a.id} onClick={() => onPick(a)}>
-            <span className="rcard-num" data-n={i + 1}>{i + 1}</span>
-            <div className="rcard-art">
-              <img src={a.image} alt={a.title} loading="lazy" referrerPolicy="no-referrer" />
-              <div className="rcard-play"><svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
-            </div>
-          </button>
-        ))}
+      <div className="srail">
+        <RailArrows {...rail} />
+        <div className="rrow-scroll" ref={rail.ref}>
+          {items.map((a, i) => (
+            <button className="rcard" key={a.id} onClick={() => onPick(a)}>
+              <span className="rcard-num" data-n={i + 1}>{i + 1}</span>
+              <div className="rcard-art">
+                <img src={a.image} alt={a.title} loading="lazy" referrerPolicy="no-referrer" />
+                <div className="rcard-play"><svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   );
