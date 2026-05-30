@@ -555,7 +555,20 @@ export default function Watch() {
     fetchSeason();
   }, [selectedSeason]);
 
-  // ===== FETCH ANIME DATA =====
+  // ===== PURE SUB INDO FLOW (samehadakuId, no consumet episodeId) =====
+  // Cards from the samehadaku dashboard pass title + samehadakuId only.
+  // SubIndoPlayer handles its own fetch, so just flip into Sub Indo mode and
+  // clear the page loading state (the main anime effect below needs episodeId).
+  useEffect(() => {
+    if (!isAnime) return;
+    if (!episodeId && (samehadakuId || (subIndoParam && title))) {
+      setUseSubIndo(true);
+      setSubLang('id');
+      setLoading(false);
+    }
+  }, [isAnime, episodeId, samehadakuId, subIndoParam, title]);
+
+  // ===== FETCH ANIME DATA (consumet/EN flow — needs episodeId) =====
   useEffect(() => {
     if (!isAnime || !episodeId) return;
     const fetchAnimeData = async () => {
@@ -806,7 +819,7 @@ export default function Watch() {
     );
   }
 
-  if (!episodeId && !tmdbId && !gokuId && !lk21Id) {
+  if (!episodeId && !tmdbId && !gokuId && !lk21Id && !samehadakuId && !(subIndoParam && title)) {
     return <div className="error-msg">No content ID provided</div>;
   }
 
