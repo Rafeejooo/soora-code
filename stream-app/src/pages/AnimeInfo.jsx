@@ -161,7 +161,7 @@ export default function AnimeInfo() {
           }
           setLoading(false);
         } catch (err) {
-          if (!cancelled) { setError('Anime tidak ditemukan di Samehadaku.'); setLoading(false); }
+          if (!cancelled) { setError('Anime tidak ditemukan.'); setLoading(false); }
         }
         return;
       }
@@ -261,7 +261,7 @@ export default function AnimeInfo() {
 
   const handleEpClick = useCallback((ep) => {
     if (isSub) {
-      navigate(`/watch/anime?title=${encodeURIComponent(title)}&subIndo=1&samehadakuId=${encodeURIComponent(id)}&ep=${ep.number || 1}`);
+      navigate(`/watch/anime?title=${encodeURIComponent(title)}&sub=1&aid=${encodeURIComponent(id)}&ep=${ep.number || 1}`);
     } else {
       navigate(`/watch/anime?episodeId=${encodeURIComponent(ep.id)}&title=${encodeURIComponent(title)}&ep=${ep.number || ''}&animeId=${encodeURIComponent(id)}`);
     }

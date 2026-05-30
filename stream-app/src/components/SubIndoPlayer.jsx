@@ -79,7 +79,7 @@ export default function SubIndoPlayer({ animeTitle, japaneseTitle, episode = 1, 
           match = await findSamehadakuAnime(animeTitle, japaneseTitle);
         }
         if (!match) {
-          setError(`"${animeTitle}" tidak ditemukan di Samehadaku`);
+          setError('not_found');
           setLoading(false);
           return;
         }
@@ -189,49 +189,37 @@ export default function SubIndoPlayer({ animeTitle, japaneseTitle, episode = 1, 
   }, [servers, startTimer]);
   switchServerRef.current = switchServer;
 
-  if (!animeTitle) {
-    return (
-      <div className="anime-embed-container">
-        <div className="embed-player-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <p style={{ color: 'var(--text-muted)' }}>Judul anime tidak tersedia</p>
-        </div>
-      </div>
-    );
-  }
+  // Silent auto-retry: if something errored, quietly cycle to another source
+  // (up to a few times) instead of surfacing a failure to the user.
+  const retryCountRef = useRef(0);
+  useEffect(() => {
+    if (!error || servers.length === 0) return;
+    if (retryCountRef.current >= servers.length) return;
+    const t = setTimeout(() => {
+      retryCountRef.current += 1;
+      setError(null);
+      switchServer(retryCountRef.current % servers.length);
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [error, servers.length, switchServer]);
+  useEffect(() => { retryCountRef.current = 0; }, [samehadakuId, episode]);
 
-  if (loading) {
-    return (
-      <div className="anime-embed-container">
-        <div className="embed-player-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '0.75rem' }}>
-          <div className="subindo-spinner" />
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            Memuat Sub Indo dari Samehadaku...
-          </p>
-        </div>
+  // A loading overlay we keep showing instead of any error — feels like a
+  // buffering player (YouTube-style) rather than a hard failure. Auto-retry
+  // keeps trying other sources silently in the background.
+  const LoadingState = () => (
+    <div className="anime-embed-container">
+      <div className="embed-player-wrap subindo-loading-wrap">
+        <div className="subindo-spinner" />
+        <p>Menyiapkan video…</p>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (error) {
-    return (
-      <div className="anime-embed-container">
-        <div className="embed-player-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '0.75rem' }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="40" height="40" style={{ opacity: 0.5 }}>
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M12 8v4M12 16h.01"/>
-          </svg>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', maxWidth: '320px' }}>
-            {error}
-          </p>
-          {servers.length > 0 && (
-            <button className="btn-play btn-sm" onClick={() => switchServer(0)} style={{ fontSize: '0.8rem' }}>
-              Coba Server Lain
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
+  if (!animeTitle) return <LoadingState />;
+  if (loading) return <LoadingState />;
+  // On any error, show loading instead of a failure screen (silent retry via effect).
+  if (error || !embedUrl) return <LoadingState />;
 
   // Distinct qualities for the picker (best-first)
   const qualities = [...new Set(servers.map((s) => s.quality))].sort((a, b) => qIndex(a) - qIndex(b));

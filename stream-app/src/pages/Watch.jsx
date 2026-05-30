@@ -65,8 +65,8 @@ export default function Watch() {
   const episodeId = searchParams.get('episodeId');
   const epNum = searchParams.get('ep') || '';
   const animeId = searchParams.get('animeId');
-  const subIndoParam = searchParams.get('subIndo') === '1'; // Auto-activate Sub Indo from homepage
-  const samehadakuId = searchParams.get('samehadakuId') || null; // Direct Samehadaku anime ID
+  const subIndoParam = searchParams.get('sub') === '1' || searchParams.get('subIndo') === '1'; // Sub Indo flow
+  const samehadakuId = searchParams.get('aid') || searchParams.get('samehadakuId') || null; // anime id (sub source)
 
   // Anime HLS state
   const [sources, setSources] = useState([]);
@@ -839,7 +839,7 @@ export default function Watch() {
       const curNum = parseInt(epNum) || 1;
       const target = animeEpisodes.find((e) => e.number === curNum + dir);
       if (target) {
-        return `/watch/anime?title=${encodeURIComponent(title)}&subIndo=1&samehadakuId=${encodeURIComponent(samehadakuId)}&ep=${target.number}`;
+        return `/watch/anime?title=${encodeURIComponent(title)}&sub=1&aid=${encodeURIComponent(samehadakuId)}&ep=${target.number}`;
       }
     }
     if (isAnime && !samehadakuId && animeEpisodes.length > 0) {
@@ -1333,7 +1333,7 @@ export default function Watch() {
                     onClick={() =>
                       navigate(
                         samehadakuId
-                          ? `/watch/anime?title=${encodeURIComponent(title)}&subIndo=1&samehadakuId=${encodeURIComponent(samehadakuId)}&ep=${ep.number || 1}`
+                          ? `/watch/anime?title=${encodeURIComponent(title)}&sub=1&aid=${encodeURIComponent(samehadakuId)}&ep=${ep.number || 1}`
                           : `/watch/anime?episodeId=${encodeURIComponent(ep.id)}&title=${encodeURIComponent(title)}&ep=${ep.number || ''}&animeId=${encodeURIComponent(animeId)}`
                       )
                     }
