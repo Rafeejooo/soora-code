@@ -17,8 +17,8 @@ function parseSearchResults(html: string) {
   const cards = html.split('<div class="bge">').slice(1);
 
   for (const card of cards) {
-    // Manga link: /manga/slug/
-    const linkMatch = card.match(/href=["'](\/manga\/[^"']+)["']/);
+    // Manga link: relative (/manga/slug/) or absolute (https://komiku.org/manga/slug/)
+    const linkMatch = card.match(/href=["'](?:https?:\/\/[^"'/]+)?(\/manga\/[^"']+)["']/);
     if (!linkMatch) continue;
 
     const slug = linkMatch[1].replace(/^\/manga\//, '').replace(/\/$/, '');
