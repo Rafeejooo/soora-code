@@ -37,6 +37,7 @@ const VideoPlayer = forwardRef(function VideoPlayer(
   const [settingsTab, setSettingsTab] = useState('main'); // 'main' | 'quality' | 'brightness' | 'subtitles'
   const [seeking, setSeeking] = useState(false);
   const [activeSubtitle, setActiveSubtitle] = useState(-1); // -1 = off, index = active track
+  const [textTracks, setTextTracks] = useState([]); // discovered subtitle tracks {index,label,lang}
 
   useImperativeHandle(ref, () => ({
     getVideo: () => videoRef.current,
@@ -342,31 +343,45 @@ const VideoPlayer = forwardRef(function VideoPlayer(
     setActiveSubtitle(index);
   };
 
-  // Initialize subtitles off by default, then enable first English if available
+  // Discover subtitle tracks — works for both prop <track> AND hls.js-native
+  // HLS subtitles (e.g. VixSrc embeds EN/IT subs inside the m3u8). Builds the
+  // picker list from video.textTracks and defaults to English.
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || validSubs.length === 0) return;
-    const checkTracks = () => {
-      const tracks = video.textTracks;
-      if (tracks.length === 0) return;
-      // Find English subtitle or default to first
-      let defaultIdx = -1;
-      for (let i = 0; i < tracks.length; i++) {
-        tracks[i].mode = 'hidden';
-        if (defaultIdx === -1 && (tracks[i].label?.toLowerCase().includes('english') || tracks[i].language === 'en')) {
-          defaultIdx = i;
+    if (!video) return;
+    let cancelled = false;
+    const sync = () => {
+      if (cancelled) return;
+      const tt = video.textTracks;
+      const list = [];
+      for (let i = 0; i < tt.length; i++) {
+        if (tt[i].kind && tt[i].kind !== 'subtitles' && tt[i].kind !== 'captions') continue;
+        const label = tt[i].label || tt[i].language || `Track ${i + 1}`;
+        if (label.toLowerCase().includes('thumbnail')) continue;
+        list.push({ index: i, label, lang: tt[i].language || '' });
+      }
+      setTextTracks(list);
+      // default English once, only if user hasn't picked yet
+      if (list.length && activeSubtitle === -1) {
+        const en = list.find((t) => t.label.toLowerCase().includes('english') || t.lang === 'en');
+        if (en) {
+          for (let i = 0; i < tt.length; i++) tt[i].mode = i === en.index ? 'showing' : 'hidden';
+          setActiveSubtitle(en.index);
         }
       }
-      if (defaultIdx >= 0) {
-        tracks[defaultIdx].mode = 'showing';
-        setActiveSubtitle(defaultIdx);
-      }
     };
-    // textTracks may load async
-    if (video.textTracks.length > 0) checkTracks();
-    else video.textTracks.addEventListener('addtrack', checkTracks, { once: true });
-    return () => video.textTracks.removeEventListener('addtrack', checkTracks);
-  }, [src, subtitles.length]);
+    sync();
+    video.textTracks.addEventListener('addtrack', sync);
+    video.textTracks.addEventListener('change', sync);
+    const t = setInterval(sync, 1500); // hls subs can arrive late
+    setTimeout(() => clearInterval(t), 12000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+      video.textTracks.removeEventListener('addtrack', sync);
+      video.textTracks.removeEventListener('change', sync);
+    };
+  }, [src]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSeekStart = () => setSeeking(true);
   const handleSeek = (e) => {
@@ -639,7 +654,7 @@ const VideoPlayer = forwardRef(function VideoPlayer(
               <button className="nf-settings-item" onClick={() => setSettingsTab('subtitles')}>
                 <span>Subtitles</span>
                 <span className="nf-settings-value">
-                  {validSubs.length === 0 ? 'None' : activeSubtitle === -1 ? 'Off' : (validSubs[activeSubtitle]?.lang || `Track ${activeSubtitle + 1}`)}
+                  {textTracks.length === 0 ? 'None' : activeSubtitle === -1 ? 'Off' : (textTracks.find((t) => t.index === activeSubtitle)?.label || 'On')}
                 </span>
               </button>
               <button className="nf-settings-item" onClick={() => setSettingsTab('brightness')}>
@@ -681,9 +696,9 @@ const VideoPlayer = forwardRef(function VideoPlayer(
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="m15 18-6-6 6-6"/></svg>
                 Subtitles
               </button>
-              {validSubs.length === 0 ? (
+              {textTracks.length === 0 ? (
                 <div className="nf-settings-item" style={{ opacity: 0.5, cursor: 'default' }}>
-                  <span>No subtitles available for this content</span>
+                  <span>Tidak ada subtitle untuk judul ini</span>
                 </div>
               ) : (
                 <>
@@ -694,14 +709,14 @@ const VideoPlayer = forwardRef(function VideoPlayer(
                     <span>Off</span>
                     {activeSubtitle === -1 && <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>}
                   </button>
-                  {validSubs.map((sub, i) => (
+                  {textTracks.map((t) => (
                     <button
-                      key={i}
-                      className={`nf-settings-item ${activeSubtitle === i ? 'active' : ''}`}
-                      onClick={() => { selectSubtitle(i); setShowSettings(false); }}
+                      key={t.index}
+                      className={`nf-settings-item ${activeSubtitle === t.index ? 'active' : ''}`}
+                      onClick={() => { selectSubtitle(t.index); setShowSettings(false); }}
                     >
-                      <span>{sub.lang || `Subtitle ${i + 1}`}</span>
-                      {activeSubtitle === i && <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>}
+                      <span>{t.label}</span>
+                      {activeSubtitle === t.index && <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>}
                     </button>
                   ))}
                 </>
