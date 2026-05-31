@@ -179,6 +179,22 @@ router.get('/komiku/trending', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /manga/komiku/list?sort=latest|popular&pages=4
+ * Fuller Komiku catalog (multi-page, deduped) for the Sub Indo home rows.
+ */
+router.get('/komiku/list', async (req: Request, res: Response) => {
+  try {
+    const sort = qs(req.query.sort) === 'popular' ? 'popular' : 'latest';
+    const pages = parseInt(qs(req.query.pages) || '4');
+    const data = await cached(`manga:komiku:list:${sort}:${pages}`, () => consumet.komikuList(sort, pages), CACHE_TTL.GENRE);
+    res.json(data);
+  } catch (err: any) {
+    reportRouteError(req, err, 'manga/komiku/list');
+    res.json({ results: [] });
+  }
+});
+
+/**
  * GET /manga/komiku/info/:id
  */
 router.get('/komiku/info/:id', async (req: Request, res: Response) => {

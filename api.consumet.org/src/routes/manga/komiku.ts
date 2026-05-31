@@ -199,14 +199,48 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
     }
   });
 
-  // Trending: GET /manga/komiku/trending
+  // Trending: GET /manga/komiku/trending (api.komiku.org/other/hot — fixed host)
   fastify.get('/trending', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const html = await fetchHTML(`${BASE}/other/hot/`);
-      const results = parseSearchResults(html);
+      // Pull a few hot pages for a fuller, less repetitive list
+      const pages = await Promise.all(
+        [1, 2, 3].map((p) =>
+          fetchHTML(`${API_BASE}/other/hot/${p > 1 ? `?page=${p}` : ''}`).then(parseSearchResults).catch(() => [])
+        )
+      );
+      const seen = new Set<string>();
+      const results: any[] = [];
+      for (const page of pages) for (const m of page) {
+        if (m.id && !seen.has(m.id)) { seen.add(m.id); results.push(m); }
+      }
       reply.status(200).send({ results });
     } catch (err: any) {
       reply.status(500).send({ message: err.message || 'Failed to fetch trending' });
+    }
+  });
+
+  // List: GET /manga/komiku/list?sort=latest|popular&pages=3
+  // latest = newest updated; popular = hot. Multi-page, deduped.
+  fastify.get('/list', async (request: FastifyRequest, reply: FastifyReply) => {
+    const q = request.query as { sort?: string; pages?: string };
+    const sort = q.sort === 'popular' ? 'popular' : 'latest';
+    const pageCount = Math.min(parseInt(q.pages || '4', 10) || 4, 6);
+    try {
+      const urls = Array.from({ length: pageCount }, (_, i) => {
+        const p = i + 1;
+        return sort === 'popular'
+          ? `${API_BASE}/other/hot/${p > 1 ? `?page=${p}` : ''}`
+          : `${API_BASE}/manga/page/${p}/`;
+      });
+      const pages = await Promise.all(urls.map((u) => fetchHTML(u).then(parseSearchResults).catch(() => [])));
+      const seen = new Set<string>();
+      const results: any[] = [];
+      for (const page of pages) for (const m of page) {
+        if (m.id && !seen.has(m.id)) { seen.add(m.id); results.push(m); }
+      }
+      reply.status(200).send({ results });
+    } catch (err: any) {
+      reply.status(500).send({ message: err.message || 'Failed to fetch list' });
     }
   });
 };

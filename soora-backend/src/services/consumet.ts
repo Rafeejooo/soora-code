@@ -182,6 +182,11 @@ export async function komikuTrending() {
   return res.data;
 }
 
+export async function komikuList(sort = 'latest', pages = 4) {
+  const res = await client.get('/manga/komiku/list', { params: { sort, pages } });
+  return res.data;
+}
+
 export async function komikuSearch(query: string) {
   const res = await client.get(`/manga/komiku/${encodeURIComponent(query)}`);
   return res.data;

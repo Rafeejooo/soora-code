@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { searchSamehadaku, searchMoviesTMDB } from '../api';
+import { searchSamehadaku, searchMoviesTMDB, searchManga, searchKomiku } from '../api';
 
 /**
  * SearchSuggest — search box with a YouTube-style live suggestion dropdown
@@ -35,6 +35,14 @@ export default function SearchSuggest({ kind = 'anime', placeholder, className =
           year: a.year || '', type: a.type || 'TV', _sub: true,
         }));
         setItems(list);
+      } else if (kind === 'manga') {
+        const id = localStorage.getItem('soora_manga_lang') === 'id';
+        const r = id ? await searchKomiku(term) : await searchManga(term);
+        const list = (r.data?.results || []).slice(0, 6).map((m) => ({
+          id: m.id, title: typeof m.title === 'object' ? (m.title.english || m.title.romaji || m.title.userPreferred) : m.title,
+          image: m.image, year: '', type: m.type || '', _manga: true,
+        }));
+        setItems(list);
       } else {
         const r = await searchMoviesTMDB(term, 1);
         const list = (r.data?.results || []).slice(0, 6).map((m) => ({
@@ -58,7 +66,7 @@ export default function SearchSuggest({ kind = 'anime', placeholder, className =
 
   const goFull = () => {
     if (!q.trim()) return;
-    const path = kind === 'anime' ? '/anime/search' : '/movies/search';
+    const path = kind === 'anime' ? '/anime/search' : kind === 'manga' ? '/manga/search' : '/movies/search';
     navigate(`${path}?q=${encodeURIComponent(q.trim())}`);
     setOpen(false);
   };
@@ -67,6 +75,8 @@ export default function SearchSuggest({ kind = 'anime', placeholder, className =
     setOpen(false);
     if (kind === 'anime') {
       navigate(`/anime/${encodeURIComponent(it.id)}?sub=1`);
+    } else if (kind === 'manga') {
+      navigate(`/manga/${encodeURIComponent(it.id)}`);
     } else {
       const mt = it.mediaType || 'movie';
       navigate(`/${mt === 'tv' ? 'series' : 'movie'}/${it.id}`);

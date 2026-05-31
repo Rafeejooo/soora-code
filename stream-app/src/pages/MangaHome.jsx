@@ -9,10 +9,12 @@ import {
   isManhwa,
   getMangaContentType,
   searchKomiku,
+  getKomikuList,
   getMangaHomeBundle,
 } from '../api';
 import { buildMangaUrl } from '../utils/seo';
 import Card from '../components/Card';
+import SearchSuggest from '../components/SearchSuggest';
 import Top10Section from '../components/Top10Section';
 import SkeletonHero from '../components/SkeletonHero';
 import SkeletonSection from '../components/SkeletonSection';
@@ -180,6 +182,36 @@ export default function MangaHome() {
       setHeroItems([]);
 
       const useKomiku = selectedLang === 'id';
+
+      // ── Komiku (Sub Indo): use the real catalog (latest + popular, multi-page)
+      //    instead of a fixed list of search terms so the front page is varied. ──
+      if (useKomiku) {
+        try {
+          const [latestRes, popRes] = await Promise.allSettled([
+            getKomikuList('latest', 5),
+            getKomikuList('popular', 4),
+          ]);
+          if (cancelled) return;
+          const tag = (arr) => (arr || []).map((i) => ({ ...i, provider: 'komiku' }));
+          const latest = latestRes.status === 'fulfilled' ? tag(latestRes.value.data?.results) : [];
+          const popular = popRes.status === 'fulfilled' ? tag(popRes.value.data?.results) : [];
+
+          if (latest.length || popular.length) {
+            const hero = popular.filter((i) => !isMangaNovel(i)).slice(0, 6);
+            if (hero.length) { setHeroItems(hero); setHeroReady(true); }
+            const map = {
+              'Sedang Populer': popular,
+              'Baru Update': latest,
+              'Manhwa Pilihan': latest.filter((i) => /manhwa/i.test(i.type)).slice(0, 24),
+              'Manga Pilihan': latest.filter((i) => /manga/i.test(i.type)).slice(0, 24),
+            };
+            setSections(map);
+            setLoadedSections(new Set(Object.keys(map)));
+            return; // done — skip the fixed-query path
+          }
+        } catch { /* fall through to query path */ }
+      }
+
       const queries = useKomiku ? KOMIKU_QUERIES : POPULAR_QUERIES;
       const searchFn = useKomiku ? searchKomiku : searchManga;
       const providerTag = useKomiku ? 'komiku' : null;
@@ -349,16 +381,7 @@ export default function MangaHome() {
 
       {/* Search */}
       <div className="home-search">
-        <form onSubmit={handleSearch} className="home-search-form">
-          <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-          </svg>
-          <input
-            value={searchVal}
-            onChange={(e) => setSearchVal(e.target.value)}
-            placeholder="Search manga, manhwa, manhua..."
-          />
-        </form>
+        <SearchSuggest kind="manga" placeholder="Cari manga, manhwa, manhua..." className="home-search-suggest" />
       </div>
 
       {/* ── Filter Panel ── */}

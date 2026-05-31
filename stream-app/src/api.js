@@ -998,6 +998,12 @@ export const getKomikuTrending = () =>
     return api.get('/manga/komiku/trending');
   }, MANGA_CACHE_TTL);
 
+// Fuller Komiku catalog for Sub Indo home (multi-page, deduped)
+export const getKomikuList = (sort = 'latest', pages = 4) =>
+  cachedGet(`komiku:list:${sort}:${pages}`, async () => {
+    return api.get('/manga/komiku/list', { params: { sort, pages } });
+  }, MANGA_CACHE_TTL);
+
 // ========== SAMEHADAKU / Sub Indo (via Sankavollerei API) ==========
 // Sub Indo (Samehadaku) now goes through our backend proxy (/anime/subindo/*)
 // — faster (VPS path + server cache) and avoids sankavollerei's per-user anti-bot.
