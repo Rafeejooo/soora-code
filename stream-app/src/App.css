@@ -3210,6 +3210,24 @@ a:hover {
 }
 .subindo-loading-wrap p { color: rgba(255,255,255,0.55); font-size: 0.85rem; }
 
+/* ===== SUBTITLE STYLE SETTINGS ===== */
+.nf-substyle-group { padding: 0.5rem 0.9rem; }
+.nf-substyle-label {
+  display: block; font-size: 0.72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.5); margin-bottom: 0.5rem;
+}
+.nf-substyle-row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.nf-chip {
+  padding: 0.35rem 0.8rem; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.8);
+  font-size: 0.78rem; font-weight: 600; font-family: inherit; cursor: pointer;
+  transition: all 0.15s ease;
+}
+.nf-chip:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.nf-chip.active { background: var(--accent, #7c5cfc); border-color: transparent; color: #fff; }
+
 /* ===== SUB INDO QUALITY BAR ===== */
 .subindo-quality-bar {
   display: flex;

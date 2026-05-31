@@ -38,6 +38,52 @@ const VideoPlayer = forwardRef(function VideoPlayer(
   const [seeking, setSeeking] = useState(false);
   const [activeSubtitle, setActiveSubtitle] = useState(-1); // -1 = off, index = active track
   const [textTracks, setTextTracks] = useState([]); // discovered subtitle tracks {index,label,lang}
+  // Subtitle appearance (persisted)
+  const [subStyle, setSubStyle] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('soora_sub_style')) || {}; } catch { return {}; }
+  });
+  const subCfg = {
+    size: subStyle.size || 'md',     // sm | md | lg | xl
+    bg: subStyle.bg || 'semi',       // none | semi | solid
+    font: subStyle.font || 'sans',   // sans | serif | mono
+    color: subStyle.color || 'white',// white | yellow
+  };
+  const setSub = (patch) => {
+    const next = { ...subCfg, ...patch };
+    setSubStyle(next);
+    try { localStorage.setItem('soora_sub_style', JSON.stringify(next)); } catch { /* ignore */ }
+  };
+  const playerIdRef = useRef(`nfp-${Math.random().toString(36).slice(2, 9)}`);
+
+  // Inject ::cue styling scoped to this player (works for hls-native textTracks)
+  useEffect(() => {
+    const id = playerIdRef.current;
+    const sizeMap = { sm: '2.6vw', md: '3.4vw', lg: '4.4vw', xl: '5.6vw' };
+    const fontMap = {
+      sans: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
+      serif: 'Georgia, "Times New Roman", serif',
+      mono: '"Courier New", monospace',
+    };
+    const bgMap = { none: 'transparent', semi: 'rgba(0,0,0,0.55)', solid: 'rgba(0,0,0,0.9)' };
+    const colorMap = { white: '#fff', yellow: '#ffe600' };
+    const css = `#${id} video::cue {
+      font-size: ${sizeMap[subCfg.size]};
+      font-family: ${fontMap[subCfg.font]};
+      background: ${bgMap[subCfg.bg]};
+      color: ${colorMap[subCfg.color]};
+      text-shadow: ${subCfg.bg === 'none' ? '0 2px 4px rgba(0,0,0,0.9), 0 0 3px rgba(0,0,0,0.9)' : 'none'};
+      line-height: 1.3;
+    }`;
+    let el = document.getElementById(`${id}-cuestyle`);
+    if (!el) { el = document.createElement('style'); el.id = `${id}-cuestyle`; document.head.appendChild(el); }
+    el.textContent = css;
+    return () => { /* keep style; cleaned on unmount below */ };
+  }, [subCfg.size, subCfg.font, subCfg.bg, subCfg.color]);
+
+  useEffect(() => {
+    const id = playerIdRef.current;
+    return () => { document.getElementById(`${id}-cuestyle`)?.remove(); };
+  }, []);
 
   useImperativeHandle(ref, () => ({
     getVideo: () => videoRef.current,
@@ -457,6 +503,7 @@ const VideoPlayer = forwardRef(function VideoPlayer(
   return (
     <div
       ref={containerRef}
+      id={playerIdRef.current}
       className={`nf-player ${showControls ? 'show-controls' : ''} ${isFullscreen ? 'nf-fullscreen' : ''}`}
       onMouseMove={resetHideTimer}
       onMouseLeave={() => { if (playing) setShowControls(false); }}
@@ -657,10 +704,55 @@ const VideoPlayer = forwardRef(function VideoPlayer(
                   {textTracks.length === 0 ? 'None' : activeSubtitle === -1 ? 'Off' : (textTracks.find((t) => t.index === activeSubtitle)?.label || 'On')}
                 </span>
               </button>
+              <button className="nf-settings-item" onClick={() => setSettingsTab('substyle')}>
+                <span>Gaya Subtitle</span>
+                <span className="nf-settings-value">{({ sm: 'Kecil', md: 'Sedang', lg: 'Besar', xl: 'XL' })[subCfg.size]}</span>
+              </button>
               <button className="nf-settings-item" onClick={() => setSettingsTab('brightness')}>
                 <span>Brightness</span>
                 <span className="nf-settings-value">{brightness}%</span>
               </button>
+            </>
+          )}
+
+          {settingsTab === 'substyle' && (
+            <>
+              <button className="nf-settings-back" onClick={() => setSettingsTab('main')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="m15 18-6-6 6-6"/></svg>
+                Gaya Subtitle
+              </button>
+              <div className="nf-substyle-group">
+                <span className="nf-substyle-label">Ukuran</span>
+                <div className="nf-substyle-row">
+                  {[['sm','Kecil'],['md','Sedang'],['lg','Besar'],['xl','XL']].map(([v,l]) => (
+                    <button key={v} className={`nf-chip ${subCfg.size===v?'active':''}`} onClick={() => setSub({ size: v })}>{l}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="nf-substyle-group">
+                <span className="nf-substyle-label">Latar</span>
+                <div className="nf-substyle-row">
+                  {[['none','Tanpa'],['semi','Samar'],['solid','Pekat']].map(([v,l]) => (
+                    <button key={v} className={`nf-chip ${subCfg.bg===v?'active':''}`} onClick={() => setSub({ bg: v })}>{l}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="nf-substyle-group">
+                <span className="nf-substyle-label">Font</span>
+                <div className="nf-substyle-row">
+                  {[['sans','Sans'],['serif','Serif'],['mono','Mono']].map(([v,l]) => (
+                    <button key={v} className={`nf-chip ${subCfg.font===v?'active':''}`} onClick={() => setSub({ font: v })}>{l}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="nf-substyle-group">
+                <span className="nf-substyle-label">Warna</span>
+                <div className="nf-substyle-row">
+                  {[['white','Putih'],['yellow','Kuning']].map(([v,l]) => (
+                    <button key={v} className={`nf-chip ${subCfg.color===v?'active':''}`} onClick={() => setSub({ color: v })}>{l}</button>
+                  ))}
+                </div>
+              </div>
             </>
           )}
 
