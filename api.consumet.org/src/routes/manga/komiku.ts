@@ -228,9 +228,13 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
     try {
       const urls = Array.from({ length: pageCount }, (_, i) => {
         const p = i + 1;
-        return sort === 'popular'
-          ? `${API_BASE}/other/hot/${p > 1 ? `?page=${p}` : ''}`
-          : `${API_BASE}/manga/page/${p}/`;
+        if (sort === 'popular') {
+          return `${API_BASE}/other/hot/${p > 1 ? `?page=${p}` : ''}`;
+        }
+        // latest = newest updated: page 1 is /manga/?orderby=modified, page N is /manga/page/N/?orderby=modified
+        return p === 1
+          ? `${API_BASE}/manga/?orderby=modified`
+          : `${API_BASE}/manga/page/${p}/?orderby=modified`;
       });
       const pages = await Promise.all(urls.map((u) => fetchHTML(u).then(parseSearchResults).catch(() => [])));
       const seen = new Set<string>();
