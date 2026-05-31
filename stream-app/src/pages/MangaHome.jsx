@@ -197,8 +197,9 @@ export default function MangaHome() {
           const popular = popRes.status === 'fulfilled' ? tag(popRes.value.data?.results) : [];
 
           if (latest.length || popular.length) {
-            const hero = popular.filter((i) => !isMangaNovel(i)).slice(0, 6);
-            if (hero.length) { setHeroItems(hero); setHeroReady(true); }
+            const hero = (popular.length ? popular : latest).filter((i) => i.image).slice(0, 6);
+            setHeroItems(hero);
+            setHeroReady(true); // always reveal page once we have catalog data
             const map = {
               'Sedang Populer': popular,
               'Baru Update': latest,
@@ -544,17 +545,32 @@ export default function MangaHome() {
             />
           )}
 
-          {(selectedLang === 'id' ? KOMIKU_QUERIES : POPULAR_QUERIES).map((sec) => (
-            loadedSections.has(sec.label) ? (
-              sections[sec.label]?.length > 0 && (
-                <div key={sec.label} className="section-fade-in">
-                  <Section title={sec.label} items={sections[sec.label]} type="manga" />
-                </div>
-              )
+          {selectedLang === 'id' ? (
+            /* Komiku (Sub Indo) uses real-catalog rows with custom labels */
+            Object.keys(sections).length === 0 ? (
+              <><SkeletonSection /><SkeletonSection /></>
             ) : (
-              <SkeletonSection key={`skel-${sec.label}`} />
+              Object.keys(sections)
+                .filter((label) => label !== 'Trending' && sections[label]?.length > 0)
+                .map((label) => (
+                  <div key={label} className="section-fade-in">
+                    <Section title={label} items={sections[label]} type="manga" />
+                  </div>
+                ))
             )
-          ))}
+          ) : (
+            POPULAR_QUERIES.map((sec) => (
+              loadedSections.has(sec.label) ? (
+                sections[sec.label]?.length > 0 && (
+                  <div key={sec.label} className="section-fade-in">
+                    <Section title={sec.label} items={sections[sec.label]} type="manga" />
+                  </div>
+                )
+              ) : (
+                <SkeletonSection key={`skel-${sec.label}`} />
+              )
+            ))
+          )}
         </>
       )}
 
