@@ -17,6 +17,7 @@ import {
 } from '../api';
 import { buildMovieUrl } from '../utils/seo';
 import Card from '../components/Card';
+import SearchSuggest from '../components/SearchSuggest';
 import Top10Section from '../components/Top10Section';
 import SkeletonHero from '../components/SkeletonHero';
 import SkeletonSection from '../components/SkeletonSection';
@@ -585,16 +586,7 @@ export default function MovieHome() {
 
       {/* Search */}
       <div className="home-search">
-        <form onSubmit={handleSearch} className="home-search-form">
-          <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-          </svg>
-          <input
-            value={searchVal}
-            onChange={(e) => setSearchVal(e.target.value)}
-            placeholder="Search movies & TV shows..."
-          />
-        </form>
+        <SearchSuggest kind="movie" placeholder="Cari film & serial..." className="home-search-suggest" />
       </div>
 
       {/* ── Filter Panel ── */}

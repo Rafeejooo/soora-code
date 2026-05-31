@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getSubIndoHomeBundle, getSubIndoSections } from '../api';
 import Card from '../components/Card';
+import SearchSuggest from '../components/SearchSuggest';
 import SkeletonHero from '../components/SkeletonHero';
 import SkeletonSection from '../components/SkeletonSection';
 
@@ -35,7 +36,6 @@ export default function Home() {
   const [sections, setSections] = useState(cached?.sections || null);
   const [ready, setReady] = useState(!!cached);
   const [heroIdx, setHeroIdx] = useState(0);
-  const [searchVal, setSearchVal] = useState('');
 
   const navigate = useNavigate();
   const heroInterval = useRef(null);
@@ -63,10 +63,6 @@ export default function Home() {
   }, [heroPool.length]);
   const hero = heroPool[heroIdx];
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchVal.trim()) navigate(`/anime/search?q=${encodeURIComponent(searchVal.trim())}`);
-  };
   const goWatch = (a) => navigate(`/anime/${encodeURIComponent(a.animeId || a.id || '')}?sub=1`);
 
   const top10 = (bundle?.top10?.length ? bundle.top10 : bundle?.popular || []).slice(0, 10).map(toCard);
@@ -114,12 +110,9 @@ export default function Home() {
         </div>
       ) : !ready ? <SkeletonHero /> : null}
 
-      {/* ── Search ── */}
+      {/* ── Search with live suggestions ── */}
       <div className="home-search">
-        <form onSubmit={handleSearch} className="home-search-form">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input type="text" placeholder="Cari anime..." value={searchVal} onChange={(e) => setSearchVal(e.target.value)} />
-        </form>
+        <SearchSuggest kind="anime" placeholder="Cari anime..." className="home-search-suggest" />
       </div>
 
       {!ready && <><SkeletonSection /><SkeletonSection /></>}

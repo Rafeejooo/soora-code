@@ -647,7 +647,18 @@ const VideoPlayer = forwardRef(function VideoPlayer(
           </div>
 
           <div className="nf-controls-right">
-            {/* Settings (Quality + Brightness) */}
+            {/* Subtitle / CC — direct access to subtitle + style settings */}
+            <button
+              className={`nf-btn ${activeSubtitle !== -1 ? 'nf-btn-on' : ''}`}
+              onClick={(e) => { e.stopPropagation(); setShowSettings(true); setSettingsTab('subtitles'); }}
+              title="Subtitle"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 12h4M6 15h2M14 12h4M14 15h3"/>
+              </svg>
+            </button>
+
+            {/* Settings (Quality + Subtitle style + Brightness) */}
             <button
               className="nf-btn"
               onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); setSettingsTab('main'); }}
