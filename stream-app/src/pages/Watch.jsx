@@ -492,10 +492,11 @@ export default function Watch() {
           // to embed only if VixSrc has no source for this title.
           try {
             const vix = await getVixsrcStream(mediaType === 'tv' ? 'tv' : 'movie', tmdbId, season, episode);
-            if (vix?.proxiedUrl) {
-              const src = { url: vix.proxiedUrl, quality: 'auto', isEmbed: false };
+            if (vix?.m3u8) {
+              const src = { url: vix.m3u8, quality: 'auto', isEmbed: false };
               setSources([src]);
               setCurrentSource(src);
+              setReferer(vix.ref || '');   // VideoPlayer proxies with this referer
               setUseEmbedPlayer(false);
             } else {
               console.info('VixSrc had no source — switching to embed player');

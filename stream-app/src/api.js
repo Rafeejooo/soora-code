@@ -717,11 +717,12 @@ export const getVixsrcStream = (type, tmdbId, season, episode) =>
       const params = type === 'tv' ? { season, episode } : {};
       const res = await api.get(`/movies/vixsrc/${type === 'tv' ? 'tv' : 'movie'}/${tmdbId}`, { params });
       const { m3u8, ref } = res.data || {};
-      if (!m3u8) return { m3u8: null, proxiedUrl: null };
-      const proxiedUrl = `${API_BASE}/proxy?url=${encodeURIComponent(m3u8)}&ref=${encodeURIComponent(ref || '')}&base=${encodeURIComponent(`${API_BASE}/proxy`)}`;
-      return { m3u8, ref, proxiedUrl };
+      if (!m3u8) return { m3u8: null, ref: null };
+      // Return RAW m3u8 + ref. VideoPlayer proxies it once itself (passing
+      // referer); pre-proxying here caused a nested /proxy?url=/proxy → 403.
+      return { m3u8, ref };
     } catch {
-      return { m3u8: null, proxiedUrl: null };
+      return { m3u8: null, ref: null };
     }
   });
 

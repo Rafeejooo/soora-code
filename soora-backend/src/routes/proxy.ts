@@ -35,7 +35,7 @@ router.get('/', async (req: Request, res: Response) => {
       headers['Origin'] = 'https://megacloud.tv';
     } else if (host.includes('vixsrc') || host.includes('vix-content') || host.includes('vixcloud')) {
       // VixSrc HLS playlists/segments require the embed page as Referer
-      headers['Referer'] = String(req.query.ref || 'https://vixsrc.to/');
+      headers['Referer'] = String(req.query.ref || req.query.referer || 'https://vixsrc.to/');
     }
 
     const response = await axios.get(targetUrl, {
@@ -58,11 +58,14 @@ router.get('/', async (req: Request, res: Response) => {
       //   - Via Vercel: base=/api/proxy → /api/proxy?url=...
       //   - Via stream.soora.fun: base=https://stream.soora.fun/proxy → full URL
       const proxyBase = String(req.query.base || '/proxy');
+      // Carry Referer down to nested segment/sub-playlist fetches (vixsrc needs it)
+      const refQ = req.query.ref || req.query.referer;
+      const refSuffix = refQ ? `&ref=${encodeURIComponent(String(refQ))}` : '';
 
       // Rewrite KEY/MAP URIs
       text = text.replace(/URI="([^"]+)"/g, (_match: string, uri: string) => {
         const abs = uri.startsWith('http') ? uri : new URL(uri, base).href;
-        return `URI="${proxyBase}?url=${encodeURIComponent(abs)}"`;
+        return `URI="${proxyBase}?url=${encodeURIComponent(abs)}${refSuffix}"`;
       });
 
       // Rewrite segment/playlist lines
@@ -72,7 +75,7 @@ router.get('/', async (req: Request, res: Response) => {
           const trimmed = line.trim();
           if (!trimmed || trimmed.startsWith('#')) return line;
           const abs = trimmed.startsWith('http') ? trimmed : new URL(trimmed, base).href;
-          return `${proxyBase}?url=${encodeURIComponent(abs)}`;
+          return `${proxyBase}?url=${encodeURIComponent(abs)}${refSuffix}`;
         })
         .join('\n');
 
