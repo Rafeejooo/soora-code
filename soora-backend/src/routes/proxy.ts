@@ -33,6 +33,9 @@ router.get('/', async (req: Request, res: Response) => {
     } else if (host.includes('biananset') || host.includes('kerapoxy')) {
       headers['Referer'] = 'https://megacloud.tv/';
       headers['Origin'] = 'https://megacloud.tv';
+    } else if (host.includes('vixsrc') || host.includes('vix-content') || host.includes('vixcloud')) {
+      // VixSrc HLS playlists/segments require the embed page as Referer
+      headers['Referer'] = String(req.query.ref || 'https://vixsrc.to/');
     }
 
     const response = await axios.get(targetUrl, {

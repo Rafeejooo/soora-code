@@ -10,6 +10,50 @@ const qs = (v: any): string => String(v ?? '');
 
 const router = Router();
 
+// ========== VIXSRC DIRECT RESOLVER (ad-free, raw HLS) ==========
+// TMDB id → vixsrc.to/api → embed page → master m3u8 (token+expires).
+// Returns { m3u8, ref } so the frontend plays it through our /proxy (which
+// adds the embed Referer). No iframe, no ads, sandbox stays on.
+import axios from 'axios';
+const VIX_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36';
+
+async function resolveVixsrc(kind: 'movie' | 'tv', tmdbId: string, season?: string, episode?: string) {
+  const apiPath = kind === 'tv'
+    ? `https://vixsrc.to/api/tv/${tmdbId}/${season}/${episode}`
+    : `https://vixsrc.to/api/movie/${tmdbId}`;
+  // step 1: get embed src
+  const a = await axios.get(apiPath, { headers: { 'User-Agent': VIX_UA, Referer: 'https://vixsrc.to/' }, timeout: 12000 });
+  const src = a.data?.src;
+  if (!src) return null;
+  const embed = `https://vixsrc.to${src}`;
+  // step 2: embed page → masterPlaylist
+  const e = await axios.get(embed, { headers: { 'User-Agent': VIX_UA, Referer: 'https://vixsrc.to/' }, timeout: 12000, responseType: 'text' });
+  const html: string = e.data;
+  const url = html.match(/url: *'([^']+)'/)?.[1];
+  const token = html.match(/'token': *'([^']+)'/)?.[1];
+  const expires = html.match(/'expires': *'?([0-9]+)/)?.[1];
+  if (!url || !token) return null;
+  const sep = url.includes('?') ? '&' : '?';
+  const m3u8 = `${url}${sep}token=${token}${expires ? `&expires=${expires}` : ''}&h=1&lang=en`;
+  return { m3u8, ref: embed };
+}
+
+router.get('/vixsrc/:type/:tmdbId', async (req: Request, res: Response) => {
+  try {
+    const type = req.params.type === 'tv' ? 'tv' : 'movie';
+    const tmdbId = qs(req.params.tmdbId);
+    const season = qs(req.query.season) || '1';
+    const episode = qs(req.query.episode) || '1';
+    const key = `vixsrc:${type}:${tmdbId}:${type === 'tv' ? `${season}:${episode}` : ''}`;
+    const data = await cached(key, () => resolveVixsrc(type, tmdbId, season, episode), CACHE_TTL.STREAM);
+    if (!data) return res.json({ m3u8: null });
+    res.json(data);
+  } catch (err: any) {
+    reportRouteError(req, err, 'movies/vixsrc');
+    res.json({ m3u8: null });
+  }
+});
+
 // TMDB genre IDs for home page sections
 const MOVIE_GENRE_SECTIONS = [
   { id: 28, key: 'action', label: 'Action' },
