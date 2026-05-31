@@ -15,6 +15,7 @@ import {
   getAnimeTopAiring,
   getGokuTrendingMovies,
   getGokuTrendingTV,
+  getTrendingTMDB,
   getLK21HomeBundle,
   getPopularManga,
 } from '../api';
@@ -158,18 +159,22 @@ export default function Search({ searchType }) {
               setDiscover([]);
             }
           } else {
-            const [mRes, tRes] = await Promise.allSettled([
-              getGokuTrendingMovies(),
-              getGokuTrendingTV(),
-            ]);
-            const movies = mRes.status === 'fulfilled' ? (mRes.value.data || []) : [];
-            const tv = tRes.status === 'fulfilled' ? (tRes.value.data || []) : [];
+            // TMDB trending (alive) — Goku is dead. Fall back to Goku only if TMDB empty.
+            let merged = [];
+            try {
+              const tr = await getTrendingTMDB('all', 'week');
+              merged = (tr.data?.results || []);
+            } catch { /* try goku */ }
+            if (merged.length === 0) {
+              const [mRes, tRes] = await Promise.allSettled([getGokuTrendingMovies(), getGokuTrendingTV()]);
+              const movies = mRes.status === 'fulfilled' ? (mRes.value.data || []) : [];
+              const tv = tRes.status === 'fulfilled' ? (tRes.value.data || []) : [];
+              merged = [...movies, ...tv];
+            }
             const seen = new Set();
-            const merged = [];
-            [...movies, ...tv].forEach(i => {
-              if (!seen.has(i.id)) { seen.add(i.id); merged.push(i); }
-            });
-            setDiscover(merged.sort(() => Math.random() - 0.5).slice(0, 18));
+            const dedup = [];
+            merged.forEach(i => { if (i && !seen.has(i.id)) { seen.add(i.id); dedup.push(i); } });
+            setDiscover(dedup.sort(() => Math.random() - 0.5).slice(0, 18));
             setDiscoverLabel('Trending Movies & TV');
           }
         } else if (type === 'manga') {
