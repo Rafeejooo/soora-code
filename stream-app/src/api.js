@@ -708,6 +708,23 @@ export const getGokuRecentTV = () =>
     return { data: (Array.isArray(res.data) ? res.data : res.data?.results || []).map(normalizeGoku) };
   });
 
+// VixSrc direct HLS resolver — TMDB id → raw m3u8 (ad-free, our hls.js player).
+// Returns { m3u8, proxiedUrl } where proxiedUrl streams through our /proxy
+// (adds the required Referer). null m3u8 = fall back to embed.
+export const getVixsrcStream = (type, tmdbId, season, episode) =>
+  cachedGet(`vixsrc:${type}:${tmdbId}:${season || ''}:${episode || ''}`, async () => {
+    try {
+      const params = type === 'tv' ? { season, episode } : {};
+      const res = await api.get(`/movies/vixsrc/${type === 'tv' ? 'tv' : 'movie'}/${tmdbId}`, { params });
+      const { m3u8, ref } = res.data || {};
+      if (!m3u8) return { m3u8: null, proxiedUrl: null };
+      const proxiedUrl = `${API_BASE}/proxy?url=${encodeURIComponent(m3u8)}&ref=${encodeURIComponent(ref || '')}&base=${encodeURIComponent(`${API_BASE}/proxy`)}`;
+      return { m3u8, ref, proxiedUrl };
+    } catch {
+      return { m3u8: null, proxiedUrl: null };
+    }
+  });
+
 // English movie/TV search via the backend multi-provider orchestrator
 // (TMDB + Goku + LK21). The old single-provider /movies/goku/:q passthrough
 // returned nothing whenever the Goku scraper was down — this endpoint falls

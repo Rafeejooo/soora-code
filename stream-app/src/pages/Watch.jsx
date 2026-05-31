@@ -29,6 +29,7 @@ import {
   getLK21SeriesStreams,
   getSamehadakuAnimeInfo,
   getSubIndoGenre,
+  getVixsrcStream,
 } from '../api';
 import Card from '../components/Card';
 import SkeletonWatch from '../components/SkeletonWatch';
@@ -487,34 +488,22 @@ export default function Watch() {
             (details.similar?.results || []).slice(0, 12).map(normRec)
           );
 
-          // Fetch streaming sources (Goku → FlixHQ fallback via title search)
-          const movieTitle = details.title || details.name || title;
-          const year = (details.release_date || details.first_air_date || '').slice(0, 4);
+          // PRIMARY: VixSrc direct HLS (ad-free, our hls.js player). Falls back
+          // to embed only if VixSrc has no source for this title.
           try {
-            let streamData;
-            if (mediaType === 'tv') {
-              streamData = await getTVStreamingSources(movieTitle, tmdbId, season, episode, year);
+            const vix = await getVixsrcStream(mediaType === 'tv' ? 'tv' : 'movie', tmdbId, season, episode);
+            if (vix?.proxiedUrl) {
+              const src = { url: vix.proxiedUrl, quality: 'auto', isEmbed: false };
+              setSources([src]);
+              setCurrentSource(src);
+              setUseEmbedPlayer(false);
             } else {
-              streamData = await getMovieStreamingSources(movieTitle, tmdbId, year);
-            }
-            const srcs = streamData.data?.sources || [];
-            setSources(srcs);
-            setSubtitles(streamData.data?.subtitles || []);
-            setReferer(streamData.data?.headers?.Referer || streamData.data?.headers?.referer || '');
-            const auto = srcs.find((s) => s.quality === 'auto' || s.quality === 'default');
-            const hd = srcs.find((s) => ['1080p', '1080'].includes(s.quality));
-            const med = srcs.find((s) => ['720p', '720'].includes(s.quality));
-            setCurrentSource(auto || hd || med || srcs[0] || null);
-            if (srcs.length === 0) {
-              // No sources but no error either → auto-embed
-              console.info('No HLS sources found, auto-switching to embed player');
+              console.info('VixSrc had no source — switching to embed player');
               setUseEmbedPlayer(true);
               setSubLang('multi');
             }
           } catch (streamErr) {
-            console.warn('Movie streaming fetch failed:', streamErr);
-            // Auto-fallback to embed instead of showing error
-            console.info('Stream extraction failed, auto-switching to embed player');
+            console.warn('VixSrc resolve failed, embed fallback:', streamErr);
             setUseEmbedPlayer(true);
             setSubLang('multi');
           }
